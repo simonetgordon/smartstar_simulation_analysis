@@ -1,23 +1,27 @@
-# Before supernova plots in one 2x2 figure
-# Star position currently set on position at time of formation
+""""
+Radial profiles in one 2x2 figure
+Star position set on position at time of formation and must be found prior
+"""
 import yt
 import ytree
 import os
+import sys
 import matplotlib.pyplot as plt
 
 # macros
-i = 3
-mass_density = False
+x = yt.load(sys.argv[1]) # plot number
+mass_density = False # to create volume-weight radial profiles
+star_pos0 = [0.49048811, 0.49467262, 0.50964459] # found with smartstar-find.py
 
 # load data
 root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/BF-0.0078125"
 
 # all ds
 DD = []
-ds1 = yt.load(os.path.join(root_dir, "DD0126/DD0126")) # t = 124.55, Time of star formation.
+ds1 = yt.load(os.path.join(root_dir, "DD0126/DD0126")) # t = 124.760, before particle formation
 label1 = "DD0126"
 DD.append(ds1)
-ds2 = yt.load(os.path.join(root_dir, "DD0129/DD0129")) # t = 125.55, 1 Myr after star particle inserted
+ds2 = yt.load(os.path.join(root_dir, "DD0129/DD0129")) # t = 124.7618, 0.0004323 Myr (400 yrs) after particle formation
 label2 = "DD0129"
 DD.append(ds2)
 
@@ -40,7 +44,6 @@ r_halo = a1[0]["virial_radius"].to('pc')
 r = ds1.quan(r_halo.d, "pc") # virial radius
 
 # Make initial sphere centred on the star at the time of formation (DD0122) with radius = 3 * virial radius
-star_pos0 = [0.49048811, 0.49467262, 0.50964459] # found with smartstar-find.py
 spheres = []
 for i, ds in enumerate(DD):
     sphere = ds.sphere(star_pos0, 3*r)
@@ -153,6 +156,7 @@ font2 = {'family': 'serif',
         'size': 14,
         }
 
+
 # 1) H2 molecule fraction vs. Radius
 axs[0, 0].loglog(radial_profiles_0_rad, radial_profiles_0_h2, color='b', linestyle='solid', label=label1)
 axs[0, 0].loglog(radial_profiles_1_rad, radial_profiles_1_h2, color='r', linestyle='solid', label=label2)
@@ -216,6 +220,6 @@ axs[1, 1].yaxis.set_label_position("right")
 fig = plt.gcf()
 fig.subplots_adjust(wspace=0, hspace=0)
 fig.set_size_inches(14.129921, 6.8661417)
-plot_name = 'star-profile-plot-' + str(i) + '.pdf'
+plot_name = 'radial-profile-plot-' + str(x) + '.pdf'
 fig.savefig('plots/' + plot_name, dpi=100)
 
