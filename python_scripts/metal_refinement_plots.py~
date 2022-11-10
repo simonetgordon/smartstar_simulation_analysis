@@ -1,0 +1,38 @@
+import sys
+import yt
+yt.enable_parallelism()
+from yt.extensions.p2p import add_p2p_fields, add_p2p_particle_filters
+
+if __name__ == "__main__":
+    es = yt.load_simulation(sys.argv[1], "Enzo", find_outputs=True)
+    es.get_time_series()
+
+    nested_level = es.parameters["CosmologySimulationNumberOfInitialGrids"] - 1
+    if nested_level == 0:
+        region = None
+        center = [0.5]*3
+        width = None
+    else:
+        left_edge = es.parameters["CosmologySimulationGridLeftEdge[%d]" % nested_level]
+        right_edge = es.parameters["CosmologySimulationGridRightEdge[%d]" % nested_level]
+        my_width = (right_edge - left_edge).max()
+        center = 0.5 * (left_edge + right_edge)
+
+    for ds in es.piter():
+        if nested_level > 0:
+            region = ds.box(center - 0.5 * my_width,
+                            center + 0.5 * my_width)
+            width = (my_width, "unitary")
+
+        # Add Pop III metallicity fields    
+        add_p2p_fields(ds)
+        add_p2p_particle_filters(ds)
+
+        
+        p = yt.ProjectionPlot(ds, "x", ("gas", "metallicity3"), width=width,center=center, data_source=region, weight_field='density')
+        p.set_cmap('metallicity3', 'kamae')
+        #p.set_unit('particle_mass', 'Msun')                                                                                                                                                        
+        p.set_axes_unit('kpccm')
+        p.annotate_timestamp(corner='lower_right')
+        p.annotate_scale(corner='lower_left')
+        p.save("frames_metal/")
