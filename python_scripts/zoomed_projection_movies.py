@@ -39,7 +39,6 @@ if __name__ == "__main__":
         p = yt.ProjectionPlot(ds, "x", ("gas", "metallicity3"), width=(200, 'pc'),center= center_star, weight_field='density')
         p.set_cmap('metallicity3', 'kamae')
       
-
         p.set_axes_unit('pc')
         p.annotate_timestamp(corner='lower_right')
         p.annotate_scale(corner='lower_left')
@@ -47,8 +46,7 @@ if __name__ == "__main__":
 
         # Temperature
         p1 = yt.ProjectionPlot(ds, "x", ("gas", "temperature"), width= (200, 'pc'),center=center_star, weight_field='density')
-        p1.set_cmap('temperature', 'RED TEMPERATURE')
-     
+        p1.set_cmap('temperature', 'RED TEMPERATURE')     
 
         p1.set_axes_unit('pc')
         p1.annotate_timestamp(corner='lower_right')
@@ -67,8 +65,7 @@ if __name__ == "__main__":
         # H2 fraction
         p3 = yt.ProjectionPlot(ds, "x", ("gas", "H2_p0_fraction"), width=(200,'pc'),center=center_star, weight_field='cell_mass')
         p3.set_cmap("H2_p0_fraction", "kelp")
-
-        
+  
         p3.set_axes_unit('pc')
         p3.annotate_timestamp(corner='lower_right')
         p3.annotate_scale(corner='lower_left')
