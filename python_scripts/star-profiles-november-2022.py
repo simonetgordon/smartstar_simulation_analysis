@@ -1,6 +1,6 @@
 """"
 Radial profiles in one 2x2 figure
-Star position set on position at time of formation and must be found prior
+Particle position set on position at time of formation and must be found prior
 """
 import yt
 import ytree
@@ -10,19 +10,19 @@ import matplotlib.pyplot as plt
 
 # macros
 x = yt.load(sys.argv[1]) # plot number
-mass_density = False # to create volume-weight radial profiles
+mass_density = True # to create volume-weight radial profiles
 star_pos0 = [0.49048811, 0.49467262, 0.50964459] # found with smartstar-find.py
 
 # load data
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/BF-0.0078125"
+root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun-thermal-only/BF-0.0078125"
 
 # all ds
 DD = []
-ds1 = yt.load(os.path.join(root_dir, "DD0126/DD0126")) # t = 124.760, before particle formation
-label1 = "DD0126"
+ds1 = yt.load(os.path.join(root_dir, "DD0125/DD0125")) # t = 124.760, before particle formation
+label1 = "DD0125"
 DD.append(ds1)
-ds2 = yt.load(os.path.join(root_dir, "DD0129/DD0129")) # t = 124.7618, 0.0004323 Myr (400 yrs) after particle formation
-label2 = "DD0129"
+ds2 = yt.load(os.path.join(root_dir, "DD0126/DD0126")) # t = 124.7618, 0.0004323 Myr (400 yrs) after particle formation
+label2 = "DD0126"
 DD.append(ds2)
 
 
