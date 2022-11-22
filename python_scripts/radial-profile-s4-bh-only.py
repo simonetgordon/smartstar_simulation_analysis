@@ -9,22 +9,26 @@ import sys
 import matplotlib.pyplot as plt
 
 # macros
-x = yt.load(sys.argv[1]) # plot number
+x = "seed4-bh-only-" # plot number
+y = sys.argv[-1]
 mass_density = True # to create volume-weight radial profiles
-star_pos0 = [0.49048811, 0.49467262, 0.50964459] # found with smartstar-find.py
+star_pos0 = [0.50136908, 0.51666754, 0.51230086] # found with smartstar-find.py
 
 # load data
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun-thermal-only/BF-0.0078125"
+root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed4-bh-only/270msun/BF-0.0078125"
 
 # all ds
 DD = []
-ds1 = yt.load(os.path.join(root_dir, "DD0125/DD0125")) # t = 124.760, before particle formation
-label1 = "DD0125"
+ds1 = yt.load(os.path.join(root_dir, sys.argv[1])) # before particle formation
+label1 = sys.argv[1]
 DD.append(ds1)
-ds2 = yt.load(os.path.join(root_dir, "DD0126/DD0126")) # t = 124.7618, 0.0004323 Myr (400 yrs) after particle formation
-label2 = "DD0126"
+ds2 = yt.load(os.path.join(root_dir, sys.argv[2])) # later time
+label2 = sys.argv[2]
 DD.append(ds2)
-
+if str(sys.argv[3]).startswith('DD'):
+    ds3 = yt.load(os.path.join(root_dir, sys.argv[3])) # latest time
+    label3 = sys.argv[3]
+    DD.append(ds3)
 
 # define dark_matter_mass field + add to all ds
 def _dm_mass(field, data):
@@ -32,7 +36,7 @@ def _dm_mass(field, data):
 
 
 for ds in DD:
-    ds.add_field(("gas", "dm_mass"), function=_dm_mass, units="g", sampling_type="cell") # need to define with units here.
+    ds.add_field(("gas", "dm_mass"), function=_dm_mass, units="g", sampling_type="cell")
 
 
 """ Make Sphere of Most Massive Halo """
@@ -43,7 +47,7 @@ a1 = ytree.load('/home/sgordon/disk14/pop3/gas+dm-L3/tree_810/tree_810.h5')
 r_halo = a1[0]["virial_radius"].to('pc')
 r = ds1.quan(r_halo.d, "pc") # virial radius
 
-# Make initial sphere centred on the star at the time of formation (DD0122) with radius = 3 * virial radius
+# Make initial sphere centred on the star at the time of formation with radius = 3 * virial radius
 spheres = []
 for i, ds in enumerate(DD):
     sphere = ds.sphere(star_pos0, 3*r)
@@ -160,6 +164,8 @@ font2 = {'family': 'serif',
 # 1) H2 molecule fraction vs. Radius
 axs[0, 0].loglog(radial_profiles_0_rad, radial_profiles_0_h2, color='b', linestyle='solid', label=label1)
 axs[0, 0].loglog(radial_profiles_1_rad, radial_profiles_1_h2, color='r', linestyle='solid', label=label2)
+if str(sys.argv[3]).startswith('DD'):
+    axs[0, 0].loglog(radial_profiles_2_rad, radial_profiles_2_h2, color='g', linestyle='solid', label=label3)
 
 axs[0, 0].set_xlabel(r"r (pc)", fontdict=font)
 axs[0, 0].set_ylabel(r"Gas fraction in HII", fontdict=font)
@@ -172,6 +178,8 @@ axs[0, 0].tick_params(axis="y", which='major', labelsize = 14)
 # 2) Temperature vs. Radius
 axs[0, 1].loglog(radial_profiles_0_rad, radial_profiles_0_temp, color='b', linestyle='solid', label=label1)
 axs[0, 1].loglog(radial_profiles_1_rad, radial_profiles_1_temp, color='r', linestyle='solid', label=label2)
+if str(sys.argv[3]).startswith('DD'):
+    axs[0, 1].loglog(radial_profiles_2_rad, radial_profiles_2_temp, color='g', linestyle='solid', label=label3)
 
 axs[0, 1].set_xlabel(r"r (pc)", fontdict=font)
 axs[0, 1].set_ylabel(r"T (K)", fontdict=font)
@@ -189,12 +197,14 @@ axs[0, 1].tick_params(axis="y", which='major', labelsize = 14)
 if mass_density:
     axs[1, 0].loglog(radial_profiles_vol[0].x.value, radial_profiles_vol[0]["number_density"].value, color='b', linestyle='solid', label=label1)
     axs[1, 0].loglog(radial_profiles_vol[1].x.value, radial_profiles_vol[1]["number_density"].value, color='r', linestyle='solid', label=label2)
+    if str(sys.argv[3]).startswith('DD'):
+        axs[1, 0].loglog(radial_profiles_vol[2].x.value, radial_profiles_vol[2]["number_density"].value, color='g', linestyle='solid', label=label3)
+    
+    axs[1, 0].set_ylabel(r"n $\mathrm{(cm^{-3})}$", fontdict=font)
+    axs[1, 0].set_xlabel("r (pc)", fontdict=font)
 
-    axs[1, 0].set_ylabel(r"$\mathrm{n\ (cm^{-3})}$", fontsize=20)
-
-    axs[1, 0].set_xticklabels([])
     axs[1, 0].tick_params(axis="x", which='minor', length = 4, direction="in")
-    axs[1, 0].tick_params(axis="x", which='major', width=2, length=7, direction="in")
+    axs[1, 0].tick_params(axis="x", which='major', labelsize=14, width=2, length=7, direction="in")
     axs[1, 0].tick_params(axis="y", which='major', labelsize=14)
 
 
@@ -206,13 +216,15 @@ for sp in spheres:
 
 axs[1, 1].semilogx(radial_profiles[0].x.value, radial_profiles[0]["radial_velocity"].in_units("km/s").value, color='b', linestyle='solid', label=label1)
 axs[1, 1].semilogx(radial_profiles[1].x.value, radial_profiles[1]["radial_velocity"].in_units("km/s").value, color='r', linestyle='solid', label=label2)
+if str(sys.argv[3]).startswith('DD'):
+    axs[1, 1].semilogx(radial_profiles[2].x.value, radial_profiles[2]["radial_velocity"].in_units("km/s").value, color='g', linestyle='solid', label=label3)
 
-axs[1, 1].set_xlabel(r"$\mathrm{r\ (pc)}$", fontsize=20)
-axs[1, 1].set_ylabel(r"$\mathrm{Radial\ velocity\ (km/s)} $", fontsize=20)
+axs[1, 1].set_xlabel("r (pc)", fontdict=font)
+axs[1, 1].set_ylabel("Radial velocity (km/s)", fontdict=font)
 
-axs[1, 1].tick_params(axis="x", which='minor', length=4)
-axs[1, 1].tick_params(axis="x", which='major', labelsize=18, width=2, length=7)
-axs[1, 1].tick_params(axis="y", which='major', labelsize=18)
+axs[1, 1].tick_params(axis="x", which='minor', length=4, direction="in")
+axs[1, 1].tick_params(axis="x", which='major', labelsize=14, width=2, length=7, direction="in")
+axs[1, 1].tick_params(axis="y", which='major', labelsize=14)
 axs[1, 1].yaxis.tick_right()
 axs[1, 1].yaxis.set_label_position("right")
 
@@ -220,6 +232,7 @@ axs[1, 1].yaxis.set_label_position("right")
 fig = plt.gcf()
 fig.subplots_adjust(wspace=0, hspace=0)
 fig.set_size_inches(14.129921, 6.8661417)
-plot_name = 'radial-profile-plot-' + str(x) + '.pdf'
+plot_name = 'radial-profile-plot-' + str(x) + str(y) + '.pdf'
 fig.savefig('plots/' + plot_name, dpi=100)
+print("created ", plot_name)
 
