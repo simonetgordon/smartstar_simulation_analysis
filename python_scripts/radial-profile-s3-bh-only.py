@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 # macros
 x = "seed3-bh-only-" # plot number
 y = sys.argv[-1]
+HII = False
+H2 = True
 mass_density = True # to create volume-weight radial profiles
 star_pos0 = [0.49030809, 0.50721032, 0.49177925] # found with smartstar-find.py
 
@@ -56,7 +58,7 @@ for i, ds in enumerate(DD):
 
 """ Make Profile Plots weighted by cell mass """
 
-all_fields = ["density", "temperature", "H_p1_fraction", "radial_velocity", "cell_mass", "matter_mass",
+all_fields = ["density", "temperature", "H2_p0_fraction", "radial_velocity", "cell_mass", "matter_mass",
               "cell_volume", "H_p1_fraction", "H_p0_fraction", "number_density"] # 'dm_mass' raises error if put here.
 all_units = {"radius": "pc", "cell_mass": "Msun", "matter_mass": "Msun", "density": "g/cm**3"}
 
@@ -92,7 +94,7 @@ if mass_density:
 radial_profiles_0_temp = radial_profiles[0]["temperature"][radial_profiles[0].used]
 radial_profiles_0_rad = radial_profiles[0].x[radial_profiles[0].used]
 
-radial_profiles_0_h2 = radial_profiles[0]["H_p1_fraction"][radial_profiles[0].used] # changed from H2 TO hii
+radial_profiles_0_h2 = radial_profiles[0]["H2_p0_fraction"][radial_profiles[0].used] # changed from H2
 radial_profiles_0_h1 = radial_profiles[0]["H_p0_fraction"][radial_profiles[0].used] # for HI fraction
 
 if len(spheres) > 1:
@@ -101,7 +103,7 @@ if len(spheres) > 1:
     radial_profiles_1_rad = radial_profiles[1].x[radial_profiles[1].used]
 
     # delete zeros for h2 fraction plot
-    radial_profiles_1_h2 = radial_profiles[1]["H_p1_fraction"][radial_profiles[1].used]
+    radial_profiles_1_h2 = radial_profiles[1]["H2_p0_fraction"][radial_profiles[1].used]
     radial_profiles_1_h1 = radial_profiles[1]["H_p0_fraction"][radial_profiles[1].used] # for HI fraction
 
 if len(spheres) > 2:
@@ -110,7 +112,7 @@ if len(spheres) > 2:
     radial_profiles_2_rad = radial_profiles[2].x[radial_profiles[2].used]
 
     # delete zeros for h2 fraction plot
-    radial_profiles_2_h2 = radial_profiles[2]["H_p1_fraction"][radial_profiles[2].used]
+    radial_profiles_2_h2 = radial_profiles[2]["H2_p0_fraction"][radial_profiles[2].used]
     radial_profiles_2_h1 = radial_profiles[2]["H_p0_fraction"][radial_profiles[2].used] # for HI fraction
 
 if len(spheres) > 3:
@@ -119,7 +121,7 @@ if len(spheres) > 3:
     radial_profiles_3_rad = radial_profiles[3].x[radial_profiles[3].used]
 
     # delete zeros for h2 fraction plot
-    radial_profiles_3_h2 = radial_profiles[3]["H_p1_fraction"][radial_profiles[3].used]
+    radial_profiles_3_h2 = radial_profiles[3]["H2_p0_fraction"][radial_profiles[3].used]
     radial_profiles_3_h1 = radial_profiles[3]["H_p0_fraction"][radial_profiles[3].used] # for HI fraction
 
 if len(spheres) > 4:
@@ -128,7 +130,7 @@ if len(spheres) > 4:
     radial_profiles_4_rad = radial_profiles[4].x[radial_profiles[4].used]
 
     # delete zeros for h2 fraction plot
-    radial_profiles_4_h2 = radial_profiles[4]["H_p1_fraction"][radial_profiles[4].used]
+    radial_profiles_4_h2 = radial_profiles[4]["H2_p0_fraction"][radial_profiles[4].used]
     radial_profiles_4_h1 = radial_profiles[4]["H_p0_fraction"][radial_profiles[4].used] # for HI fraction
 
 if len(spheres) > 5:
@@ -137,7 +139,7 @@ if len(spheres) > 5:
     radial_profiles_5_rad = radial_profiles[5].x[radial_profiles[5].used]
 
     # delete zeros for h2 fraction plot
-    radial_profiles_5_h2 = radial_profiles[5]["H_p1_fraction"][radial_profiles[5].used]
+    radial_profiles_5_h2 = radial_profiles[5]["H2_p0_fraction"][radial_profiles[5].used]
     radial_profiles_5_h1 = radial_profiles[5]["H_p0_fraction"][radial_profiles[5].used] # for HI fraction
 
 
@@ -162,13 +164,22 @@ font2 = {'family': 'serif',
 
 
 # 1) H2 molecule fraction vs. Radius
-axs[0, 0].loglog(radial_profiles_0_rad, radial_profiles_0_h2, color='b', linestyle='solid', label=label1)
-axs[0, 0].loglog(radial_profiles_1_rad, radial_profiles_1_h2, color='r', linestyle='solid', label=label2)
-if str(sys.argv[3]).startswith('DD'):
-    axs[0, 0].loglog(radial_profiles_2_rad, radial_profiles_2_h2, color='g', linestyle='solid', label=label3)
+if HII:
+    axs[0, 0].loglog(radial_profiles_0_rad, radial_profiles_0_h2, color='b', linestyle='solid', label=label1)
+    axs[0, 0].loglog(radial_profiles_1_rad, radial_profiles_1_h2, color='r', linestyle='solid', label=label2)
+    if str(sys.argv[3]).startswith('DD'):
+        axs[0, 0].loglog(radial_profiles_2_rad, radial_profiles_2_h2, color='g', linestyle='solid', label=label3)
 
-axs[0, 0].set_xlabel(r"r (pc)", fontdict=font)
-axs[0, 0].set_ylabel(r"Gas fraction in HII", fontdict=font)
+    axs[0, 0].set_xlabel(r"r (pc)", fontdict=font)
+    axs[0, 0].set_ylabel(r"Gas fraction in HII", fontdict=font)
+if H2:
+    axs[0, 0].loglog(radial_profiles_0_rad, radial_profiles_0_h2, color='b', linestyle='solid', label=label1)
+    axs[0, 0].loglog(radial_profiles_1_rad, radial_profiles_1_h2, color='r', linestyle='solid', label=label2)
+    if str(sys.argv[3]).startswith('DD'):
+        axs[0, 0].loglog(radial_profiles_2_rad, radial_profiles_2_h2, color='g', linestyle='solid', label=label3)
+
+    axs[0, 0].set_xlabel(r"r (pc)", fontdict=font)
+    axs[0, 0].set_ylabel(r"Gas fraction in H2", fontdict=font)
 
 axs[0, 0].tick_params(axis="x", which='minor', length = 4, direction="in")
 axs[0, 0].tick_params(axis="x", which='major', labelsize = 14, width=2, length=7, direction="in")
