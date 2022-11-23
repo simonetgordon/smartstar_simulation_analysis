@@ -10,15 +10,15 @@ width = (0.2, 'unitary')
 sp = ds.sphere(center0, width)
 ad = ds.all_data()
 
-star_creation = ad['SmartStar', 'creation_time'].to('Myr')
+star_creation = ad['SmartStar', 'creation_time'].to('yr')
 star_pos1 = ad['SmartStar', 'particle_position_x'].to('unitary')
 star_pos2 = ad['SmartStar', 'particle_position_y'].to('unitary')
 star_pos3 = ad['SmartStar', 'particle_position_z'].to('unitary')
 star_mass = ad['SmartStar', 'particle_mass'].to('Msun')
 star_class = ad[('SmartStar', 'ParticleClass')] # 0 = POPIII, 1 = SMS, 2 = BH 
-#accrate = ad[('SmartStar', 'AccretionRate')] # throws error: 'tuple cannot be interpreted as int'
+#ad[('SmartStar', 'AccretionRate')] # throws error: 'tuple cannot be interpreted as int'
 
-time_array = ds.current_time.to('Myr')
+time_array = ds.current_time.to('yr')
 creation = star_creation.d # strip units off variables
 time = time_array.d
 star_age = time - creation
@@ -30,11 +30,13 @@ print(star_pos1.d, star_pos2.d, star_pos3.d)
 print("-----------------------------------------")
 print("time of particle creation =", star_creation)
 print("-----------------------------------------")
-print("current time =", ds.current_time.to('Myr'))
+print("current time =", ds.current_time.to('yr'))
 print("-----------------------------------------")
-print("age of particle in Myr =", star_age)
+print("age of particle in yr =", star_age)
 print("-----------------------------------------")
 print("particle class: ", star_class)
 print("-----------------------------------------")
 print("particle mass: ", star_mass)
+print("-----------------------------------------")
+print("accretion rate: ", ad[('SmartStar', 'AccretionRate')].in_units('Msun/yr'))
 print("-----------------------------------------")
