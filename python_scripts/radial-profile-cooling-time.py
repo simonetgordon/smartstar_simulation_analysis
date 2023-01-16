@@ -56,8 +56,8 @@ for i, ds in enumerate(DD):
 
 """ Make Profile Plots weighted by cell mass """
 
-all_fields = ["cell_mass", "matter_mass", "cooling_time"]
-all_units = {"radius": "pc", "cell_mass": "Msun", "matter_mass": "Msun", "cooling_time": "s"}
+all_fields = ["cell_mass", "matter_mass", "cooling_time", "cooling_time_abs"]
+all_units = {"radius": "pc", "cell_mass": "Msun", "matter_mass": "Msun", "cooling_time_abs": "s", "cooling_time": "s"}
 
 # Radial profile weighted by = 'cell_mass'
 radial_profiles = []
@@ -91,9 +91,11 @@ font2 = {'family': 'serif',
         }
 
 
-plt.loglog(radial_profiles[0].x[radial_profiles[0]], radial_profiles[0]["cooling_time_abs"][radial_profiles[0]],
+plt.loglog(radial_profiles[0].x.value,
+           radial_profiles[0][("gas","cooling_time_abs")],
            color='b', linestyle='solid', label=label1)
-plt.loglog(radial_profiles[1].x[radial_profiles[1]], radial_profiles[1]["cooling_time_abs"][radial_profiles[1]],
+plt.loglog(radial_profiles[1].x.value,
+           radial_profiles[1]["cooling_time_abs"],
            color='r', linestyle='solid', label=label2)
 if str(sys.argv[3]).startswith('DD'):
     plt.loglog(radial_profiles[2].x[radial_profiles[2].used],
