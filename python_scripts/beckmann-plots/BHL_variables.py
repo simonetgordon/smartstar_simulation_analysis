@@ -5,44 +5,53 @@ import numpy as np
 import csv
 from itertools import zip_longest
 
+# turn on to combine multiple estd simulation txt output files
+MULTIPLE_ESTDS = 1
+
+# turn on if estd file has both AvgValues_MassWeighted and AvgValues printed out
+MASS_WEIGHTED = 1
+
 # reading data from this directory
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann-fixed-dx-75%"
-output_combined = 'output-fixed-dx-75%.out'
+root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann-fixed-dx-mass-weighted-75%"
 
 # writing data arrays to this file
-write_to = "data-fixed-dx-75%.csv"
+write_to = "data_files/data-fixed-dx-mass-weighted-75%.csv"
+
 
 ##########################################################################################################
-#                                  Read from simulation output txt files
+#                                  Read from simulation output txt file(s)
 ##########################################################################################################
 
-path = Path(output_combined)
-if path.is_file():
+if MULTIPLE_ESTDS:
+    output_combined = 'output-combined-temp.out'
+    path = Path(output_combined)
+    if not path.is_file():
+        file1 = os.path.join(root_dir, 'estd_0.out')
+        file2 = os.path.join(root_dir, 'estd.out')
+        data = data2 = ""
 
-    file1 = os.path.join(root_dir, 'estd_0.out')
-    file2 = os.path.join(root_dir, 'estd.out')
-    data = data2 = ""
+        # Reading data from file1
+        with open(file1) as fp:
+            data = fp.read()
 
-    # Reading data from file1
-    with open(file1) as fp:
-        data = fp.read()
+        # Reading data from file2
+        with open(file2) as fp:
+            data2 = fp.read()
 
-    # Reading data from file2
-    with open(file2) as fp:
-        data2 = fp.read()
+        # Merging 2 files
+        # To add the data of file2
+        # from next line
+        data += "\n"
+        data += data2
 
-    # Merging 2 files
-    # To add the data of file2
-    # from next line
-    data += "\n"
-    data += data2
-
-    Path(output_combined).touch()
-    with open(output_combined, 'w') as fp:
-        fp.write(data)
-    output = output_combined
+        Path(output_combined).touch()
+        with open(output_combined, 'w') as fp:
+            fp.write(data)
+        output = output_combined
+    else:
+        output = output_combined
 else:
-    output = output_combined
+    output = os.path.join(root_dir, 'estd.out')
 
 
 ##########################################################################################################
@@ -95,7 +104,11 @@ for line in open(output):
     avg_temp = re.search(r'AverageTemp = (.{12})', line)
     avg_cinf = re.search(r'Average cInfinity = (.{12})', line)
     avg_vinf = re.search(r'Average vInfinity = (.{12})', line)
-    if avg_dens:
+    if MASS_WEIGHTED:
+        mass_weighted = re.search(r'AvgValues_MassWeighted:', line)
+    else:
+        mass_weighted = 1
+    if avg_dens and mass_weighted:
         average_density.append(avg_dens.group(1))
         average_temperature.append(avg_temp.group(1))
         average_cinfinity.append(avg_cinf.group(1))
@@ -117,7 +130,7 @@ hl_radius = []
 for line in open(output):
     radius = re.search(r'to BondiHoyle radius = (.{12})', line)
     if radius:
-        hl_radius.append(hl_radius.group(1))
+        hl_radius.append(radius.group(1))
 
 hl_radius = np.array([float(i) for i in hl_radius])
 
@@ -139,12 +152,12 @@ mass = np.array([float(i) for i in mass])
 ##########################################################################################################
 
 # assign header columns
-headerList = ['accrate times', 'accrate', 'parameter times', 'average density', 'average vinfinity',
+headerList = ['accrate times', 'accrate', 'average times', 'average density', 'average vinfinity',
               'average cinfinity', 'average temperature', 'HL radius', 'BH mass']
 
 # open CSV file and assign header
-all_data = [accrate_times, accrates, average_times, average_vinfinity, average_cinfinity, average_temperature,
-            hl_radius, mass]
+all_data = [accrate_times, accrates, average_times, average_density, average_vinfinity, average_cinfinity,
+            average_temperature, hl_radius, mass]
 
 with open(write_to, "w+") as f:
     dw = csv.DictWriter(f, delimiter=',', fieldnames=headerList)
