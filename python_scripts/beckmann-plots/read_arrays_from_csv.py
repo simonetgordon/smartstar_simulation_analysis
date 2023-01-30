@@ -8,11 +8,11 @@ import pandas as pd
 # to call attributes: BHL.accrates
 ##########################################################################################################
 
-filename = sys.argv[-1]
+filename = sys.argv[1]
 data = pd.read_csv(filename, sep=',')
 columns = data.columns.values
 
-
+# make Black Hole class
 class Black_Hole:
     def __init__(self, accrate_times, accrates, average_times, average_density, average_vinfinity,
                  average_cinfinity, average_temperature, hl_radius, mass):
@@ -26,7 +26,21 @@ class Black_Hole:
         self.hl_radius = hl_radius
         self.mass = mass
 
+    def info(self):
+        print("------------------------------------------------------------------------------------------------------")
+        print("accrate_times (yrs post-formation): {}, \naccrates (Msun/yr): {}, \naverage_times (yrs "
+              "post-formation): {}, \naverage_density (cm^-3): {}, \naverage_vinfinity (km/s): {}, "
+              "\naverage_cinfinity (km/s): {}, \naverage_temperature (K): {}, \nhl_radius (pc): {},"
+              "\nmass (Msun): {}".format(
+            self.accrate_times,self.accrates, self.average_times, self.average_density,
+            self.average_vinfinity, self.average_cinfinity, self.average_temperature,
+            self.hl_radius, self.mass))
+        print("------------------------------------------------------------------------------------------------------")
+        return
 
+# make BHL class object
 BHL = Black_Hole(data[columns[0]].values, data[columns[1]].values, data[columns[2]].values,
                  data[columns[3]].values, data[columns[4]].values, data[columns[5]].values,
                  data[columns[6]].values, data[columns[7]].values, data[columns[8]].values)
+
+BHL.info()
