@@ -2,9 +2,20 @@ import os
 import re # complex str searches
 from pathlib import Path
 import numpy as np
+import csv
+from itertools import zip_longest
 
+# reading data from this directory
 root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann-fixed-dx-75%"
 output_combined = 'output-fixed-dx-75%.out'
+
+# writing data arrays to this file
+write_to = "data-fixed-dx-75%.csv"
+
+##########################################################################################################
+#                                  Read from simulation output txt files
+##########################################################################################################
+
 path = Path(output_combined)
 if path.is_file():
 
@@ -33,6 +44,7 @@ if path.is_file():
 else:
     output = output_combined
 
+
 ##########################################################################################################
 #                                  Accretion Arrays: accrates, accrate_times
 ##########################################################################################################
@@ -53,6 +65,7 @@ for j in range(len(accrate_dtimes)):
     accrate_times.append(accrate_dtimes[j] + sum(accrate_dtimes[:j]))
 
 accrate_times = np.array(accrate_times)
+
 
 ##########################################################################################################
 #                        Average Velocities, Densities + Temperature Arrays
@@ -95,6 +108,7 @@ avg_cinfinities = np.array([float(i) for i in avg_cinfinities])
 
 avg_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(avg_cinfinities))
 
+
 ##########################################################################################################
 #                                              HL radius
 ##########################################################################################################
@@ -107,7 +121,6 @@ for line in open(output):
 
 hl_radii = np.array([float(i) for i in hl_radii])
 
-#print("hl radii", len(hl_radii))
 
 ##########################################################################################################
 #                                              BH Mass
@@ -119,4 +132,25 @@ for line in open(output):
     if bh_mass:
         bh_masses.append(bh_mass.group(1))
 bh_masses = np.array([float(i) for i in bh_masses])
-#print("bh masses: ", len(bh_masses))
+
+
+##########################################################################################################
+#                                           Write to csv file
+##########################################################################################################
+
+# assign header columns
+headerList = ['accrate times', 'accrate', 'parameter times', 'average density', 'average vinfinity',
+              'average cinfinity', 'average temperature', 'HL radius', 'BH mass']
+
+# open CSV file and assign header
+all_data = [accrate_times, accrates, avg_times, avg_vinfinities, avg_cinfinities, avg_temperatures,
+            hl_radii, bh_masses]
+
+with open(write_to, "w+") as f:
+    dw = csv.DictWriter(f, delimiter=',', fieldnames=headerList)
+    dw.writeheader()
+    writer = csv.writer(f, delimiter=',')
+    for values in zip_longest(*all_data):
+        writer.writerow(values)
+
+print("saved data to {}".format(write_to))
