@@ -71,8 +71,8 @@ accrate_times = np.array(accrate_times)
 #                        Average Velocities, Densities + Temperature Arrays
 ##########################################################################################################
 
-def _avg_densities(avg_densities):
-    for index, i in enumerate(avg_densities):
+def _average_density(average_density):
+    for index, i in enumerate(average_density):
         try:
             float(i)
         except ValueError:
@@ -83,55 +83,55 @@ def _avg_densities(avg_densities):
             except ValueError:
                 i = i[:-1]
                 i = float(i)
-        avg_densities[index] = float(i)
-    return avg_densities
+        average_density[index] = float(i)
+    return average_density
 
-avg_densities = []
-avg_temperatures = []
-avg_vinfinities = []
-avg_cinfinities = []
+average_density = []
+average_temperature = []
+average_vinfinity = []
+average_cinfinity = []
 for line in open(output):
     avg_dens = re.search(r'Avg_Density = (.{11})', line)
     avg_temp = re.search(r'AverageTemp = (.{12})', line)
     avg_cinf = re.search(r'Average cInfinity = (.{12})', line)
     avg_vinf = re.search(r'Average vInfinity = (.{12})', line)
     if avg_dens:
-        avg_densities.append(avg_dens.group(1))
-        avg_temperatures.append(avg_temp.group(1))
-        avg_cinfinities.append(avg_cinf.group(1))
-        avg_vinfinities.append(avg_vinf.group(1))
+        average_density.append(avg_dens.group(1))
+        average_temperature.append(avg_temp.group(1))
+        average_cinfinity.append(avg_cinf.group(1))
+        average_vinfinity.append(avg_vinf.group(1))
 
-avg_densities = np.array(_avg_densities(avg_densities))
-avg_temperatures = np.array([float(i) for i in avg_temperatures])
-avg_vinfinities = np.array([float(i) for i in avg_vinfinities])
-avg_cinfinities = np.array([float(i) for i in avg_cinfinities])
+average_density = np.array(_average_density(average_density))
+average_temperature = np.array([float(i) for i in average_temperature])
+average_vinfinity = np.array([float(i) for i in average_vinfinity])
+average_cinfinity = np.array([float(i) for i in average_cinfinity])
 
-avg_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(avg_cinfinities))
+average_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(average_cinfinity))
 
 
 ##########################################################################################################
 #                                              HL radius
 ##########################################################################################################
 
-hl_radii = []
+hl_radius = []
 for line in open(output):
-    hl_radius = re.search(r'to BondiHoyle radius = (.{12})', line)
-    if hl_radius:
-        hl_radii.append(hl_radius.group(1))
+    radius = re.search(r'to BondiHoyle radius = (.{12})', line)
+    if radius:
+        hl_radius.append(hl_radius.group(1))
 
-hl_radii = np.array([float(i) for i in hl_radii])
+hl_radius = np.array([float(i) for i in hl_radius])
 
 
 ##########################################################################################################
 #                                              BH Mass
 ##########################################################################################################
 
-bh_masses = []
+mass = []
 for line in open(output):
     bh_mass = re.search(r'NewMass = (.{12})', line)
     if bh_mass:
-        bh_masses.append(bh_mass.group(1))
-bh_masses = np.array([float(i) for i in bh_masses])
+        mass.append(bh_mass.group(1))
+mass = np.array([float(i) for i in mass])
 
 
 ##########################################################################################################
@@ -143,8 +143,8 @@ headerList = ['accrate times', 'accrate', 'parameter times', 'average density', 
               'average cinfinity', 'average temperature', 'HL radius', 'BH mass']
 
 # open CSV file and assign header
-all_data = [accrate_times, accrates, avg_times, avg_vinfinities, avg_cinfinities, avg_temperatures,
-            hl_radii, bh_masses]
+all_data = [accrate_times, accrates, average_times, average_vinfinity, average_cinfinity, average_temperature,
+            hl_radius, mass]
 
 with open(write_to, "w+") as f:
     dw = csv.DictWriter(f, delimiter=',', fieldnames=headerList)
