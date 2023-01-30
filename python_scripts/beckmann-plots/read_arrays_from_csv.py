@@ -1,11 +1,17 @@
-import csv
 import sys
 import pandas as pd
 
-filename = sys.argv[-1]
+##########################################################################################################
+#                               Make BHL.attributes from csv columns
+#
+# to run: python read_arrays_from_csv.py [csv_filename]
+# to call attributes: BHL.accrates
+##########################################################################################################
 
+filename = sys.argv[-1]
 data = pd.read_csv(filename, sep=',')
 columns = data.columns.values
+
 
 class Black_Hole:
     def __init__(self, accrate_times, accrates, average_times, average_density, average_vinfinity,
@@ -20,8 +26,7 @@ class Black_Hole:
         self.hl_radius = hl_radius
         self.mass = mass
 
-BHL = Black_Hole(data[columns[0]].values, data[columns[1]].values, data[columns[2]].values, data[columns[3]].values,
-           data[columns[4]].values, data[columns[5]].values,
-           data[columns[6]].values, data[columns[7]].values, data[columns[8]].values)
 
-print(BHL.accrates)
+BHL = Black_Hole(data[columns[0]].values, data[columns[1]].values, data[columns[2]].values,
+                 data[columns[3]].values, data[columns[4]].values, data[columns[5]].values,
+                 data[columns[6]].values, data[columns[7]].values, data[columns[8]].values)
