@@ -6,13 +6,10 @@ import pandas as pd
 #
 # to run: python read_arrays_from_csv.py [csv_filename]
 # to call attributes: BHL.accrates
+# imported to plot_variables.py
 ##########################################################################################################
 
-filename = sys.argv[1]
-data = pd.read_csv(filename, sep=',')
-columns = data.columns.values
-
-# make Black Hole class
+# Black Hole class
 class Black_Hole:
     def __init__(self, accrate_times, accrates, average_times, average_density, average_vinfinity,
                  average_cinfinity, average_temperature, hl_radius, mass):
@@ -38,9 +35,28 @@ class Black_Hole:
         print("------------------------------------------------------------------------------------------------------")
         return
 
-# make BHL class object
-BHL = Black_Hole(data[columns[0]].values, data[columns[1]].values, data[columns[2]].values,
-                 data[columns[3]].values, data[columns[4]].values, data[columns[5]].values,
-                 data[columns[6]].values, data[columns[7]].values, data[columns[8]].values)
 
-BHL.info()
+# BHL object creator function (to be called in plot_variables)
+def make_bhl_object(sys_arg):
+    filename = sys_arg
+    data = pd.read_csv(filename, sep=',')
+    columns = data.columns.values
+
+    # make BHL class object
+    output_object = Black_Hole(data[columns[0]].values, data[columns[1]].values, data[columns[2]].values,
+                     data[columns[3]].values, data[columns[4]].values, data[columns[5]].values,
+                     data[columns[6]].values, data[columns[7]].values, data[columns[8]].values)
+    output_object.info()
+    return output_object
+
+
+def bhl_object_list():
+    bhl_objects = []
+    for i in range(1, (len(sys.argv)-1)):
+        print(len(sys.argv))
+        BHL = make_bhl_object(sys.argv[i])
+        bhl_objects.append(BHL)
+    return bhl_objects
+
+
+bhl_object_list = bhl_object_list()
