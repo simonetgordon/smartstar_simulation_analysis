@@ -9,8 +9,9 @@ import pandas as pd
 # imported to plot_variables.py
 ##########################################################################################################
 
+
 # Black Hole class
-class Black_Hole:
+class BlackHole:
     def __init__(self, accrate_times, accrates, average_times, average_density, average_vinfinity,
                  average_cinfinity, average_temperature, hl_radius, mass):
         self.accrate_times = accrate_times
@@ -43,7 +44,7 @@ def make_bhl_object(sys_arg):
     columns = data.columns.values
 
     # make BHL class object
-    output_object = Black_Hole(data[columns[0]].values, data[columns[1]].values, data[columns[2]].values,
+    output_object = BlackHole(data[columns[0]].values, data[columns[1]].values, data[columns[2]].values,
                      data[columns[3]].values, data[columns[4]].values, data[columns[5]].values,
                      data[columns[6]].values, data[columns[7]].values, data[columns[8]].values)
     output_object.info()
@@ -53,10 +54,20 @@ def make_bhl_object(sys_arg):
 def bhl_object_list():
     bhl_objects = []
     for i in range(1, (len(sys.argv)-1)):
-        print(len(sys.argv))
-        BHL = make_bhl_object(sys.argv[i])
-        bhl_objects.append(BHL)
+        bhl = make_bhl_object(sys.argv[i])
+        bhl_objects.append(bhl)
     return bhl_objects
 
 
+def bhl_object_labels():
+    bhl_labels = []
+    for i in range(1, (len(sys.argv)-1)):
+        bhl = str(sys.argv[i])
+        bhl = bhl.replace(".csv", '')
+        bhl = bhl.replace("data-", '')
+        bhl_labels.append(bhl)
+    return bhl_labels
+
+
 bhl_object_list = bhl_object_list()
+bhl_object_labels = bhl_object_labels()
