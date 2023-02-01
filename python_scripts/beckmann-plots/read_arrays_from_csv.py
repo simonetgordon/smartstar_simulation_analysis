@@ -51,10 +51,30 @@ def make_bhl_object(sys_arg):
     return output_object
 
 
-def bhl_object_list():
+def make_rolling_bhl_object(sys_arg):
+    filename = sys_arg
+    data = pd.read_csv(filename, sep=',')
+    columns = data.columns.values
+    # 1000 * 100 = 100,000 year rolling average?
+    window = 1000
+
+    # make BHL class object
+    output_object = BlackHole(data[columns[0]].rolling(window=window).mean(), data[columns[1]].rolling(window=window).mean(),
+                              data[columns[2]].rolling(window=window).mean(), data[columns[3]].rolling(window=window).mean(),
+                              data[columns[4]].rolling(window=window).mean(), data[columns[5]].rolling(window=window).mean(),
+                              data[columns[6]].rolling(window=window).mean(), data[columns[7]].rolling(window=window).mean(),
+                              data[columns[8]].rolling(window=window).mean())
+    output_object.info()
+    return output_object
+
+
+def bhl_object_list(rolling=0):
     bhl_objects = []
     for i in range(1, (len(sys.argv)-1)):
-        bhl = make_bhl_object(sys.argv[i])
+        if rolling:
+            bhl = make_rolling_bhl_object(sys.argv[i])
+        else:
+            bhl = make_bhl_object(sys.argv[i])
         bhl_objects.append(bhl)
     return bhl_objects
 
@@ -65,9 +85,10 @@ def bhl_object_labels():
         bhl = str(sys.argv[i])
         bhl = bhl.replace(".csv", '')
         bhl = bhl.replace("data-", '')
+        bhl = bhl.replace("data_files/", '')
         bhl_labels.append(bhl)
     return bhl_labels
 
 
-bhl_object_list = bhl_object_list()
+bhl_object_list = bhl_object_list(rolling=1)
 bhl_object_labels = bhl_object_labels()
