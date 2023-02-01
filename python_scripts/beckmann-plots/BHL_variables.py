@@ -9,13 +9,13 @@ from itertools import zip_longest
 MULTIPLE_ESTDS = 1
 
 # turn on if estd file has both AvgValues_MassWeighted and AvgValues printed out
-MASS_WEIGHTED = 1
+MASS_WEIGHTED = 0
 
 # reading data from this directory
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann-fixed-dx-mass-weighted-75%"
+root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann-fixed-dx-mass-weighted-75%-2"
 
 # writing data arrays to this file
-write_to = "data_files/data-fixed-dx-mass-weighted-75%.csv"
+write_to = "data_files/data-fixed-dx-mass-weighted-75%-2.csv"
 
 
 ##########################################################################################################
@@ -23,12 +23,14 @@ write_to = "data_files/data-fixed-dx-mass-weighted-75%.csv"
 ##########################################################################################################
 
 if MULTIPLE_ESTDS:
-    output_combined = 'output-combined-temp.out'
+    output_combined = 'output-combined-temp-3.out'
     path = Path(output_combined)
     if not path.is_file():
-        file1 = os.path.join(root_dir, 'estd_0.out')
+        file1 = os.path.join(root_dir, 'estd_1.out')
         file2 = os.path.join(root_dir, 'estd.out')
-        data = data2 = ""
+        # file3 = os.path.join(root_dir, 'estd_11.out')
+        # file4 = os.path.join(root_dir, 'estd_12.out')
+        data = data2 = data3 = data4 = ""
 
         # Reading data from file1
         with open(file1) as fp:
@@ -38,11 +40,23 @@ if MULTIPLE_ESTDS:
         with open(file2) as fp:
             data2 = fp.read()
 
+        # # Reading data from file2
+        # with open(file3) as fp:
+        #     data3 = fp.read()
+        #
+        # # Reading data from file2
+        # with open(file4) as fp:
+        #     data4 = fp.read()
+
         # Merging 2 files
         # To add the data of file2
         # from next line
         data += "\n"
         data += data2
+        data += "\n"
+        # data += data3
+        # data += "\n"
+        # data += data4
 
         Path(output_combined).touch()
         with open(output_combined, 'w') as fp:
@@ -75,6 +89,8 @@ for j in range(len(accrate_dtimes)):
 
 accrate_times = np.array(accrate_times)
 
+#accrate_times = np.linspace(10000, 1760000, len(accrates))
+
 
 ##########################################################################################################
 #                        Average Velocities, Densities + Temperature Arrays
@@ -86,6 +102,7 @@ def _average_density(average_density):
             float(i)
         except ValueError:
             i = i.replace("cm", '')
+            i = i.replace("^-3", '')
             i = i.replace("^-", '')
             try:
                 i = float(i)
@@ -120,6 +137,7 @@ average_vinfinity = np.array([float(i) for i in average_vinfinity])
 average_cinfinity = np.array([float(i) for i in average_cinfinity])
 
 average_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(average_cinfinity))
+#average_times = np.linspace(accrate_times[0], accrate_times[-1], num=len(average_cinfinity))
 
 
 ##########################################################################################################
