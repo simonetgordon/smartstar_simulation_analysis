@@ -13,7 +13,7 @@ import pandas as pd
 # Black Hole class
 class BlackHole:
     def __init__(self, accrate_times, accrates, average_times, average_density, average_vinfinity,
-                 average_cinfinity, average_temperature, hl_radius, mass):
+                 average_cinfinity, average_temperature, hl_radius, mass, hl_times, mass_times):
         self.accrate_times = accrate_times
         self.accrates = accrates
         self.average_times = average_times
@@ -23,6 +23,8 @@ class BlackHole:
         self.average_temperature = average_temperature
         self.hl_radius = hl_radius
         self.mass = mass
+        self.hl_times = hl_times
+        self.mass_times = mass_times
 
     def info(self):
         print("------------------------------------------------------------------------------------------------------")
@@ -46,7 +48,8 @@ def make_bhl_object(sys_arg):
     # make BHL class object
     output_object = BlackHole(data[columns[0]].values, data[columns[1]].values, data[columns[2]].values,
                      data[columns[3]].values, data[columns[4]].values, data[columns[5]].values,
-                     data[columns[6]].values, data[columns[7]].values, data[columns[8]].values)
+                     data[columns[6]].values, data[columns[7]].values, data[columns[8]].values,
+                     data[columns[9]].values, data[columns[10]].values)
     output_object.info()
     return output_object
 
@@ -56,14 +59,15 @@ def make_rolling_bhl_object(sys_arg):
     data = pd.read_csv(filename, sep=',')
     columns = data.columns.values
     # 1000 * 100 = 100,000 year rolling average?
-    window = 1000
+    window = int(len(data[columns[7]].values)*0.01)
 
     # make BHL class object
-    output_object = BlackHole(data[columns[0]].rolling(window=window).mean(), data[columns[1]].rolling(window=window).mean(),
+    output_object = BlackHole(data[columns[0]].rolling(window=int(window*0.2)).mean(), data[columns[1]].rolling(window=int(window*0.2)).mean(),
                               data[columns[2]].rolling(window=window).mean(), data[columns[3]].rolling(window=window).mean(),
                               data[columns[4]].rolling(window=window).mean(), data[columns[5]].rolling(window=window).mean(),
                               data[columns[6]].rolling(window=window).mean(), data[columns[7]].rolling(window=window).mean(),
-                              data[columns[8]].rolling(window=window).mean())
+                              data[columns[8]].rolling(window=window).mean(), data[columns[9]].rolling(window=window).mean(),
+                              data[columns[10]].rolling(window=window).mean())
     output_object.info()
     return output_object
 
@@ -86,6 +90,7 @@ def bhl_object_labels():
         bhl = bhl.replace(".csv", '')
         bhl = bhl.replace("data-", '')
         bhl = bhl.replace("data_files/", '')
+        bhl = bhl.replace("s1-", '')
         bhl_labels.append(bhl)
     return bhl_labels
 

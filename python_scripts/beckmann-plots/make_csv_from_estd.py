@@ -12,10 +12,10 @@ MULTIPLE_ESTDS = 1
 MASS_WEIGHTED = 0
 
 # reading data from this directory
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann-fixed-dx-75%"
+root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann-BF16-no-mass-weighting-fixed-radius"
 
 # writing data arrays to this file
-write_to = "data_files/data-fixed-dx-75%-2.csv"
+write_to = "data_files/data-s1-fixed-dx-BF16-mf-no-mass-weighting.csv"
 
 
 ##########################################################################################################
@@ -23,10 +23,10 @@ write_to = "data_files/data-fixed-dx-75%-2.csv"
 ##########################################################################################################
 
 if MULTIPLE_ESTDS:
-    output_combined = 'output-combined-temp-11.out'
+    output_combined = 'output-combined-temp-3.out'
     path = Path(output_combined)
     if not path.is_file():
-        file1 = os.path.join(root_dir, 'estd_0.out')
+        file1 = os.path.join(root_dir, 'estd_1.out')
         file2 = os.path.join(root_dir, 'estd.out')
         # file3 = os.path.join(root_dir, 'estd_11.out')
         # file4 = os.path.join(root_dir, 'estd_12.out')
@@ -106,12 +106,8 @@ def _average_density(average_density):
             i = i.replace("cm^", '')
             i = i.replace("cm", '')
             i = i.replace("c", '')
+            i = i.replace(",", '')
             float(i)
-            # try:
-            #     i = float(i)
-            # except ValueError:
-            #     i = i[:-1]
-            #     i = float(i)
         average_density[index] = float(i)
     return average_density
 
@@ -139,9 +135,9 @@ average_temperature = np.array([float(i) for i in average_temperature])
 average_vinfinity = np.array([float(i) for i in average_vinfinity])
 average_cinfinity = np.array([float(i) for i in average_cinfinity])
 
-#average_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(average_cinfinity))
+average_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(average_cinfinity))
 print("sum(accrate_dtimes) = ", sum(accrate_dtimes))
-average_times = np.linspace(accrate_times[0], accrate_times[-1], num=len(average_cinfinity))
+#average_times = np.linspace(accrate_times[0], accrate_times[-1], num=len(average_cinfinity))
 
 
 ##########################################################################################################
@@ -155,7 +151,7 @@ for line in open(output):
         hl_radius.append(radius.group(1))
 
 hl_radius = np.array([float(i) for i in hl_radius])
-
+hl_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(hl_radius))
 
 ##########################################################################################################
 #                                              BH Mass
@@ -167,6 +163,7 @@ for line in open(output):
     if bh_mass:
         mass.append(bh_mass.group(1))
 mass = np.array([float(i) for i in mass])
+mass_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(mass))
 
 
 ##########################################################################################################
@@ -175,11 +172,11 @@ mass = np.array([float(i) for i in mass])
 
 # assign header columns
 headerList = ['accrate times', 'accrate', 'average times', 'average density', 'average vinfinity',
-              'average cinfinity', 'average temperature', 'HL radius', 'BH mass']
+              'average cinfinity', 'average temperature', 'HL radius', 'BH mass', 'hl_times', 'mass_times']
 
 # open CSV file and assign header
 all_data = [accrate_times, accrates, average_times, average_density, average_vinfinity, average_cinfinity,
-            average_temperature, hl_radius, mass]
+            average_temperature, hl_radius, mass, hl_times, mass_times]
 
 with open(write_to, "w+") as f:
     dw = csv.DictWriter(f, delimiter=',', fieldnames=headerList)
