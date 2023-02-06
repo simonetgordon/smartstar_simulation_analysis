@@ -204,7 +204,7 @@ if mass_density:
         axs[1, 0].loglog(radial_profiles_vol[3].x.value, radial_profiles_vol[3]["number_density"].value, color=c[3],
                          linestyle='solid', label=label4)
     
-    axs[1, 0].set_ylabel(r"n $\mathrm{(cm^{-3})}$", fontdict=font)
+    axs[1, 0].set_ylabel(r"n (H $\mathrm{cm^{-3}})$", fontdict=font)
     axs[1, 0].set_xlabel("r (pc)", fontdict=font)
 
     axs[1, 0].legend(loc="upper right", fontsize=fontsize, ncol=1)  # upper/lower
