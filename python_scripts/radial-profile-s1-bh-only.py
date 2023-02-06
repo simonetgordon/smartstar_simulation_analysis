@@ -163,7 +163,7 @@ axs[0, 0].loglog(radial_profiles_1_rad, radial_profiles_1_h2, color=c[1], linest
 if str(sys.argv[3]).startswith('DD'):
     axs[0, 0].loglog(radial_profiles_2_rad, radial_profiles_2_h2, color=c[2], linestyle='solid', label=label3)
 if str(sys.argv[4]).startswith('DD'):
-    axs[0, 0].loglog(radial_profiles_3_rad, radial_profiles_2_h2, color=c[3], linestyle='solid', label=label4)
+    axs[0, 0].loglog(radial_profiles_3_rad, radial_profiles_3_h2, color=c[3], linestyle='solid', label=label4)
 
 axs[0, 0].set_xlabel(r"r (pc)", fontdict=font)
 axs[0, 0].set_ylabel(r"Gas fraction in HII", fontdict=font)
@@ -179,7 +179,7 @@ axs[0, 1].loglog(radial_profiles_1_rad, radial_profiles_1_temp, color=c[1], line
 if str(sys.argv[3]).startswith('DD'):
     axs[0, 1].loglog(radial_profiles_2_rad, radial_profiles_2_temp, color=c[2], linestyle='solid', label=label3)
 if str(sys.argv[4]).startswith('DD'):
-    axs[0, 1].loglog(radial_profiles_3_rad, radial_profiles_2_temp, color=c[3], linestyle='solid', label=label4)
+    axs[0, 1].loglog(radial_profiles_3_rad, radial_profiles_3_temp, color=c[3], linestyle='solid', label=label4)
 
 axs[0, 1].set_xlabel(r"r (pc)", fontdict=font)
 axs[0, 1].set_ylabel(r"T (K)", fontdict=font)
@@ -219,12 +219,12 @@ for sp in spheres:
     bulk_vel = sp.quantities.bulk_velocity()
     sp.set_field_parameter("bulk_velocity", bulk_vel)
 
-axs[1, 1].semilogx(radial_profiles[0].x.value, radial_profiles[0]["radial_velocity"].in_units("km/s").value, color='b',
+axs[1, 1].semilogx(radial_profiles[0].x.value, radial_profiles[0]["radial_velocity"].in_units("km/s").value, color=c[0],
                    linestyle='solid', label=label1)
-axs[1, 1].semilogx(radial_profiles[1].x.value, radial_profiles[1]["radial_velocity"].in_units("km/s").value, color='r',
+axs[1, 1].semilogx(radial_profiles[1].x.value, radial_profiles[1]["radial_velocity"].in_units("km/s").value, color=c[1],
                    linestyle='solid', label=label2)
 if str(sys.argv[3]).startswith('DD'):
-    axs[1, 1].semilogx(radial_profiles[2].x.value, radial_profiles[2]["radial_velocity"].in_units("km/s").value, color='g',
+    axs[1, 1].semilogx(radial_profiles[2].x.value, radial_profiles[2]["radial_velocity"].in_units("km/s").value, color=c[2],
                        linestyle='solid', label=label3)
 if str(sys.argv[4]).startswith('DD'):
     axs[1, 1].loglog(radial_profiles[3].x.value, radial_profiles[2]["radial_velocity"].in_units("km/s").value, color=c[3],
