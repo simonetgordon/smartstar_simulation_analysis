@@ -219,7 +219,7 @@ for sp in spheres:
     bulk_vel = sp.quantities.bulk_velocity()
     sp.set_field_parameter("bulk_velocity", bulk_vel)
 
-axs[1, 1].semilogx(radial_profiles[0].x.value, radial_profiles[0]["radial_velocity"].in_units("km/s").value, color=c[0],
+axs[1, 1].semilogx(radial_profiles[0].x.value, radial_profiles[0]["radial_velocity"].in_units("km/s")[radial_profiles[0].used], color=c[0],
                    linestyle='solid', label=label1)
 axs[1, 1].semilogx(radial_profiles[1].x.value, radial_profiles[1]["radial_velocity"].in_units("km/s").value, color=c[1],
                    linestyle='solid', label=label2)
