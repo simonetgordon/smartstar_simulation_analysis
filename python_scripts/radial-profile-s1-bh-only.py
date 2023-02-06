@@ -58,7 +58,7 @@ for i, ds in enumerate(DD):
 
 all_fields = ["density", "temperature", "H_p1_fraction", "radial_velocity", "cell_mass", "matter_mass",
               "cell_volume", "H_p1_fraction", "H_p0_fraction", "number_density"] # 'dm_mass' raises error if put here.
-all_units = {"radius": "pc", "cell_mass": "Msun", "matter_mass": "Msun", "density": "g/cm**3"}
+all_units = {"radius": "pc", "cell_mass": "Msun", "matter_mass": "Msun", "density": "g/cm**3", "radial_velocity": "km/s"}
 
 # Radial profile weighted by default = 'cell_mass'
 radial_profiles = []
@@ -219,15 +219,15 @@ for sp in spheres:
     bulk_vel = sp.quantities.bulk_velocity()
     sp.set_field_parameter("bulk_velocity", bulk_vel)
 
-axs[1, 1].semilogx(radial_profiles[0][radial_profiles[0].used], radial_profiles[0]["radial_velocity"].in_units("km/s")[radial_profiles[0].used], color=c[0],
+axs[1, 1].semilogx(radial_profiles[0].x[radial_profiles[0].used], radial_profiles[0]["radial_velocity"][radial_profiles[0].used], color=c[0],
                    linestyle='solid', label=label1)
-axs[1, 1].semilogx(radial_profiles[1][radial_profiles[1].used], radial_profiles[1]["radial_velocity"].in_units("km/s")[radial_profiles[1].used], color=c[1],
+axs[1, 1].semilogx(radial_profiles[1].x[radial_profiles[1].used], radial_profiles[1]["radial_velocity"][radial_profiles[1].used], color=c[1],
                    linestyle='solid', label=label2)
 if str(sys.argv[3]).startswith('DD'):
-    axs[1, 1].semilogx(radial_profiles[2][radial_profiles[2].used], radial_profiles[2]["radial_velocity"].in_units("km/s")[radial_profiles[2].used], color=c[2],
+    axs[1, 1].semilogx(radial_profiles[2].x[radial_profiles[2].used], radial_profiles[2]["radial_velocity"][radial_profiles[2].used], color=c[2],
                        linestyle='solid', label=label3)
 if str(sys.argv[4]).startswith('DD'):
-    axs[1, 1].loglog(radial_profiles[3][radial_profiles[3].used], radial_profiles[3]["radial_velocity"].in_units("km/s")[radial_profiles[3].used], color=c[3],
+    axs[1, 1].loglog(radial_profiles[3].x[radial_profiles[3].used], radial_profiles[3]["radial_velocity"][radial_profiles[3].used], color=c[3],
                      linestyle='solid', label=label4)
 
 
