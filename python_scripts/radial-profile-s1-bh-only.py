@@ -16,7 +16,7 @@ mass_density = True # to create volume-weight radial profiles
 star_pos0 = [0.49048772, 0.49467235, 0.50964457] # found with smartstar-find.py
 
 # load data
-root_dir = "/work/sc070/sc070/stg/simulations/seed1-bh-only/270msun/replicating-beckmann/1f.RSb01
+root_dir = "/work/sc070/sc070/stg/simulations/seed1-bh-only/270msun/replicating-beckmann/1f.RSb01"
 
 # all ds
 DD = []
