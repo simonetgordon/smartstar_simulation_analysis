@@ -148,10 +148,11 @@ fig, axs = plt.subplots(2, 2, sharex=True)
 plt.rcParams["font.family"] = "serif"
 plt.rcParams['lines.linewidth'] = 2
 
+fontsize = 8
 font = {'family': 'serif',
         'color':  'black',
         'weight': 'normal',
-        'size': 6,
+        'size': 8,
         }
 
 c = pl.cm.tab20b(np.linspace(0, 1, len(spheres)))
@@ -167,9 +168,9 @@ if str(sys.argv[4]).startswith('DD'):
 axs[0, 0].set_xlabel(r"r (pc)", fontdict=font)
 axs[0, 0].set_ylabel(r"Gas fraction in HII", fontdict=font)
 
-axs[0, 0].tick_params(axis="x", which='minor', length = 4, direction="in")
-axs[0, 0].tick_params(axis="x", which='major', labelsize = 14, width=2, length=7, direction="in")
-axs[0, 0].tick_params(axis="y", which='major', labelsize = 14)
+axs[0, 0].tick_params(axis="x", which='minor', length=4, direction="in")
+axs[0, 0].tick_params(axis="x", which='major', labelsize=fontsize, width=2, length=7, direction="in")
+axs[0, 0].tick_params(axis="y", which='major', labelsize=fontsize)
 
 
 # 2) Temperature vs. Radius
@@ -178,33 +179,38 @@ axs[0, 1].loglog(radial_profiles_1_rad, radial_profiles_1_temp, color=c[1], line
 if str(sys.argv[3]).startswith('DD'):
     axs[0, 1].loglog(radial_profiles_2_rad, radial_profiles_2_temp, color=c[2], linestyle='solid', label=label3)
 if str(sys.argv[4]).startswith('DD'):
-    axs[0, 0].loglog(radial_profiles_3_rad, radial_profiles_2_temp, color=c[3], linestyle='solid', label=label4)
+    axs[0, 1].loglog(radial_profiles_3_rad, radial_profiles_2_temp, color=c[3], linestyle='solid', label=label4)
 
 axs[0, 1].set_xlabel(r"r (pc)", fontdict=font)
 axs[0, 1].set_ylabel(r"T (K)", fontdict=font)
 
-axs[0, 1].legend(loc="lower left", fontsize=14,  ncol=1) # upper/lower
-
-axs[0, 1].tick_params(axis="x", which='minor', length = 4, direction="in")
-axs[0, 1].tick_params(axis="x", which='major', labelsize = 14,  width=2, length=7, direction="in")
+axs[0, 1].tick_params(axis="x", which='minor', length=4, direction="in")
+axs[0, 1].tick_params(axis="x", which='major', labelsize=fontsize,  width=2, length=7, direction="in")
 axs[0, 1].yaxis.tick_right()
 axs[0, 1].yaxis.set_label_position("right")
-axs[0, 1].tick_params(axis="y", which='major', labelsize = 14)
+axs[0, 1].tick_params(axis="y", which='major', labelsize=fontsize)
 
 
 # 3) Mass Density
 if mass_density:
-    axs[1, 0].loglog(radial_profiles_vol[0].x.value, radial_profiles_vol[0]["number_density"].value, color='b', linestyle='solid', label=label1)
-    axs[1, 0].loglog(radial_profiles_vol[1].x.value, radial_profiles_vol[1]["number_density"].value, color='r', linestyle='solid', label=label2)
+    axs[1, 0].loglog(radial_profiles_vol[0].x.value, radial_profiles_vol[0]["number_density"].value, color=c[0],
+                     linestyle='solid', label=label1)
+    axs[1, 0].loglog(radial_profiles_vol[1].x.value, radial_profiles_vol[1]["number_density"].value, color=c[1],
+                     linestyle='solid', label=label2)
     if str(sys.argv[3]).startswith('DD'):
-        axs[1, 0].loglog(radial_profiles_vol[2].x.value, radial_profiles_vol[2]["number_density"].value, color='g', linestyle='solid', label=label3)
+        axs[1, 0].loglog(radial_profiles_vol[2].x.value, radial_profiles_vol[2]["number_density"].value, color=c[2],
+                         linestyle='solid', label=label3)
+    if str(sys.argv[4]).startswith('DD'):
+        axs[1, 0].loglog(radial_profiles_vol[3].x.value, radial_profiles_vol[3]["number_density"].value, color=c[3],
+                         linestyle='solid', label=label4)
     
     axs[1, 0].set_ylabel(r"n $\mathrm{(cm^{-3})}$", fontdict=font)
     axs[1, 0].set_xlabel("r (pc)", fontdict=font)
 
-    axs[1, 0].tick_params(axis="x", which='minor', length = 4, direction="in")
-    axs[1, 0].tick_params(axis="x", which='major', labelsize=14, width=2, length=7, direction="in")
-    axs[1, 0].tick_params(axis="y", which='major', labelsize=14)
+    axs[1, 0].legend(loc="upper right", fontsize=fontsize, ncol=1)  # upper/lower
+    axs[1, 0].tick_params(axis="x", which='minor', length=4, direction="in")
+    axs[1, 0].tick_params(axis="x", which='major', labelsize=fontsize, width=2, length=7, direction="in")
+    axs[1, 0].tick_params(axis="y", which='major', labelsize=fontsize)
 
 
 # 4) Radial Velocity
@@ -213,24 +219,31 @@ for sp in spheres:
     bulk_vel = sp.quantities.bulk_velocity()
     sp.set_field_parameter("bulk_velocity", bulk_vel)
 
-axs[1, 1].semilogx(radial_profiles[0].x.value, radial_profiles[0]["radial_velocity"].in_units("km/s").value, color='b', linestyle='solid', label=label1)
-axs[1, 1].semilogx(radial_profiles[1].x.value, radial_profiles[1]["radial_velocity"].in_units("km/s").value, color='r', linestyle='solid', label=label2)
+axs[1, 1].semilogx(radial_profiles[0].x.value, radial_profiles[0]["radial_velocity"].in_units("km/s").value, color='b',
+                   linestyle='solid', label=label1)
+axs[1, 1].semilogx(radial_profiles[1].x.value, radial_profiles[1]["radial_velocity"].in_units("km/s").value, color='r',
+                   linestyle='solid', label=label2)
 if str(sys.argv[3]).startswith('DD'):
-    axs[1, 1].semilogx(radial_profiles[2].x.value, radial_profiles[2]["radial_velocity"].in_units("km/s").value, color='g', linestyle='solid', label=label3)
+    axs[1, 1].semilogx(radial_profiles[2].x.value, radial_profiles[2]["radial_velocity"].in_units("km/s").value, color='g',
+                       linestyle='solid', label=label3)
+if str(sys.argv[4]).startswith('DD'):
+    axs[1, 1].loglog(radial_profiles[3].x.value, radial_profiles[2]["radial_velocity"].in_units("km/s").value, color=c[3],
+                     linestyle='solid', label=label4)
+
 
 axs[1, 1].set_xlabel("r (pc)", fontdict=font)
 axs[1, 1].set_ylabel("Radial velocity (km/s)", fontdict=font)
 
 axs[1, 1].tick_params(axis="x", which='minor', length=4, direction="in")
-axs[1, 1].tick_params(axis="x", which='major', labelsize=14, width=2, length=7, direction="in")
-axs[1, 1].tick_params(axis="y", which='major', labelsize=14)
+axs[1, 1].tick_params(axis="x", which='major', labelsize=fontsize, width=2, length=7, direction="in")
+axs[1, 1].tick_params(axis="y", which='major', labelsize=fontsize)
 axs[1, 1].yaxis.tick_right()
 axs[1, 1].yaxis.set_label_position("right")
 
 # save 2 plots in 1 figure
 fig = plt.gcf()
 fig.subplots_adjust(wspace=0, hspace=0)
-fig.set_size_inches(14.129921, 6.8661417)
+fig.set_size_inches(10.129921, 5.8661417)
 plot_name = 'radial-profile-plot-' + str(x) + str(y) + '.pdf'
 fig.savefig('plots/' + plot_name, dpi=100)
 print("created ", plot_name)
