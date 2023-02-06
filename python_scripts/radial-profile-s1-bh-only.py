@@ -3,10 +3,11 @@ Radial profiles in one 2x2 figure
 Particle position set on position at time of formation and must be found prior
 """
 import yt
-import ytree
+import numpy as np
 import os
 import sys
 import matplotlib.pyplot as plt
+import matplotlib.pylab as pl
 
 # macros
 x = "seed1-bh-only-" # plot number
@@ -15,20 +16,24 @@ mass_density = True # to create volume-weight radial profiles
 star_pos0 = [0.49048772, 0.49467235, 0.50964457] # found with smartstar-find.py
 
 # load data
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun-thermal-only/BF-0.0078125"
+root_dir = "/work/sc070/sc070/stg/simulations/seed1-bh-only/270msun/replicating-beckmann/1f.RSb01
 
 # all ds
 DD = []
 ds1 = yt.load(os.path.join(root_dir, sys.argv[1])) # before particle formation
-label1 = sys.argv[1]
+label1 = "before formation"
 DD.append(ds1)
 ds2 = yt.load(os.path.join(root_dir, sys.argv[2])) # later time
-label2 = sys.argv[2]
+label2 = "10 kyr"
 DD.append(ds2)
 if str(sys.argv[3]).startswith('DD'):
     ds3 = yt.load(os.path.join(root_dir, sys.argv[3])) # latest time
-    label3 = sys.argv[3]
+    label3 = "30 kyr"
     DD.append(ds3)
+if str(sys.argv[4]).startswith('DD'):
+    ds4 = yt.load(os.path.join(root_dir, sys.argv[4])) # latest time
+    label4 = "100 kyr"
+    DD.append(ds4)
 
 # define dark_matter_mass field + add to all ds
 def _dm_mass(field, data):
@@ -41,14 +46,9 @@ for ds in DD:
 
 """ Make Sphere of Most Massive Halo """
 
-# Load seed1 merger tree of dataset (up to DD0118 in gas run)
-a = ytree.load('/home/sgordon/disk14/pop3/gas+dm-L3/rockstar_halos/out_0.list')
-a1 = ytree.load('/home/sgordon/disk14/pop3/gas+dm-L3/tree_810/tree_810.h5')
-r_halo = a1[0]["virial_radius"].to('pc')
-r = ds1.quan(r_halo.d, "pc") # virial radius
-
 # Make initial sphere centred on the star at the time of formation with radius = 3 * virial radius
 spheres = []
+r = ds1.quan(1000, "pc") # virial radius
 for i, ds in enumerate(DD):
     sphere = ds.sphere(star_pos0, 3*r)
     spheres.append(sphere)
@@ -151,21 +151,18 @@ plt.rcParams['lines.linewidth'] = 2
 font = {'family': 'serif',
         'color':  'black',
         'weight': 'normal',
-        'size': 16,
+        'size': 6,
         }
 
-font2 = {'family': 'serif',
-        'color':  'darkred',
-        'weight': 'normal',
-        'size': 14,
-        }
-
+c = pl.cm.tab20b(np.linspace(0, 1, len(spheres)))
 
 # 1) H2 molecule fraction vs. Radius
-axs[0, 0].loglog(radial_profiles_0_rad, radial_profiles_0_h2, color='b', linestyle='solid', label=label1)
-axs[0, 0].loglog(radial_profiles_1_rad, radial_profiles_1_h2, color='r', linestyle='solid', label=label2)
+axs[0, 0].loglog(radial_profiles_0_rad, radial_profiles_0_h2, color=c[0], linestyle='solid', label=label1)
+axs[0, 0].loglog(radial_profiles_1_rad, radial_profiles_1_h2, color=c[1], linestyle='solid', label=label2)
 if str(sys.argv[3]).startswith('DD'):
-    axs[0, 0].loglog(radial_profiles_2_rad, radial_profiles_2_h2, color='g', linestyle='solid', label=label3)
+    axs[0, 0].loglog(radial_profiles_2_rad, radial_profiles_2_h2, color=c[2], linestyle='solid', label=label3)
+if str(sys.argv[4]).startswith('DD'):
+    axs[0, 0].loglog(radial_profiles_3_rad, radial_profiles_2_h2, color=c[3], linestyle='solid', label=label4)
 
 axs[0, 0].set_xlabel(r"r (pc)", fontdict=font)
 axs[0, 0].set_ylabel(r"Gas fraction in HII", fontdict=font)
@@ -176,10 +173,12 @@ axs[0, 0].tick_params(axis="y", which='major', labelsize = 14)
 
 
 # 2) Temperature vs. Radius
-axs[0, 1].loglog(radial_profiles_0_rad, radial_profiles_0_temp, color='b', linestyle='solid', label=label1)
-axs[0, 1].loglog(radial_profiles_1_rad, radial_profiles_1_temp, color='r', linestyle='solid', label=label2)
+axs[0, 1].loglog(radial_profiles_0_rad, radial_profiles_0_temp, color=c[0], linestyle='solid', label=label1)
+axs[0, 1].loglog(radial_profiles_1_rad, radial_profiles_1_temp, color=c[1], linestyle='solid', label=label2)
 if str(sys.argv[3]).startswith('DD'):
-    axs[0, 1].loglog(radial_profiles_2_rad, radial_profiles_2_temp, color='g', linestyle='solid', label=label3)
+    axs[0, 1].loglog(radial_profiles_2_rad, radial_profiles_2_temp, color=c[2], linestyle='solid', label=label3)
+if str(sys.argv[4]).startswith('DD'):
+    axs[0, 0].loglog(radial_profiles_3_rad, radial_profiles_2_temp, color=c[3], linestyle='solid', label=label4)
 
 axs[0, 1].set_xlabel(r"r (pc)", fontdict=font)
 axs[0, 1].set_ylabel(r"T (K)", fontdict=font)
