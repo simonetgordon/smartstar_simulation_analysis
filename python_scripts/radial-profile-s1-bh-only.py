@@ -243,7 +243,7 @@ axs[1, 1].yaxis.set_label_position("right")
 # save 2 plots in 1 figure
 fig = plt.gcf()
 fig.subplots_adjust(wspace=0, hspace=0)
-fig.set_size_inches(10.129921, 5.8661417)
+fig.set_size_inches(8.129921, 4.8661417)
 plot_name = 'radial-profile-plot-' + str(x) + str(y) + '.pdf'
 fig.savefig('plots/' + plot_name, dpi=100)
 print("created ", plot_name)
