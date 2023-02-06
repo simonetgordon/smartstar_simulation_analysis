@@ -227,7 +227,7 @@ if str(sys.argv[3]).startswith('DD'):
     axs[1, 1].semilogx(radial_profiles[2].x.value, radial_profiles[2]["radial_velocity"].in_units("km/s").value, color=c[2],
                        linestyle='solid', label=label3)
 if str(sys.argv[4]).startswith('DD'):
-    axs[1, 1].loglog(radial_profiles[3].x.value, radial_profiles[2]["radial_velocity"].in_units("km/s").value, color=c[3],
+    axs[1, 1].loglog(radial_profiles[3].x.value, radial_profiles[3]["radial_velocity"].in_units("km/s").value, color=c[3],
                      linestyle='solid', label=label4)
 
 
