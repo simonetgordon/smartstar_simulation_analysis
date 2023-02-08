@@ -1,11 +1,13 @@
 import yt
 import ytree
+import os
 from yt.extensions.p2p import add_p2p_fields, add_p2p_particle_filters
 from yt.extensions.astro_analysis.halo_analysis import HaloCatalog
 import sys
 
-ds = yt.load(sys.argv[1])
-ds_sn = yt.load("../DD0122/DD0122") # DD in which star is formed                                                                                                                                             
+ds = sys.argv[1]
+root_dir = "~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01"
+output = yt.load(os.path.join(root_dir, ds))
 
 # Load merger tree of dataset (up to DD0118 in gas run)                                                                                                                                                  
 a = ytree.load('/home/sgordon/disk14/pop3/gas+dm-L3/rockstar_halos/out_0.list') # after eric moved nov 22 /home/sgordon/disk14/pop3                                                                      
@@ -24,8 +26,8 @@ sp = ds.sphere(center, 5*r)
 
 # Find time since SN                                                                                                                                                                                      
 dd_time = ds.current_time.to('Myr').d
-sn_time = ds_sn.current_time.to('Myr').d
-t_sinceSN = dd_time - sn_time
+#sn_time = ds_sn.current_time.to('Myr').d
+#t_sinceSN = dd_time - sn_time
 
 # Gas density                                                                                                                                                                                            
 p = yt.ProjectionPlot(ds, "x", ("gas","density"), width=width, center=center, data_source=sp, weight_field='density')
