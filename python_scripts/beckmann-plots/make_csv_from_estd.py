@@ -9,13 +9,30 @@ from itertools import zip_longest
 MULTIPLE_ESTDS = 1
 
 # turn on if estd file has both AvgValues_MassWeighted and AvgValues printed out
-MASS_WEIGHTED = 0
+MASS_WEIGHTED = 1
 
 # reading data from this directory
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann-BF16-no-mass-weighting-fixed-radius"
+root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01"
 
 # writing data arrays to this file
-write_to = "data_files/data-s1-fixed-dx-BF16-mf-no-mass-weighting.csv"
+write_to = "data_files/data-1B.RSb01.csv"
+
+
+def _remove_strings(lst):
+    for index, i in enumerate(lst):
+        try:
+            float(i)
+        except ValueError:
+            i = i.replace("cm^-3", '')
+            i = i.replace("cm^-", '')
+            i = i.replace("cm^", '')
+            i = i.replace("cm", '')
+            i = i.replace("c", '')
+            i = i.replace(",", '')
+            i = i.replace("y", '')
+            float(i)
+        lst[index] = float(i)
+    return lst
 
 
 ##########################################################################################################
@@ -23,14 +40,15 @@ write_to = "data_files/data-s1-fixed-dx-BF16-mf-no-mass-weighting.csv"
 ##########################################################################################################
 
 if MULTIPLE_ESTDS:
-    output_combined = 'output-combined-temp-3.out'
+    output_combined = str(root_dir[82:])
     path = Path(output_combined)
     if not path.is_file():
-        file1 = os.path.join(root_dir, 'estd_1.out')
-        file2 = os.path.join(root_dir, 'estd.out')
-        # file3 = os.path.join(root_dir, 'estd_11.out')
-        # file4 = os.path.join(root_dir, 'estd_12.out')
-        data = data2 = data3 = data4 = ""
+        file1 = os.path.join(root_dir, 'estd_0.out')
+        file2 = os.path.join(root_dir, 'estd_1.out')
+        file3 = os.path.join(root_dir, 'estd_2.out')
+        file4 = os.path.join(root_dir, 'estd_3.out')
+        file5 = os.path.join(root_dir, 'estd.out')
+        data = data2 = data3 = data4 = data5 = ""
 
         # Reading data from file1
         with open(file1) as fp:
@@ -41,22 +59,28 @@ if MULTIPLE_ESTDS:
             data2 = fp.read()
 
         # # Reading data from file2
-        # with open(file3) as fp:
-        #     data3 = fp.read()
+        with open(file3) as fp:
+            data3 = fp.read()
         #
         # # Reading data from file2
-        # with open(file4) as fp:
-        #     data4 = fp.read()
+        with open(file4) as fp:
+            data4 = fp.read()
+
+        # # Reading data from file5
+        with open(file5) as fp:
+            data5 = fp.read()
 
         # Merging 2 files
         # To add the data of file2
         # from next line
         data += "\n"
         data += data2
-        # data += "\n"
-        # data += data3
-        # data += "\n"
-        # data += data4
+        data += "\n"
+        data += data3
+        data += "\n"
+        data += data4
+        data += "\n"
+        data += data5
 
         Path(output_combined).touch()
         with open(output_combined, 'w') as fp:
@@ -82,7 +106,7 @@ for line in open(output):
         accrate_dtimes.append(accrate_dtime.group(1))
 
 accrates = np.array([float(i) for i in accrates])
-accrate_dtimes = np.array([float(i) for i in accrate_dtimes])
+accrate_dtimes = np.array(_remove_strings(accrate_dtimes))
 
 for j in range(len(accrate_dtimes)):
     accrate_times.append(accrate_dtimes[j] + sum(accrate_dtimes[:j]))
@@ -95,21 +119,6 @@ accrate_times = np.array(accrate_times)
 ##########################################################################################################
 #                        Average Velocities, Densities + Temperature Arrays
 ##########################################################################################################
-
-def _average_density(average_density):
-    for index, i in enumerate(average_density):
-        try:
-            float(i)
-        except ValueError:
-            i = i.replace("cm^-3", '')
-            i = i.replace("cm^-", '')
-            i = i.replace("cm^", '')
-            i = i.replace("cm", '')
-            i = i.replace("c", '')
-            i = i.replace(",", '')
-            float(i)
-        average_density[index] = float(i)
-    return average_density
 
 average_density = []
 average_temperature = []
@@ -130,7 +139,7 @@ for line in open(output):
         average_cinfinity.append(avg_cinf.group(1))
         average_vinfinity.append(avg_vinf.group(1))
 
-average_density = np.array(_average_density(average_density))
+average_density = np.array(_remove_strings(average_density))
 average_temperature = np.array([float(i) for i in average_temperature])
 average_vinfinity = np.array([float(i) for i in average_vinfinity])
 average_cinfinity = np.array([float(i) for i in average_cinfinity])
@@ -159,9 +168,11 @@ hl_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(hl_radius
 
 mass = []
 for line in open(output):
-    bh_mass = re.search(r'NewMass = (.{12})', line)
+    bh_mass = re.search(r'cmass = (.{32})', line)
     if bh_mass:
-        mass.append(bh_mass.group(1))
+        bh_mass = bh_mass.group(1)
+        bh_mass = bh_mass.replace(bh_mass[:20], '')
+        mass.append(bh_mass)
 mass = np.array([float(i) for i in mass])
 mass_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(mass))
 

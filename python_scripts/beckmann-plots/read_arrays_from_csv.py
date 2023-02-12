@@ -28,9 +28,10 @@ class BlackHole:
 
     def info(self):
         print("------------------------------------------------------------------------------------------------------")
-        print("accrate_times (yrs post-formation): {}, \naccrates (Msun/yr): {}, \naverage_times (yrs "
-              "post-formation): {}, \naverage_density (cm^-3): {}, \naverage_vinfinity (km/s): {}, "
-              "\naverage_cinfinity (km/s): {}, \naverage_temperature (K): {}, \nhl_radius (pc): {},"
+        print("accrate_times (yrs post-formation): {}, \naccrates (Msun/yr): {}, "
+              "\naverage_times (yrs post-formation): {}, \naverage_density (cm^-3): {}, "
+              "\naverage_vinfinity (km/s): {}, \naverage_cinfinity (km/s): {}, "
+              "\naverage_temperature (K): {}, \nhl_radius (pc): {},"
               "\nmass (Msun): {}".format(
             self.accrate_times,self.accrates, self.average_times, self.average_density,
             self.average_vinfinity, self.average_cinfinity, self.average_temperature,
@@ -59,15 +60,16 @@ def make_rolling_bhl_object(sys_arg):
     data = pd.read_csv(filename, sep=',')
     columns = data.columns.values
     # 1000 * 100 = 100,000 year rolling average?
-    window = int(len(data[columns[7]].values)*0.01)
+    #window = int(len(data[columns[7]].values)*0.01)
+    window = 1000
 
     # make BHL class object
-    output_object = BlackHole(data[columns[0]].rolling(window=int(window*0.2)).mean(), data[columns[1]].rolling(window=int(window*0.2)).mean(),
-                              data[columns[2]].rolling(window=window).mean(), data[columns[3]].rolling(window=window).mean(),
+    output_object = BlackHole(data[columns[0]].values, data[columns[1]].values,
+                              data[columns[2]].values, data[columns[3]].rolling(window=window).mean(),
                               data[columns[4]].rolling(window=window).mean(), data[columns[5]].rolling(window=window).mean(),
                               data[columns[6]].rolling(window=window).mean(), data[columns[7]].rolling(window=window).mean(),
-                              data[columns[8]].rolling(window=window).mean(), data[columns[9]].rolling(window=window).mean(),
-                              data[columns[10]].rolling(window=window).mean())
+                              data[columns[8]].values, data[columns[9]].rolling(window=window).mean(),
+                              data[columns[10]].values)
     output_object.info()
     return output_object
 

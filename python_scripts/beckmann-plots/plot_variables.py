@@ -86,10 +86,10 @@ axs[4].set_xlabel(r"Time Since Formation (Myr)", fontdict=font)
 
 if xlim == 0.2:
     axs[0].set_ylim([250, 2500])
-    axs[1].set_ylim([1e-4, 4e-2])
+    axs[1].set_ylim([1e-4, 2e-2])
 if xlim == 1:
     axs[0].set_ylim([250, 2500])
-    axs[1].set_ylim([7e-6, 2e-2])
+    axs[1].set_ylim([5e-6, 5e-2])
     axs[2].set_ylim([8e4, 2e8])
     axs[3].set_ylim([0, 25])
 

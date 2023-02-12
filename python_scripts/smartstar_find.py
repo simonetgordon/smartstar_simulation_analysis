@@ -1,35 +1,58 @@
 """
-Find and print SmartStar properties. Call like:
-python smartstar_find.py [DD0120/DD0120]
+For use by density_plot_zoomed_new
 """
 import sys
 import os
 import yt
 import ytree
 
-# set by user
-root_dir = "~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm04"
-input = sys.argv[1]
-ds = yt.load(os.path.join(root_dir, sys.argv[1]))
 
-# make sphere
-width = (0.2, 'unitary')
-sp = ds.sphere('max', width)
-ad = ds.all_data()
+def ss_properties(ds, width):
+    # make sphere
+    width = (width, 'unitary')
+    sp = ds.sphere('max', width).save_as_dataset("sphere_containers/{}_sphere.h5".format(ds),
+                       fields=[("gas", "density"), ("SmartStar", "particle_mass"), ("SmartStar", "creation_time"),
+                               ("SmartStar", "particle_position")])
+    sp = yt.load(sp)
+    ad = sp.all_data()
 
-# find ss properties
-ss_creation = ad['SmartStar', 'creation_time'].to('yr')
-ss_pos = ad['SmartStar', 'particle_position'].to('unitary')[0]
-ss_mass = ad['SmartStar', 'particle_mass'].to('Msun')[0]
-ss_class = ad[('SmartStar', 'ParticleClass')] # 0 = POPIII, 1 = SMS, 2 = BH
+    # find ss properties
+    ss_creation = ad['SmartStar', 'creation_time'].to('yr')
+    ss_pos = ad['SmartStar', 'particle_position'].to('unitary')[0]
+    ss_mass = ad['SmartStar', 'particle_mass'].to('Msun')[0]
 
-# find ss age
-time_array = ds.current_time.to('yr')
-creation = ss_creation.d # strip units off variables
-time = time_array.d
-ss_age = time - creation
+    # find ss age
+    time_array = ds.current_time.to('yr')
+    creation = ss_creation.d  # strip units off variables
+    time = time_array.d
+    ss_age = time - creation
+
+    return ss_pos, ss_mass, ss_age
+
 
 if __name__ == "__main__":
+    # set by user
+    root_dir = "~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm16"
+    input = sys.argv[1]
+    ds = yt.load(os.path.join(root_dir, sys.argv[1]))
+
+    # make sphere
+    width = (0.2, 'unitary')
+    sp = ds.sphere('max', width).save_as_dataset()
+    ad = sp.all_data()
+
+    # find ss properties
+    ss_creation = ad['SmartStar', 'creation_time'].to('yr')
+    ss_pos = ad['SmartStar', 'particle_position'].to('unitary')[0]
+    ss_mass = ad['SmartStar', 'particle_mass'].to('Msun')[0]
+    ss_class = ad[('SmartStar', 'ParticleClass')]  # 0 = POPIII, 1 = SMS, 2 = BH
+
+    # find ss age
+    time_array = ds.current_time.to('yr')
+    creation = ss_creation.d  # strip units off variables
+    time = time_array.d
+    ss_age = time - creation
+
     print("-----------------------------------------")
     print("current particle position [x,y,z]:")
     print(ss_pos.d)
