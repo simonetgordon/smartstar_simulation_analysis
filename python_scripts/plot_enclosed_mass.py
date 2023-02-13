@@ -23,7 +23,7 @@ for i, dd in enumerate(dds):
 
 
 fig = plt.figure()
-fig, axs = plt.subplots(1, 1, sharex=True)
+fig, axs = plt.subplots(2, 1, sharex=True)
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["mathtext.default"] = "regular"
 linewidth = 2
@@ -48,7 +48,7 @@ for i, ds in enumerate(DS):
     rp = yt.create_profile(
         sp,
         "radius",
-        [("gas", "mass")],
+        [("gas", "mass"), ("gas", "temperature")],
         units={"radius": "pc", ("gas", "mass"): "Msun"},
         logs={"radius": True, ("gas", "mass"): True},
         weight_field=None
@@ -57,22 +57,27 @@ for i, ds in enumerate(DS):
     # axs[0].loglog(rp[0].x[rp[0].used], rp[0][("gas", "mass")][rp[0].used],
     #               color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
-    axs.loglog(rp.x.value, rp[("gas", "mass")].value.cumsum(),
+    axs[0].loglog(rp.x.value, rp[("gas", "mass")].value.cumsum(),
                color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
+
+    axs[1].loglog(rp.x.value, rp[("gas", "temperature")].value.cumsum(),
+                  color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
     j += 2
 
-axs.tick_params(bottom=True, left=True)
-axs.minorticks_on()
-axs.tick_params(axis="x", which='minor', length=4, direction="in")
-axs.tick_params(axis="x", which='major', labelsize=fontsize, width=2, length=4, direction="in")
-axs.tick_params(axis="y", which='major', labelsize=fontsize)
-axs.tick_params(axis="y", which='minor', labelsize=fontsize-2)
-axs.set_xlabel(r"$r \, (pc)$", fontdict=font)
-axs.set_ylabel(r"$M \, (M_{\odot})$", fontdict=font)
+for i in range(2):
+    axs[i].tick_params(bottom=True, left=True)
+    axs[i].minorticks_on()
+    axs[i].tick_params(axis="x", which='minor', length=4, direction="in")
+    axs[i].tick_params(axis="x", which='major', labelsize=fontsize, width=2, length=4, direction="in")
+    axs[i].tick_params(axis="y", which='major', labelsize=fontsize)
+    axs[i].tick_params(axis="y", which='minor', labelsize=fontsize-2)
 
-axs.legend(loc="lower right", fontsize=fontsize, ncol=2)  # upper/lower
-axs.set_title("Mass enclosed at time of BH formation", fontdict=font)
+axs[1].set_xlabel(r"$r \, (pc)$", fontdict=font)
+axs[0].set_ylabel(r"$M \, (M_{\odot})$", fontdict=font)
+axs[1].set_ylabel(r"$T \, (K)$", fontdict=font)
+axs[0].legend(loc="lower right", fontsize=fontsize, ncol=2)  # upper/lower
+axs[0].set_title("Mass enclosed at time of BH formation", fontdict=font)
 
 # save plot as pdf
 fig = plt.gcf()
