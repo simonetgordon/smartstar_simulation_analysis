@@ -64,8 +64,13 @@ for i, ds in enumerate(DS):
 
 axs.set_xlabel(r"$r \, (pc)$", fontdict=font)
 axs.set_ylabel(r"$M \, (M_{\odot})$", fontdict=font)
+axs.tick_params(axis="x", which='minor', length=4, direction="in")
+axs.tick_params(axis="x", which='major', labelsize=fontsize, width=2, length=4, direction="in")
+axs.tick_params(axis="y", which='major', labelsize=fontsize)
+axs.tick_params(axis="y", which='minor', labelsize=fontsize-2)
+
 axs.legend(loc="lower right", fontsize=fontsize, ncol=2)  # upper/lower
-axs.set_title("Mass enclosed at time of BH formation")
+axs.set_title("Mass enclosed at time of BH formation", fontdict=font)
 
 # save plot as pdf
 fig = plt.gcf()
