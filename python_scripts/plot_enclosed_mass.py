@@ -9,7 +9,7 @@ y = sys.argv[-1] # naming plot
 
 root_dir = ["~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
             "~/disk14/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann/"]
-sim = ["1B.RSb01", "2B.RSb01"]
+sim = ["1B.RSb01", "2B.RSb1"]
 dds = ["DD0128/DD0128", "DD0197/DD0197"]
 labels = []
 DS = []
