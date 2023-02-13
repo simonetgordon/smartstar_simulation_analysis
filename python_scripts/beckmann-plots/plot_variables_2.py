@@ -15,7 +15,7 @@ x = "s1-" # plot number
 y = sys.argv[-1] # naming plot
 
 fig = plt.figure()
-fig, axs = plt.subplots(5, 1, sharex=True)
+fig, axs = plt.subplots(6, 1, sharex=True)
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["mathtext.default"] = "regular"
 linewidth = 2
@@ -57,11 +57,14 @@ for i, BHL in enumerate(bhl_object_list):
     # 5) HL radius
     axs[4].plot(BHL.ages, BHL.hl_radius, color=c[j], linestyle='solid', label=l[i], alpha=alpha)
 
+    # 6) Jeans length
+    axs[5].plot(BHL.ages, BHL.jeans_length, color=c[j], linestyle='solid', label=l[i]+'-jeans-length', alpha=alpha)
+
     j += 2
 
 xlim = 1
 
-for i in range(5):
+for i in range(6):
     axs[i].tick_params(axis="x", which='minor', length=4, direction="in")
     axs[i].tick_params(axis="x", which='major', labelsize=fontsize, width=2, length=4, direction="in")
     axs[i].tick_params(axis="y", which='major', labelsize=fontsize)
@@ -75,12 +78,14 @@ axs[1].set_ylabel(r"$\dot{M} \, (M_{\odot}/yr)$", fontdict=font)
 axs[2].set_ylabel(r"$n \, (H cm^{-3})$", fontdict=font)
 axs[3].set_ylabel(r"$\nu \, (km/s)$", fontdict=font)
 axs[4].set_ylabel(r"$r_{HL} \, (pc)$", fontdict=font)
+axs[5].set_ylabel(r"$r_{jeans} \, (pc)$", fontdict=font)
 axs[3].set_yscale('linear')
-axs[4].axhline(y=0.015, color=c[0], linestyle='solid', label="dx = 0.015 pc")
-axs[4].axhline(y=0.0031, color=c[2], linestyle='solid', label="dx = 3.1e-03 pc")
-axs[4].axhline(y=0.0015, color=c[4], linestyle='solid', label="dx = 1.5e-03 pc")
-axs[4].axhline(y=0.00077, color=c[6], linestyle='solid', label="dx = 7.7e-04 pc")
-axs[4].set_xlabel(r"Time Since Formation (Myr)", fontdict=font)
+for i in [4,5]:
+    axs[i].axhline(y=0.015, color=c[0], linestyle='solid', label="dx = 0.015 pc")
+    axs[i].axhline(y=0.0031, color=c[2], linestyle='solid', label="dx = 3.1e-03 pc")
+    axs[i].axhline(y=0.0015, color=c[4], linestyle='solid', label="dx = 1.5e-03 pc")
+    axs[i].axhline(y=0.00077, color=c[6], linestyle='solid', label="dx = 7.7e-04 pc")
+axs[5].set_xlabel(r"Time Since Formation (Myr)", fontdict=font)
 
 if xlim == 0.2:
     axs[0].set_ylim([250, 2500])
