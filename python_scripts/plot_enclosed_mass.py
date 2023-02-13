@@ -1,7 +1,6 @@
 import sys
 import matplotlib.pyplot as plt
 from smartstar_find import ss_properties
-import numpy as np
 import seaborn as sns
 import yt
 import os
@@ -40,9 +39,7 @@ c = sns.color_palette("Paired", len(DS*2))
 j = 1
 alpha = 0.7
 for i, ds in enumerate(DS):
-
     ss_pos = ss_properties(ds, 0.2)[0]
-
     sp = ds.sphere(ss_pos, (10, "kpc"))
 
     rp = yt.create_profile(
@@ -61,9 +58,6 @@ for i, ds in enumerate(DS):
         units={"radius": "pc", ("gas", "mass"): "Msun"},
         logs={"radius": True, ("gas", "temperature"): True}
     )
-
-    # axs[0].loglog(rp[0].x[rp[0].used], rp[0][("gas", "mass")][rp[0].used],
-    #               color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
     axs[0].loglog(rp.x.value, rp[("gas", "mass")].value.cumsum(),
                color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
