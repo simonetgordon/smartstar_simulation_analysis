@@ -58,6 +58,7 @@ for i, ds in enumerate(DS):
         sp,
         "radius",
         [("gas", "temperature")],
+        units={"radius": "pc", ("gas", "mass"): "Msun"},
         logs={"radius": True, ("gas", "temperature"): True},
         weight_field=("gas", "mass")
     )
