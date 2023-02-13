@@ -54,7 +54,7 @@ for i, ds in enumerate(DS):
     # axs[0].loglog(rp[0].x[rp[0].used], rp[0][("gas", "mass")][rp[0].used],
     #               color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
-    axs.loglog(rp.x.value, rp[("gas", "density")].value,
+    axs.loglog(rp.x.value, rp[("gas", "mass")].value,
                color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
     j += 2
