@@ -45,7 +45,7 @@ if __name__ == "__main__":
         if map == "density":
             # Gas density
             field = "H_nuclei_density"
-            p1 = yt.ProjectionPlot(ds, "x", ("gas", field), width=(w_pccm, 'pccm'), center=center, data_source=region,
+            p1 = yt.ProjectionPlot(ds, "z", ("gas", field), width=(w_pccm, 'pccm'), center=center, data_source=region,
                                    weight_field=field)
             p1.set_cmap(field, 'viridis')
 
@@ -56,8 +56,8 @@ if __name__ == "__main__":
             p1.annotate_text((0.73, 0.95), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                              text_args={"color": "white"})
             p1.annotate_title("SS Age = {:.2f} kyrs, {} pccm across".format(ss_age[0] / 1e3, w_pccm))
-            plotname = "frames_" + field + "_" + str(root_dir[75:])
-            p1.save(plotname)
+            dirname = "frames_edge_on" + field + "_" + str(root_dir[75:])
+            p1.save(dirname)
         
         elif map == "temperature":
             # Temperature
@@ -68,8 +68,8 @@ if __name__ == "__main__":
             p2.set_axes_unit('pc')
             p2.annotate_timestamp(corner="lower_right", redshift=True, draw_inset_box=True)
             p2.annotate_scale(corner='lower_left')
-            plotname = "frames_" + field + "_" + str(root_dir[75:])
-            p2.save(plotname)
+            dirname = "frames_" + field + "_" + str(root_dir[75:])
+            p2.save(dirname)
 
         elif map == "metallicity":
 
@@ -81,8 +81,8 @@ if __name__ == "__main__":
             p3.set_axes_unit('pc')
             p3.annotate_timestamp(corner="lower_right", redshift=True, draw_inset_box=True)
             p3.annotate_scale(corner='lower_left')
-            plotname = "frames_" + field + "_" + str(root_dir[75:])
-            p3.save(plotname)
+            dirname = "frames_" + field + "_" + str(root_dir[75:])
+            p3.save(dirname)
 
         elif map == "h2":
             # H2 fraction
@@ -94,8 +94,8 @@ if __name__ == "__main__":
             p4.set_axes_unit('pc')
             p4.annotate_timestamp(corner="lower_right", redshift=True, draw_inset_box=True)
             p4.annotate_scale(corner='lower_left')
-            plotname = "frames_" + field + "_" + str(root_dir[75:])
-            p3.save(plotname)
+            dirname = "frames_" + field + "_" + str(root_dir[75:])
+            p3.save(dirname)
 
         
 
