@@ -57,7 +57,7 @@ if __name__ == "__main__":
             if swap_axes:
                 p1.swap_axes()
                 a, b = b, a
-            p1.annotate_timestamp(corner="lower_right", redshift=True, draw_inset_box=True)
+            p1.annotate_timestamp(corner="upper_left", redshift=True, draw_inset_box=True)
             p1.annotate_scale(corner='lower_left')
             p1.annotate_text((a, b), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                              text_args={"color": "white"})
