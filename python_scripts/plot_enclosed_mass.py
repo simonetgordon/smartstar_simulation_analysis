@@ -15,7 +15,8 @@ labels = []
 DS = []
 for i, dd in enumerate(dds):
     ds = yt.load(os.path.join(root_dir[i], sim[i], dd))
-    label = "s" + str(i) + "_" + str(float(ds.current_time.to('Myr')))
+    j = i + 1
+    label = "s" + str(j) + "_" + str(float(ds.current_time.to('Myr')))[:5] + "Myr"
     DS.append(ds)
     labels.append(label)
 
@@ -27,12 +28,12 @@ plt.rcParams["mathtext.default"] = "regular"
 linewidth = 2
 plt.rcParams['lines.linewidth'] = linewidth
 
+fontsize = 10
 font = {'family': 'serif',
         'color':  'black',
         'weight': 'normal',
-        'size': 8,
+        'size': fontsize,
         }
-fontsize = 8
 
 c = sns.color_palette("Paired", len(DS*2))
 j = 1
@@ -48,13 +49,14 @@ for i, ds in enumerate(DS):
         "radius",
         [("gas", "mass")],
         units={"radius": "pc", ("gas", "mass"): "Msun"},
-        logs={"radius": False},
+        logs={"radius": True, ("gas", "mass"): True},
+        weight_field=None
     )
 
     # axs[0].loglog(rp[0].x[rp[0].used], rp[0][("gas", "mass")][rp[0].used],
     #               color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
-    axs.loglog(rp.x.value, rp[("gas", "mass")].value,
+    axs.loglog(rp.x.value, rp[("gas", "mass")].value.cumsum(),
                color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
     j += 2
@@ -62,7 +64,8 @@ for i, ds in enumerate(DS):
 
 axs.set_xlabel(r"$r \, (pc)$", fontdict=font)
 axs.set_ylabel(r"$M \, (M_{\odot})$", fontdict=font)
-axs.legend(loc="lower right", fontsize=8, ncol=2)  # upper/lower
+axs.legend(loc="lower right", fontsize=fontsize, ncol=2)  # upper/lower
+axs.set_title("Mass enclosed at time of BH formation")
 
 # save plot as pdf
 fig = plt.gcf()
@@ -70,4 +73,4 @@ fig = plt.gcf()
 # fig.set_size_inches(4.8, 8)
 plot_name = 'radial_profile_mass_enclosed' + str(y) + '.png'
 fig.savefig('plots/' + plot_name, dpi=100)
-print("created ", plot_name)
+print("created plots/" + str(plot_name))
