@@ -57,9 +57,9 @@ for i, ds in enumerate(DS):
     rp2 = yt.create_profile(
         sp,
         "radius",
-        [("gas", "temperature")],
+        [("gas", "temperature"), ("gas", "mass")],
         units={"radius": "pc", ("gas", "mass"): "Msun"},
-        logs={"radius": True, ("gas", "temperature"): True},
+        logs={"radius": True, ("gas", "temperature"): True}
     )
 
     # axs[0].loglog(rp[0].x[rp[0].used], rp[0][("gas", "mass")][rp[0].used],
