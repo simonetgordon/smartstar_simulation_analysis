@@ -26,8 +26,6 @@ fig = plt.figure()
 fig, axs = plt.subplots(1, 1, sharex=True)
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["mathtext.default"] = "regular"
-plt.xticks([])
-plt.yticks([])
 linewidth = 2
 plt.rcParams['lines.linewidth'] = linewidth
 
@@ -64,13 +62,13 @@ for i, ds in enumerate(DS):
 
     j += 2
 
-
-axs.set_xlabel(r"$r \, (pc)$", fontdict=font)
-axs.set_ylabel(r"$M \, (M_{\odot})$", fontdict=font)
+axs.tick_params(bottom=True, left=True)
 axs.tick_params(axis="x", which='minor', length=4, direction="in")
 axs.tick_params(axis="x", which='major', labelsize=fontsize, width=2, length=4, direction="in")
 axs.tick_params(axis="y", which='major', labelsize=fontsize)
 axs.tick_params(axis="y", which='minor', labelsize=fontsize-2)
+axs.set_xlabel(r"$r \, (pc)$", fontdict=font)
+axs.set_ylabel(r"$M \, (M_{\odot})$", fontdict=font)
 
 axs.legend(loc="lower right", fontsize=fontsize, ncol=2)  # upper/lower
 axs.set_title("Mass enclosed at time of BH formation", fontdict=font)
