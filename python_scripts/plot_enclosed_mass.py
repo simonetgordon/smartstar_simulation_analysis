@@ -50,8 +50,16 @@ for i, ds in enumerate(DS):
         "radius",
         [("gas", "mass"), ("gas", "temperature")],
         units={"radius": "pc", ("gas", "mass"): "Msun"},
-        logs={"radius": True, ("gas", "mass"): True},
+        logs={"radius": True, ("gas", "mass"): True, ("gas", "temperature"): True, },
         weight_field=None
+    )
+
+    rp2 = yt.create_profile(
+        sp,
+        "radius",
+        [("gas", "temperature")],
+        logs={"radius": True, ("gas", "temperature"): True},
+        weight_field=("gas", "mass")
     )
 
     # axs[0].loglog(rp[0].x[rp[0].used], rp[0][("gas", "mass")][rp[0].used],
