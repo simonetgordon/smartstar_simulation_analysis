@@ -50,13 +50,13 @@ if __name__ == "__main__":
             p1.set_cmap(field, 'viridis')
 
             # format
+            p1.swap_axes()
             p1.set_axes_unit('pc')
             p1.annotate_timestamp(corner="lower_right", redshift=True, draw_inset_box=True)
             p1.annotate_scale(corner='lower_left')
             p1.annotate_text((0.70, 0.95), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                              text_args={"color": "white"})
             p1.annotate_title("SS Age = {:.2f} kyrs, {} pccm across".format(ss_age[0] / 1e3, w_pccm))
-            p1.swap_axes()
             dirname = "frames_edge_on_" + field + "_" + str(root_dir[75:]) + "/"
             p1.save(dirname)
         
