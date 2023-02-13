@@ -62,7 +62,7 @@ for i, BHL in enumerate(bhl_object_list):
 
     j += 2
 
-xlim = 1
+xlim = 2
 
 for i in range(6):
     axs[i].tick_params(axis="x", which='minor', length=4, direction="in")
