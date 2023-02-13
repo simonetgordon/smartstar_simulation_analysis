@@ -21,7 +21,7 @@ MASS_WEIGHTED = 1
 root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm04-2"
 
 # writing data arrays to this file
-write_to = "data_files/data-" + str(root_dir[82:])
+write_to = "data_files/data-" + str(root_dir[82:] + ".csv")
 
 
 def _remove_strings(lst):
