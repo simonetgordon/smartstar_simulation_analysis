@@ -68,7 +68,7 @@ for i, ds in enumerate(DS):
     axs[0].loglog(rp.x.value, rp[("gas", "mass")].value.cumsum(),
                color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
-    axs[1].loglog(rp2.x.value, rp2[("gas", "temperature")].value,
+    axs[1].loglog(rp2.x[rp2.used], rp2[("gas", "temperature")][rp2.used],
                   color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
     j += 2
