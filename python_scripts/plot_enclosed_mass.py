@@ -60,7 +60,7 @@ for i, ds in enumerate(DS):
     axs[0].loglog(rp.x.value, rp[("gas", "mass")].value.cumsum(),
                color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
-    axs[1].loglog(rp.x.value, rp[("gas", "temperature")].value.cumsum(),
+    axs[1].loglog(rp.x.value, rp[("gas", "temperature")].value,
                   color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
     j += 2
@@ -81,7 +81,7 @@ axs[0].set_title("Mass enclosed at time of BH formation", fontdict=font)
 
 # save plot as pdf
 fig = plt.gcf()
-# fig.subplots_adjust(wspace=0, hspace=0)
+fig.subplots_adjust(wspace=0, hspace=0)
 # fig.set_size_inches(4.8, 8)
 plot_name = 'radial_profile_mass_enclosed' + str(y) + '.pdf'
 fig.savefig('plots/' + plot_name, dpi=100)
