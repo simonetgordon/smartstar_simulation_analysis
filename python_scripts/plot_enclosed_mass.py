@@ -50,7 +50,7 @@ for i, ds in enumerate(DS):
         "radius",
         [("gas", "mass"), ("gas", "temperature")],
         units={"radius": "pc", ("gas", "mass"): "Msun"},
-        logs={"radius": True, ("gas", "mass"): True, ("gas", "temperature"): True, },
+        logs={"radius": True, ("gas", "mass"): True, ("gas", "temperature"): True},
         weight_field=None
     )
 
@@ -68,7 +68,7 @@ for i, ds in enumerate(DS):
     axs[0].loglog(rp.x.value, rp[("gas", "mass")].value.cumsum(),
                color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
-    axs[1].loglog(rp.x.value, rp[("gas", "temperature")].value,
+    axs[1].loglog(rp2.x.value, rp2[("gas", "temperature")].value,
                   color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
     j += 2
