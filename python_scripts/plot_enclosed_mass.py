@@ -26,6 +26,8 @@ fig = plt.figure()
 fig, axs = plt.subplots(1, 1, sharex=True)
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["mathtext.default"] = "regular"
+plt.xticks([])
+plt.yticks([])
 linewidth = 2
 plt.rcParams['lines.linewidth'] = linewidth
 
