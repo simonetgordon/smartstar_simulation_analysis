@@ -5,6 +5,12 @@ import numpy as np
 import csv
 from itertools import zip_longest
 
+##########################################################################################################
+#                                    Make csv file of BH/gas properties
+#
+# to run: python make_csv_from_estd_2.py
+##########################################################################################################
+
 # turn on to combine multiple estd simulation txt output files
 MULTIPLE_ESTDS = 1
 
@@ -12,10 +18,10 @@ MULTIPLE_ESTDS = 1
 MASS_WEIGHTED = 1
 
 # reading data from this directory
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2"
+root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm04-2"
 
 # writing data arrays to this file
-write_to = "data_files/data-1B.RSb01-2.csv"
+write_to = "data_files/data-" + str(root_dir[82:])
 
 
 def _remove_strings(lst):
