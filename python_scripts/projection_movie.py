@@ -11,7 +11,7 @@ from smartstar_find import ss_properties
 
 map = "density"
 # set by user
-root_dir = "~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm16"
+root_dir = "~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01"
 enzo_file = "smartstar-production-runs.enzo"
 sim = os.path.join(root_dir, enzo_file)
 if __name__ == "__main__":
@@ -57,8 +57,8 @@ if __name__ == "__main__":
             if swap_axes:
                 p1.swap_axes()
                 a, b = b, a
-            p1.annotate_timestamp(corner="upper_left", redshift=True, draw_inset_box=True, coord_system="axis")
             p1.annotate_scale(corner='lower_left')
+            p1.annotate_timestamp(x_pos=a, y_pos=1-b, redshift=True, draw_inset_box=True, coord_system="axis")
             p1.annotate_text((a, b), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                              text_args={"color": "white"})
             p1.annotate_title("SS Age = {:.2f} kyrs, {} pccm across".format(ss_age[0] / 1e3, w_pccm))
