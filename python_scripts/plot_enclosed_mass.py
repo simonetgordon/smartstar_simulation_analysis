@@ -1,6 +1,7 @@
 import sys
 import matplotlib.pyplot as plt
 from smartstar_find import ss_properties
+import numpy as np
 import seaborn as sns
 import yt
 import os
@@ -76,6 +77,6 @@ axs.set_title("Mass enclosed at time of BH formation", fontdict=font)
 fig = plt.gcf()
 # fig.subplots_adjust(wspace=0, hspace=0)
 # fig.set_size_inches(4.8, 8)
-plot_name = 'radial_profile_mass_enclosed' + str(y) + '.png'
+plot_name = 'radial_profile_mass_enclosed' + str(y) + '.pdf'
 fig.savefig('plots/' + plot_name, dpi=100)
 print("created plots/" + str(plot_name))
