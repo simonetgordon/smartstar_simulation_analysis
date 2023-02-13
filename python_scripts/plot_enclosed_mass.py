@@ -51,13 +51,18 @@ for i, ds in enumerate(DS):
         logs={"radius": False},
     )
 
-    axs[0].loglog(rp[0].x[rp[0].used], rp[0][("gas", "mass")][rp[0].used],
-                  color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
+    # axs[0].loglog(rp[0].x[rp[0].used], rp[0][("gas", "mass")][rp[0].used],
+    #               color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
+
+    axs.loglog(rp.x.value, rp[("gas", "density")].value,
+               color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
+
     j += 2
 
 
-axs[0].set_xlabel(r"$r \, (pc)$", fontdict=font)
-axs[0].set_ylabel(r"$M \, (M_{\odot})$", fontdict=font)
+axs.set_xlabel(r"$r \, (pc)$", fontdict=font)
+axs.set_ylabel(r"$M \, (M_{\odot})$", fontdict=font)
+axs.legend(loc="lower right", fontsize=8, ncol=2)  # upper/lower
 
 # save plot as pdf
 fig = plt.gcf()
