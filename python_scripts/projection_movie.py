@@ -56,7 +56,7 @@ if __name__ == "__main__":
             p1.annotate_text((0.73, 0.95), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                              text_args={"color": "white"})
             p1.annotate_title("SS Age = {:.2f} kyrs, {} pccm across".format(ss_age[0] / 1e3, w_pccm))
-            dirname = "frames_edge_on" + field + "_" + str(root_dir[75:])
+            dirname = "frames_edge_on_" + field + "_" + str(root_dir[75:]) + "/"
             p1.save(dirname)
         
         elif map == "temperature":
