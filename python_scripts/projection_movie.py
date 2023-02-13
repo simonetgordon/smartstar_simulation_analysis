@@ -41,6 +41,7 @@ if __name__ == "__main__":
 
         center = ss_pos
         w_pccm = 10
+        swap_axes = True
 
         if map == "density":
             # Gas density
@@ -50,11 +51,15 @@ if __name__ == "__main__":
             p1.set_cmap(field, 'viridis')
 
             # format
-            p1.swap_axes()
+            a = 0.70
+            b = 0.95
             p1.set_axes_unit('pc')
+            if swap_axes:
+                p1.swap_axes()
+                a, b = b, a
             p1.annotate_timestamp(corner="lower_right", redshift=True, draw_inset_box=True)
             p1.annotate_scale(corner='lower_left')
-            p1.annotate_text((0.70, 0.95), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
+            p1.annotate_text((a, b), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                              text_args={"color": "white"})
             p1.annotate_title("SS Age = {:.2f} kyrs, {} pccm across".format(ss_age[0] / 1e3, w_pccm))
             dirname = "frames_edge_on_" + field + "_" + str(root_dir[75:]) + "/"
