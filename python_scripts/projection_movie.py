@@ -53,7 +53,7 @@ if __name__ == "__main__":
             p1.set_axes_unit('pc')
             p1.annotate_timestamp(corner="lower_right", redshift=True, draw_inset_box=True)
             p1.annotate_scale(corner='lower_left')
-            p1.annotate_text((0.73, 0.95), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
+            p1.annotate_text((0.70, 0.95), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                              text_args={"color": "white"})
             p1.annotate_title("SS Age = {:.2f} kyrs, {} pccm across".format(ss_age[0] / 1e3, w_pccm))
             dirname = "frames_edge_on_" + field + "_" + str(root_dir[75:]) + "/"
@@ -68,7 +68,10 @@ if __name__ == "__main__":
             p2.set_axes_unit('pc')
             p2.annotate_timestamp(corner="lower_right", redshift=True, draw_inset_box=True)
             p2.annotate_scale(corner='lower_left')
-            dirname = "frames_" + field + "_" + str(root_dir[75:])
+            p2.annotate_text((0.70, 0.95), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
+                             text_args={"color": "white"})
+            p2.annotate_title("SS Age = {:.2f} kyrs, {} pccm across".format(ss_age[0] / 1e3, w_pccm))
+            dirname = "frames_" + field + "_" + str(root_dir[75:]) + "/"
             p2.save(dirname)
 
         elif map == "metallicity":
@@ -81,20 +84,19 @@ if __name__ == "__main__":
             p3.set_axes_unit('pc')
             p3.annotate_timestamp(corner="lower_right", redshift=True, draw_inset_box=True)
             p3.annotate_scale(corner='lower_left')
-            dirname = "frames_" + field + "_" + str(root_dir[75:])
+            dirname = "frames_" + field + "_" + str(root_dir[75:]) + "/"
             p3.save(dirname)
 
         elif map == "h2":
             # H2 fraction
             field = "H2_p0_fraction"
-            p4 = yt.ProjectionPlot(ds, "x", ("gas", field ), width=(200,'pc'),center=center,
+            p4 = yt.ProjectionPlot(ds, "x", ("gas", field ), width=(w_pccm,'pccm'), center=center,
                                    data_source=region, weight_field='cell_mass')
             p4.set_cmap(field, "kelp")
-
             p4.set_axes_unit('pc')
             p4.annotate_timestamp(corner="lower_right", redshift=True, draw_inset_box=True)
             p4.annotate_scale(corner='lower_left')
-            dirname = "frames_" + field + "_" + str(root_dir[75:])
+            dirname = "frames_" + field + "_" + str(root_dir[75:]) + "/"
             p3.save(dirname)
 
         
