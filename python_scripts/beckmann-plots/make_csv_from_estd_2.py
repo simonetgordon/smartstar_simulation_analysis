@@ -18,7 +18,7 @@ MULTIPLE_ESTDS = 1
 MASS_WEIGHTED = 1
 
 # reading data from this directory
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm04-2"
+root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2"
 
 # writing data arrays to this file
 write_to = "data_files/data-" + str(root_dir[82:] + ".csv")
@@ -49,8 +49,8 @@ if MULTIPLE_ESTDS:
     output_combined = str(root_dir[82:])
     path = Path(output_combined)
     if not path.is_file():
-        file1 = os.path.join(root_dir, 'estd.out')
-        # file2 = os.path.join(root_dir, 'estd_1.out')
+        file1 = os.path.join(root_dir, 'estd_1.out')
+        file2 = os.path.join(root_dir, 'estd.out')
         # file3 = os.path.join(root_dir, 'estd_2.out')
         # file4 = os.path.join(root_dir, 'estd_3.out')
         # file5 = os.path.join(root_dir, 'estd.out')
@@ -60,9 +60,9 @@ if MULTIPLE_ESTDS:
         with open(file1) as fp:
             data = fp.read()
 
-        # # Reading data from file2
-        # with open(file2) as fp:
-        #     data2 = fp.read()
+        # Reading data from file2
+        with open(file2) as fp:
+            data2 = fp.read()
         #
         # # # Reading data from file2
         # with open(file3) as fp:
@@ -80,8 +80,8 @@ if MULTIPLE_ESTDS:
         # To add the data of file2
         # from next line
         data += "\n"
-        # data += data2
-        # data += "\n"
+        data += data2
+        data += "\n"
         # data += data3
         # data += "\n"
         # data += data4
