@@ -63,6 +63,7 @@ for i, ds in enumerate(DS):
     j += 2
 
 axs.tick_params(bottom=True, left=True)
+axs.minorticks_on()
 axs.tick_params(axis="x", which='minor', length=4, direction="in")
 axs.tick_params(axis="x", which='major', labelsize=fontsize, width=2, length=4, direction="in")
 axs.tick_params(axis="y", which='major', labelsize=fontsize)
