@@ -7,8 +7,8 @@ import os
 
 y = sys.argv[-1] # naming plot
 
-root_dir = ["/work/sc070/sc070/stg/simulations/seed1-bh-only/270msun/replicating-beckmann/",
-            "/work/sc070/sc070/stg/simulations/seed2-bh-only/270msun/replicating-beckmann-2/"]
+root_dir = ["~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+            "~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"]
 sim = ["1B.RSb01", "2B.RSb01"]
 dds = ["DD0128", "DD0197"]
 labels = []
