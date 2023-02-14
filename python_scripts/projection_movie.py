@@ -57,9 +57,11 @@ if __name__ == "__main__":
             if swap_axes:
                 p1.swap_axes()
                 a, b = b, a
+                p1.annotate_timestamp(x_pos=0.2, y_pos=0.8, redshift=True, draw_inset_box=True, coord_system="axis")
+            else:
+                p1.annotate_timestamp("lower_right", redshift=True, draw_inset_box=True, coord_system="axis")
             p1.annotate_scale(corner='lower_left')
             p1.annotate_marker(center, coord_system="data", color="black")  # mark ss position
-            p1.annotate_timestamp(x_pos=1-a, y_pos=b, redshift=True, draw_inset_box=True, coord_system="axis")
             p1.annotate_text((a, b), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                              text_args={"color": "white"})
             p1.annotate_title("SS Age = {:.2f} kyrs, {} pccm across".format(ss_age[0] / 1e3, w_pccm))
