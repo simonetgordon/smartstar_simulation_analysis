@@ -40,7 +40,7 @@ if __name__ == "__main__":
             width = (my_width, "unitary")
 
         center = ss_pos
-        w_pccm = 15
+        w_pccm = 25
         swap_axes = True
 
         if map == "density":
@@ -58,7 +58,7 @@ if __name__ == "__main__":
                 p1.swap_axes()
                 a, b = b, a
             p1.annotate_scale(corner='lower_left')
-            p1.annotate_timestamp(x_pos=1-b, y_pos=a, redshift=True, draw_inset_box=True, coord_system="axis")
+            p1.annotate_timestamp(x_pos=1-a, y_pos=b, redshift=True, draw_inset_box=True, coord_system="axis")
             p1.annotate_text((a, b), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                              text_args={"color": "white"})
             p1.annotate_title("SS Age = {:.2f} kyrs, {} pccm across".format(ss_age[0] / 1e3, w_pccm))
