@@ -9,7 +9,7 @@ import os
 from smartstar_find import ss_properties
 
 # set by user
-w_pccm = 4
+w_pccm = 1
 field = "density"
 
 # set by user
