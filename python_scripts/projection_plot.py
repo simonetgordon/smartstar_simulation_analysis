@@ -42,7 +42,8 @@ if field == "density":
     p.annotate_marker(center, coord_system="data", color="black")  # mark ss position
     p.annotate_text((0.73, 0.95), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                     text_args={"color": "white"})
-    p.annotate_grids(min_level=10, cmap='turbo')
+    #p.annotate_grids(min_level=10, cmap='turbo')
+    p.annotate_cell_edges(line_width=0.00002, alpha=0.7, color='white')
     #p.annotate_streamlines(("gas", "relative_velocity_x"), ("gas", "relative_velocity_y"))
     p.annotate_title("SS Age = {:.2f} kyrs, {} pccm across".format(ss_age[0]/1e3, w_pccm))
 
