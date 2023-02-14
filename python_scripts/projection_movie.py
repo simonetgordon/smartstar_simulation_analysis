@@ -57,7 +57,7 @@ if __name__ == "__main__":
             if swap_axes:
                 p1.swap_axes()
                 a, b = b, a
-                p1.annotate_timestamp(x_pos=0.2, y_pos=0.8, redshift=True, draw_inset_box=True, coord_system="axis")
+                p1.annotate_timestamp(x_pos=0.10, y_pos=0.9, redshift=True, draw_inset_box=True, coord_system="axis")
             else:
                 p1.annotate_timestamp("lower_right", redshift=True, draw_inset_box=True, coord_system="axis")
             p1.annotate_scale(corner='lower_left')
