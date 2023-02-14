@@ -4,15 +4,23 @@ python projection_plot.py DD0178/DD0178
 """
 
 import yt
-from smartstar_find import ss_pos, ss_mass, ss_age, root_dir, ds, time_array, input
+import sys
+import os
+from smartstar_find import ss_properties
 
 # set by user
 w_pccm = 8
 field = "density"
 
+# set by user
+root_dir = "~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm16"
+input = sys.argv[1]
+ds = yt.load(os.path.join(root_dir, sys.argv[1]))
+
 # make sphere centred on current ss position
 width = (w_pccm, 'pccm')
 r = 2000 # pc
+ss_pos, ss_mass, ss_age = ss_properties(ds, 0.1)
 center = ss_pos
 sp = ds.sphere(center, 2*r)
 
@@ -30,7 +38,7 @@ if field == "density":
 
     # annotate
     p.annotate_scale(corner='lower_left')
-    p.annotate_timestamp(corner='lower_right')
+    p.annotate_timestamp(corner='lower_right', redshift=True, draw_inset_box=True)
     p.annotate_marker(center, coord_system="data", color="black")  # mark ss position
     p.annotate_text((0.73, 0.95), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                     text_args={"color": "white"})
