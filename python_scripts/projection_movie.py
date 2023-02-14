@@ -58,6 +58,7 @@ if __name__ == "__main__":
                 p1.swap_axes()
                 a, b = b, a
             p1.annotate_scale(corner='lower_left')
+            p1.annotate_marker(center, coord_system="data", color="black")  # mark ss position
             p1.annotate_timestamp(x_pos=1-a, y_pos=b, redshift=True, draw_inset_box=True, coord_system="axis")
             p1.annotate_text((a, b), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                              text_args={"color": "white"})
