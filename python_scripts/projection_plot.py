@@ -31,7 +31,7 @@ if field == "density":
     field = "H_nuclei_density"
     p = yt.ProjectionPlot(ds, "x", ("gas", field), width=width, center=center, data_source=sp,
                           weight_field='density')
-    p.set_cmap(field, 'turbo')
+    p.set_cmap(field, 'viridis')
     p.set_font_size(fontsize)
     p.set_background_color(("gas", field))
     p.set_axes_unit('pc')
@@ -43,7 +43,7 @@ if field == "density":
     p.annotate_text((0.73, 0.95), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                     text_args={"color": "white"})
     p.annotate_grids()
-    p.annotate_streamlines(("gas", "relative_velocity_x"), ("gas", "relative_velocity_y"))
+    #p.annotate_streamlines(("gas", "relative_velocity_x"), ("gas", "relative_velocity_y"))
     p.annotate_title("SS Age = {:.2f} kyrs, {} pccm across".format(ss_age[0]/1e3, w_pccm))
 
     # save
