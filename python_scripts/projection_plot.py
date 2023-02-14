@@ -1,6 +1,6 @@
 """
-Find and print SmartStar properties. Call like:
-python density_plot_zoomed_new.py
+Plot projection of simulation in density or temperature. Call like:
+python projection_plot.py DD0178/DD0178
 """
 
 import yt
@@ -16,7 +16,6 @@ r = 2000 # pc
 center = ss_pos
 sp = ds.sphere(center, 2*r)
 
-# format plot
 fontsize = 18
 
 # Gas density
@@ -35,7 +34,8 @@ if field == "density":
     p.annotate_marker(center, coord_system="data", color="black")  # mark ss position
     p.annotate_text((0.73, 0.95), "Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
                     text_args={"color": "white"})
-    p.annotate_streamlines(("gas", "velocity_x"), ("gas", "velocity_y"))
+    p.annotate_grids()
+    p.annotate_streamlines(("gas", "relative_velocity_x"), ("gas", "relative_velocity_y"))
     p.annotate_title("SS Age = {:.2f} kyrs, {} pccm across".format(ss_age[0]/1e3, w_pccm))
 
     # save
