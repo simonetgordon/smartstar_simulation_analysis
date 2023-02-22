@@ -1,5 +1,5 @@
 """
-For use by density_plot_zoomed_new
+For use by plot_variables_2.py
 """
 import sys
 import os
@@ -7,14 +7,8 @@ import yt
 import ytree
 
 
-def ss_properties(ds, width):
-    # make sphere
-    width = (width, 'unitary')
-    sp = ds.sphere('max', width).save_as_dataset("sphere_containers/{}_sphere.h5".format(ds),
-                       fields=[("gas", "density"), ("SmartStar", "particle_mass"), ("SmartStar", "creation_time"),
-                               ("SmartStar", "particle_position")])
-    sp = yt.load(sp)
-    ad = sp.all_data()
+def ss_properties(ds):
+    ad = ds.all_data()
 
     # find ss properties
     ss_creation = ad['SmartStar', 'creation_time'].to('yr')
@@ -31,15 +25,13 @@ def ss_properties(ds, width):
 
 
 if __name__ == "__main__":
+
     # set by user
+    find_virial_radius = False
     root_dir = "~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm16"
     input = sys.argv[1]
     ds = yt.load(os.path.join(root_dir, sys.argv[1]))
-
-    # make sphere
-    width = (0.2, 'unitary')
-    sp = ds.sphere('max', width).save_as_dataset()
-    ad = sp.all_data()
+    ad = ds.all_data()
 
     # find ss properties
     ss_creation = ad['SmartStar', 'creation_time'].to('yr')
@@ -68,13 +60,15 @@ if __name__ == "__main__":
     print("particle mass_: ", ss_mass)
     print("-----------------------------------------")
 
-    # Load merger tree of dataset (up to DD0118 in gas run)
-    a = ytree.load('/home/sgordon/disk14/pop3/gas+dm-L3/rockstar_halos/out_0.list')
-    # Load halo
-    ds_halos = yt.load('/home/sgordon/disk14/pop3/gas+dm-L3/rockstar_halos/halos_36.0.bin')
-    ds_data = yt.load('/home/sgordon/disk14/pop3/dm-only-L0/DD0036/DD0036')
-    # Load my_tree and find radius
-    a1 = ytree.load('/home/sgordon/disk14/pop3/gas+dm-L3/tree_810/tree_810.h5')
-    r_halo = a1[0]["virial_radius"].to('pc')
-    r = ds.quan(r_halo.d, "pc")  # virial radius
-    print("virial radius (pc) ", r)
+    if find_virial_radius:
+
+        # Load merger tree of dataset (up to DD0118 in gas run)
+        a = ytree.load('/home/sgordon/disk14/pop3/gas+dm-L3/rockstar_halos/out_0.list')
+        # Load halo
+        ds_halos = yt.load('/home/sgordon/disk14/pop3/gas+dm-L3/rockstar_halos/halos_36.0.bin')
+        ds_data = yt.load('/home/sgordon/disk14/pop3/dm-only-L0/DD0036/DD0036')
+        # Load my_tree and find radius
+        a1 = ytree.load('/home/sgordon/disk14/pop3/gas+dm-L3/tree_810/tree_810.h5')
+        r_halo = a1[0]["virial_radius"].to('pc')
+        r = ds.quan(r_halo.d, "pc")  # virial radius
+        print("virial radius (pc) ", r)
