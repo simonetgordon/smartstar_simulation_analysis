@@ -22,19 +22,10 @@ add_fields_ds(ds)
 ad = ds.all_data()
 
 # define cooling rates
-specific_energy = ad['enzo', 'GasEnergy'].to('ergs/g') # g cm^2 s^-2 cm^-3 = g cm^-1 s^-2 = ergs g^-1
-print("q_energy: ", specific_energy)
-
 r = ad["index", "radius"].to('pc')
 q_sim = ad["enzo", "simulation_cooling_rate"] # [erg g^-1 s^-1] = (g cm^2 s^-2) g^-1 s^-1 = cm^2 s^-3
-q_rad = ad["enzo", "radiative_cooling_rate"]
-q_adv = ad["enzo", "advective_cooling_rate"]
-
-# radiative cooling rate [erg s-1 cm-3]
-print("q_rad: ", q_rad)
-
-# advective cooling rate [erg s-1 cm-3]
-print("q_adv: ", q_adv)
+q_rad = ad["enzo", "radiative_cooling_rate"] # radiative cooling rate [erg s-1 cm-3]
+q_adv = ad["enzo", "advective_cooling_rate"] # advective cooling rate [erg s-1 cm-3]
 
 # set up figure
 fig = plt.figure()
