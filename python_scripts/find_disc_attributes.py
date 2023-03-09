@@ -9,13 +9,15 @@ import os
 import numpy as np
 from smartstar_find import ss_properties
 import matplotlib.pyplot as plt
+from derived_fields import add_fields_ds
 
 
 # set by user
 root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2"
 input = sys.argv[1]
 ds = yt.load(os.path.join(root_dir, sys.argv[1]))
-beckmann_method = 0
+add_fields_ds(ds)
+beckmann_method = 1
 
 # naming plot
 seed = int(root_dir[43:44])
@@ -29,15 +31,15 @@ elif seed == 2:
 ss_pos, ss_mass, ss_age = ss_properties(ds)
 
 # make sphere object
-width = 0.0001
+width = 10*yt.units.pc
 sp = ds.sphere(ss_pos, width)
 
 # angular momentum vector
 L = sp.quantities.angular_momentum_vector()
 L_kms = L.in_units('km**2/s')
 
-# make disc out of disk function
-disk = ds.disk(ss_pos, L, (10, "pc"), (0.1, "pc"))
+# make disc
+disk = ds.disk(ss_pos, L, (10, "pc"), (0.2, "pc"))
 
 # plot disc
 #disc_prj = yt.ProjectionPlot(ds, "z", ("gas", "H_nuclei_density"), center=ss_pos, width=(2, "pc"), data_source=disk)
@@ -45,7 +47,7 @@ disk = ds.disk(ss_pos, L, (10, "pc"), (0.1, "pc"))
 #slice.save()
 #disc_prj.save()
 
-# make frb from proj plot
+# Make surface density plot using FRB
 w = 10 # pc
 dx = 1.229791e-02  # pc
 frb_resolution = int(w/dx)
@@ -53,34 +55,37 @@ proj = ds.proj(("gas", "H_nuclei_density"), "x", center=ss_pos, ds=ds, data_sour
 disc_frb = proj.to_frb((10, "pc"), resolution=(int(frb_resolution)), center=ss_pos)
 disc_frb_ds = disc_frb.export_dataset(fields=[("gas", "H_nuclei_density"), ("index", "radius")])
 
-r_frb = disk[('index', 'radius')].to_frb((10, "pc"), resolution=(int(frb_resolution)), center=ss_pos)
-print("r_frb: ", r_frb)
 
-x = disc_frb_ds.r[("index", "radius")].to('pc**2')
+def radius(s_area):
+    return np.sqrt(s_area/4*np.pi)
+
+
+x = disc_frb_ds.r[("index", "spherical_radius")].in_units('pc')
+x_r = radius(x)
 y = disc_frb_ds.r[("gas", "H_nuclei_density")]
 
 print("disc densities: ", disc_frb_ds.r[("gas", "H_nuclei_density")].shape)
-print("disc radius: ", disc_frb_ds.r[("index", "radius")].shape)
+print(x.shape)
 
-density, radius = np.histogram(x, weights=y, bins=128)
-plt.plot(np.sqrt(radius[1:]), density)
-
-plt.ylabel('$\Sigma (cm^{-2})$')
-plt.xlabel('$Area (pc^2)$')
-
+MIN, MAX = 0.01, 10.0
+# density, radius = np.histogram(x_r, weights=y, bins=10 ** np.linspace(np.log10(MIN), np.log10(MAX), 520))
+density, radius = np.histogram(x_r, weights=y, bins=1080)
+plt.plot(radius[1:], density)
+plt.ylabel('$\Sigma \, (cm^{-2})$')
+plt.xlabel('$R \, (pc)$')
 plt.yscale('log')
 plt.xscale('log')
 plot_name = 'disc_sigma_' + str(root_dir[index:]) + '_' + str(input)[7:] + '.png'
 plt.savefig('plots/' + plot_name, dpi=100)
 print("created plots/" + str(plot_name))
 
-create_profiles = 0
+create_profiles = 1
 if create_profiles:
     profile = yt.create_profile(
         data_source=disk,
         bin_fields=[("index", "radius")],
         fields=[("gas", "velocity_cylindrical_theta"), ("gas", "H_nuclei_density"), ('index', 'cylindrical_z'),
-                ('gas', 'temperature'), ('gas', 'sound_speed'), ('gas', 'radial_velocity'), ('gas', 'epicyclic_frequency_ratio'),
+                ('gas', 'temperature'), ('gas', 'sound_speed'), ('gas', 'radial_velocity'),
                 ('gas', 'angular_frequency'), ('gas', 'velocity_spherical_theta'), ('gas', 'angular_frequency_keplerian'),
                 ('index', 'radius'), ('gas', 'keplerian_frequency_BH')],
         n_bins=64,
@@ -112,7 +117,7 @@ if create_profiles:
 
 
     fig = plt.figure()
-    fig, axs = plt.subplots(6, 1, sharex=True)
+    fig, axs = plt.subplots(7, 1, sharex=True)
     plt.rcParams["font.family"] = "serif"
     plt.rcParams["mathtext.default"] = "regular"
     linewidth = 1
@@ -120,7 +125,6 @@ if create_profiles:
 
     fontsize = 8
     font = {'family': 'serif',
-            'color':  'black',
             'weight': 'normal',
             'size': fontsize,
             }
@@ -132,28 +136,31 @@ if create_profiles:
     plot_theta = axs[4].plot(profile.x.value, np.abs(profile[("gas", "velocity_cylindrical_theta")].value /
                                                profile[("gas", "sound_speed")].value))
     plot_density = axs[1].plot(profile.x[profile.used], profile[("gas", "H_nuclei_density")][profile.used])
-    plot_z = axs[3].loglog(profile.x[profile.used], np.abs(profile[("index", "cylindrical_z")][profile.used]))
+    #plot_z = axs[3].loglog(profile.x[profile.used], np.abs(profile[("index", "cylindrical_z")][profile.used]))
     plot_temp = axs[2].loglog(profile.x[profile.used], profile[("gas", "temperature")][profile.used])
     plot_vr = axs[5].loglog(profile.x[profile.used], np.abs(profile[("gas", "radial_velocity")][profile.used]))
     plot_omega = axs[0].loglog(profile.x[profile.used], profile[("gas", "angular_frequency")][profile.used] /
                   profile[("gas", "keplerian_frequency_BH")][profile.used])
+    plot_sigma = axs[6].loglog(radius[1:], density)
     # plot_omega = axs[5].loglog(profile.x[profile.used], profile[("gas", "epicyclic_frequency_ratio")][profile.used])
     # axs[5].loglog(profile.x[profile.used], np.abs(profile[("gas", "velocity_spherical_theta")][profile.used]) /
     #               (2*np.pi*profile[("index", "radius")][profile.used]))
     # axs[5].loglog(profile.x[profile.used], profile[("gas", "angular_frequency_keplerian")][profile.used])
     # axs[5].loglog(profile.x[profile.used], profile[("gas", "keplerian_frequency_BH")][profile.used])
 
-    axs[5].set_xlabel(r"$Radius \, (pc)$", fontdict=font)
+    axs[6].set_xlabel(r"$Radius \, (pc)$", fontdict=font)
     axs[4].set_ylabel(r"$\nu_{\theta} \,/ c_s$", fontdict=font)
     axs[1].set_ylabel(r"$n \, (cm^{-3})$", fontdict=font)
     axs[1].set_yscale('log')
-    axs[3].set_ylabel(r"$Cylindrical \,Z \, (pc)$", fontdict=font)
+    axs[3].set_ylabel(r"$H \, (pc)$", fontdict=font)
     axs[2].set_ylabel(r"$T \, (K)$", fontdict=font)
     axs[5].set_ylabel(r"$\nu_r \, (km/s)$", fontdict=font)
+    axs[6].set_ylabel(r"$\Sigma \, (cm^{-2})$", fontdict=font)
     axs[0].set_ylabel(r"$\omega / \omega_K $", fontdict=font)
     axs[0].set_yscale('linear')
+    axs[0].set_title("2 Myr " + str(root_dir[index:]), fontproperties=font)
 
-    for i in range(6):
+    for i in range(7):
         axs[i].tick_params(axis="x", which='minor', length=2, direction="in")
         axs[i].tick_params(axis="x", which='major', labelsize=fontsize, width=1, length=3, direction="in")
         axs[i].tick_params(axis="y", which='major', labelsize=fontsize)
@@ -162,19 +169,21 @@ if create_profiles:
     # save plot as pdf
     fig = plt.gcf()
     fig.subplots_adjust(wspace=0, hspace=0)
-    fig.set_size_inches(6, 8)
+    fig.set_size_inches(6, 10)
+    #fig.suptitle("2 Myr " + str(root_dir[index:]), fontproperties=font)
     plot_name = 'disc_attributes_' + str(root_dir[index:]) + '_' + str(input)[7:] + '.pdf'
     fig.savefig('plots/' + plot_name, dpi=100)
     print("created plots/" + str(plot_name))
 
 # Produce a 2D array of uniform pixel sizes of the disc height at the maximum resolution of simulation
+beckmann_method = 0
 if beckmann_method:
     # make disc object
     rho_disc = 0  # by density projection plot inspection
     print(ss_mass)
     disc = ds.cut_region(disk, ["obj['density'].in_units('amu/cm**3') > {0}".format(rho_disc)])
-    disc_height_sum = disc.sum('dy', axis="y")
-    print(disc_height_sum)
+    disc_height_sum = disc.sum(('index', 'z'), axis=('index', 'y'))
+    print("disc height sum: ", disc_height_sum)
 
     sphere_pc = (width * ds.length_unit.in_units("code_length")).in_units("pc")
     dx = 7.687095e-04 # pc
