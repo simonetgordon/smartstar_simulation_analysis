@@ -11,9 +11,18 @@ from smartstar_find import ss_properties
 
 map = "density"
 # set by user
-root_dir = "~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm04"
+root_dir = "~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm16"
 enzo_file = "smartstar-production-runs.enzo"
 sim = os.path.join(root_dir, enzo_file)
+
+# naming sphere container directory
+seed = int(root_dir[43:44])
+if seed == 1:
+    index = 82
+elif seed == 2:
+    index = 84
+sp_container_dir = root_dir[index:]
+
 if __name__ == "__main__":
     es = yt.load_simulation(sim, "Enzo", find_outputs=True)
     es.get_time_series()
@@ -32,7 +41,7 @@ if __name__ == "__main__":
     
     for ds in es.piter():
 
-        ss_pos, ss_mass, ss_age = ss_properties(ds, my_width*0.1)
+        ss_pos, ss_mass, ss_age = ss_properties(ds)
 
         if nested_level > 0:
             region = ds.box(center0 - 0.5 * my_width,

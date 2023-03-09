@@ -16,9 +16,8 @@ def ss_properties(ds):
     ss_mass = ad['SmartStar', 'particle_mass'].to('Msun')[0]
 
     # find ss age
-    time_array = ds.current_time.to('yr')
+    time = ds.current_time.to('yr').d
     creation = ss_creation.d  # strip units off variables
-    time = time_array.d
     ss_age = time - creation
 
     return ss_pos, ss_mass, ss_age
