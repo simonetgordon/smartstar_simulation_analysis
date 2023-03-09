@@ -8,7 +8,7 @@ from itertools import zip_longest
 ##########################################################################################################
 #                                    Make csv file of BH/gas properties
 #
-# to run: python make_csv_from_estd_2.py
+# to run: python make_csv_from_estd.py
 ##########################################################################################################
 
 # turn on to combine multiple estd simulation txt output files
@@ -63,8 +63,8 @@ def _remove_strings(lst):
 ##########################################################################################################
 
 if MULTIPLE_ESTDS:
-    output_combined = str(root_dir[index:])
-    path = Path(output_combined)
+    output_combined = 'estd_files/' + str(root_dir[index:])
+    path = Path(os.path.join('estd_files', output_combined))
 
     files = []
     data_list = []
