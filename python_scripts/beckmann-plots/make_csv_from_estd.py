@@ -5,17 +5,38 @@ import numpy as np
 import csv
 from itertools import zip_longest
 
+##########################################################################################################
+#                                    Make csv file of BH/gas properties
+#
+# to run: python make_csv_from_estd_2.py
+##########################################################################################################
+
 # turn on to combine multiple estd simulation txt output files
 MULTIPLE_ESTDS = 1
+SMALL = 0
 
-# turn on if estd file has both AvgValues_MassWeighted and AvgValues printed out
-MASS_WEIGHTED = 1
+# user input
+root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2"
+estds = ['estd_0.out', 'estd_1.out', 'estd_2.out',
+         'estd_3.out',
+         # 'estd_4.out',
+         # 'estd_5.out',
+         # 'estd_6.out',
+         # 'estd_7.out',
+         # 'estd_8.out',
+         'estd.out']
 
-# reading data from this directory
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01"
+# naming output file
+seed = int(root_dir[43:44])
+if seed == 1:
+    index = 82
+elif seed == 2:
+    index = 84
+if SMALL:
+    index -= 1
 
 # writing data arrays to this file
-write_to = "data_files/data-1B.RSb01.csv"
+write_to = "data_files/data-" + str(root_dir[index:] + ".csv")
 
 
 def _remove_strings(lst):
@@ -23,6 +44,8 @@ def _remove_strings(lst):
         try:
             float(i)
         except ValueError:
+            i = i.replace("inf pc \t Jea", "0")
+            i = i.replace("inf pc \t Bon", "0")
             i = i.replace("cm^-3", '')
             i = i.replace("cm^-", '')
             i = i.replace("cm^", '')
@@ -40,127 +63,97 @@ def _remove_strings(lst):
 ##########################################################################################################
 
 if MULTIPLE_ESTDS:
-    output_combined = str(root_dir[82:])
+    output_combined = str(root_dir[index:])
     path = Path(output_combined)
-    if not path.is_file():
-        file1 = os.path.join(root_dir, 'estd_0.out')
-        file2 = os.path.join(root_dir, 'estd_1.out')
-        file3 = os.path.join(root_dir, 'estd_2.out')
-        file4 = os.path.join(root_dir, 'estd_3.out')
-        file5 = os.path.join(root_dir, 'estd.out')
-        data = data2 = data3 = data4 = data5 = ""
 
-        # Reading data from file1
-        with open(file1) as fp:
-            data = fp.read()
+    files = []
+    data_list = []
+    for estd in estds:
+        f = os.path.join(root_dir, estd)
+        files.append(f)
+        data_list.append("")
 
-        # Reading data from file2
-        with open(file2) as fp:
-            data2 = fp.read()
+    for i, f in enumerate(files):
+        # Reading data from file
+        with open(f) as fp:
+            data_list[i] = fp.read()
 
-        # # Reading data from file2
-        with open(file3) as fp:
-            data3 = fp.read()
-        #
-        # # Reading data from file2
-        with open(file4) as fp:
-            data4 = fp.read()
-
-        # # Reading data from file5
-        with open(file5) as fp:
-            data5 = fp.read()
-
-        # Merging 2 files
-        # To add the data of file2
-        # from next line
+    # Merging files
+    # To add the data of file2
+    # from next line
+    data = ""
+    for i in range(len(files)):
         data += "\n"
-        data += data2
-        data += "\n"
-        data += data3
-        data += "\n"
-        data += data4
-        data += "\n"
-        data += data5
+        data += data_list[i]
 
-        Path(output_combined).touch()
-        with open(output_combined, 'w') as fp:
-            fp.write(data)
-        output = output_combined
-    else:
-        output = output_combined
+    Path(output_combined).touch()
+    with open(output_combined, 'w') as fp:
+        fp.write(data)
+    output = output_combined
 else:
     output = os.path.join(root_dir, 'estd.out')
 
 
 ##########################################################################################################
-#                                  Accretion Arrays: accrates, accrate_times
+#                                  Accretion Arrays: accrates, ages
 ##########################################################################################################
 accrates = []
-accrate_dtimes = []
-accrate_times = []
+ages = []
 for line in open(output):
     accrate = re.search(r'accrate = (.{8})', line)
-    accrate_dtime = re.search(r'deltatime = (.{7})', line)
+    age = re.search(r'Age = (.{12})', line)
     if accrate:
         accrates.append(accrate.group(1))
-        accrate_dtimes.append(accrate_dtime.group(1))
+        ages.append(age.group(1))
 
 accrates = np.array([float(i) for i in accrates])
-accrate_dtimes = np.array(_remove_strings(accrate_dtimes))
-
-for j in range(len(accrate_dtimes)):
-    accrate_times.append(accrate_dtimes[j] + sum(accrate_dtimes[:j]))
-
-accrate_times = np.array(accrate_times)
-
-#accrate_times = np.linspace(10000, 1760000, len(accrates))
+ages = np.array([float(i) for i in ages])
 
 
 ##########################################################################################################
-#                        Average Velocities, Densities + Temperature Arrays
+#                        Average Velocities, Densities + Total Gas Mass
 ##########################################################################################################
 
 average_density = []
-average_temperature = []
+total_gas_mass = []
 average_vinfinity = []
 average_cinfinity = []
 for line in open(output):
-    avg_dens = re.search(r'Avg_Density = (.{11})', line)
-    avg_temp = re.search(r'AverageTemp = (.{12})', line)
-    avg_cinf = re.search(r'Average cInfinity = (.{12})', line)
-    avg_vinf = re.search(r'Average vInfinity = (.{12})', line)
-    if MASS_WEIGHTED:
-        mass_weighted = re.search(r'AvgValues_MassWeighted:', line)
-    else:
-        mass_weighted = 1
-    if avg_dens and mass_weighted:
+    avg_dens = re.search(r'Avg_rho = (.{12})', line)
+    avg_cinf = re.search(r'Avg_cinf = (.{12})', line)
+    avg_vinf = re.search(r'Avg_vinf = (.{12})', line)
+    gas_mass = re.search(r'TotalGasMass within r_k = (.{12})', line)
+    if avg_dens:
         average_density.append(avg_dens.group(1))
-        average_temperature.append(avg_temp.group(1))
+        total_gas_mass.append(gas_mass.group(1))
         average_cinfinity.append(avg_cinf.group(1))
         average_vinfinity.append(avg_vinf.group(1))
 
 average_density = np.array(_remove_strings(average_density))
-average_temperature = np.array([float(i) for i in average_temperature])
+total_gas_mass = np.array([float(i) for i in total_gas_mass])
 average_vinfinity = np.array([float(i) for i in average_vinfinity])
 average_cinfinity = np.array([float(i) for i in average_cinfinity])
 
-average_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(average_cinfinity))
-print("sum(accrate_dtimes) = ", sum(accrate_dtimes))
-#average_times = np.linspace(accrate_times[0], accrate_times[-1], num=len(average_cinfinity))
-
 
 ##########################################################################################################
-#                                              HL radius
+#                                HL radius, Bondi radius and JeansLength
 ##########################################################################################################
 
 hl_radius = []
+bondi_radius = []
+jeans_length = []
 for line in open(output):
-    radius = re.search(r'to BondiHoyle radius = (.{12})', line)
-    if radius:
-        hl_radius.append(radius.group(1))
+    hl = re.search(r'HLRadius = (.{12})', line)
+    bondi = re.search(r'BondiRadius = (.{12})', line)
+    jeans = re.search(r'JeansLengthOfRegion = (.{12})', line)
+    if hl:
+        hl_radius.append(hl.group(1))
+        bondi_radius.append(bondi.group(1))
+        jeans_length.append(jeans.group(1))
 
-hl_radius = np.array([float(i) for i in hl_radius])
-hl_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(hl_radius))
+hl_radius = np.array(_remove_strings(hl_radius))
+bondi_radius = np.array(_remove_strings(bondi_radius))
+jeans_length = np.array(_remove_strings(jeans_length))
 
 ##########################################################################################################
 #                                              BH Mass
@@ -168,13 +161,11 @@ hl_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(hl_radius
 
 mass = []
 for line in open(output):
-    bh_mass = re.search(r'cmass = (.{32})', line)
+    bh_mass = re.search(r'cmass = (.{12})', line)
     if bh_mass:
-        bh_mass = bh_mass.group(1)
-        bh_mass = bh_mass.replace(bh_mass[:20], '')
-        mass.append(bh_mass)
+        mass.append(bh_mass.group(1))
+
 mass = np.array([float(i) for i in mass])
-mass_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(mass))
 
 
 ##########################################################################################################
@@ -182,12 +173,12 @@ mass_times = np.linspace(accrate_dtimes[0], sum(accrate_dtimes), num=len(mass))
 ##########################################################################################################
 
 # assign header columns
-headerList = ['accrate times', 'accrate', 'average times', 'average density', 'average vinfinity',
-              'average cinfinity', 'average temperature', 'HL radius', 'BH mass', 'hl_times', 'mass_times']
+headerList = ['age', 'accrate', 'average density', 'average vinfinity', 'average cinfinity',
+              'total gas mass', 'HL radius', 'Bondi radius', 'Jeans length', 'BH mass']
 
 # open CSV file and assign header
-all_data = [accrate_times, accrates, average_times, average_density, average_vinfinity, average_cinfinity,
-            average_temperature, hl_radius, mass, hl_times, mass_times]
+all_data = [ages, accrates, average_density, average_vinfinity, average_cinfinity,
+            total_gas_mass, hl_radius, bondi_radius, jeans_length, mass]
 
 with open(write_to, "w+") as f:
     dw = csv.DictWriter(f, delimiter=',', fieldnames=headerList)

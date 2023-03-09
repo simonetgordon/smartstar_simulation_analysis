@@ -12,30 +12,29 @@ import pandas as pd
 
 # Black Hole class
 class BlackHole:
-    def __init__(self, accrate_times, accrates, average_times, average_density, average_vinfinity,
-                 average_cinfinity, average_temperature, hl_radius, mass, hl_times, mass_times):
-        self.accrate_times = accrate_times
+    def __init__(self, ages, accrates, average_density, average_vinfinity, average_cinfinity, total_gas_mass,
+                 hl_radius, bondi_radius, jeans_length, mass):
+        self.ages = ages
         self.accrates = accrates
-        self.average_times = average_times
         self.average_density = average_density
         self.average_vinfinity = average_vinfinity
         self.average_cinfinity = average_cinfinity
-        self.average_temperature = average_temperature
+        self.total_gas_mass = total_gas_mass
         self.hl_radius = hl_radius
         self.mass = mass
-        self.hl_times = hl_times
-        self.mass_times = mass_times
+        self.bondi_radius = bondi_radius
+        self.jeans_length = jeans_length
 
     def info(self):
         print("------------------------------------------------------------------------------------------------------")
-        print("accrate_times (yrs post-formation): {}, \naccrates (Msun/yr): {}, "
-              "\naverage_times (yrs post-formation): {}, \naverage_density (cm^-3): {}, "
+        print("ages (yrs post-formation): {}, \naccrates (Msun/yr): {}, "
+              "\naverage_density (cm^-3): {}, "
               "\naverage_vinfinity (km/s): {}, \naverage_cinfinity (km/s): {}, "
-              "\naverage_temperature (K): {}, \nhl_radius (pc): {},"
-              "\nmass (Msun): {}".format(
-            self.accrate_times,self.accrates, self.average_times, self.average_density,
-            self.average_vinfinity, self.average_cinfinity, self.average_temperature,
-            self.hl_radius, self.mass))
+              "\ntotal_gas_mass (K): {}, \nhl_radius (pc): {}, \nbondi_radius (pc): {}"
+              "\nmass (Msun): {}, \njeans length (pc): {}".format(
+            self.ages, self.accrates, self.average_density,
+            self.average_vinfinity, self.average_cinfinity, self.total_gas_mass,
+            self.hl_radius, self.bondi_radius, self.mass, self.jeans_length))
         print("------------------------------------------------------------------------------------------------------")
         return
 
@@ -50,7 +49,7 @@ def make_bhl_object(sys_arg):
     output_object = BlackHole(data[columns[0]].values, data[columns[1]].values, data[columns[2]].values,
                      data[columns[3]].values, data[columns[4]].values, data[columns[5]].values,
                      data[columns[6]].values, data[columns[7]].values, data[columns[8]].values,
-                     data[columns[9]].values, data[columns[10]].values)
+                     data[columns[9]].values)
     output_object.info()
     return output_object
 
@@ -64,12 +63,11 @@ def make_rolling_bhl_object(sys_arg):
     window = 1000
 
     # make BHL class object
-    output_object = BlackHole(data[columns[0]].values, data[columns[1]].values,
-                              data[columns[2]].values, data[columns[3]].rolling(window=window).mean(),
+    output_object = BlackHole(data[columns[0]].rolling(window=window).mean(), data[columns[1]].rolling(window=window).mean(),
+                              data[columns[2]].rolling(window=window).mean(), data[columns[3]].rolling(window=window).mean(),
                               data[columns[4]].rolling(window=window).mean(), data[columns[5]].rolling(window=window).mean(),
                               data[columns[6]].rolling(window=window).mean(), data[columns[7]].rolling(window=window).mean(),
-                              data[columns[8]].values, data[columns[9]].rolling(window=window).mean(),
-                              data[columns[10]].values)
+                              data[columns[8]].rolling(window=window).mean(), data[columns[9]].rolling(window=window).mean())
     output_object.info()
     return output_object
 
@@ -99,3 +97,6 @@ def bhl_object_labels():
 
 bhl_object_list = bhl_object_list(rolling=1)
 bhl_object_labels = bhl_object_labels()
+
+if __name__ == "__main__":
+    print(BlackHole.info(make_bhl_object(sys.argv[-1])))
