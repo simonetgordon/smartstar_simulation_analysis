@@ -1,6 +1,6 @@
 """
 For analysing the nuclear disc feeding a black hole
-python find_disc_attributes.py DD0130/DD0130
+python find_disc_attributes.py DD0148/DD0148
 """
 
 import yt
@@ -46,31 +46,33 @@ ss_pos, ss_mass, ss_age = ss_properties(ds)
 
 if __name__ == "__main__":
 
+    disc_r_pc = 10
+    disc_h_pc = 1
+
     # make disk data container and define L
-    disk, L = _make_disk_L(ds, ss_pos, 10, 1)
+    disk, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
 
     # Gives a 3d vector and it will return 3 orthogonal vectors, the first one being the original vector
     # and the 2nd and 3rd being two vectors in the plane orthogonal to the first and orthogonal to each other.
     # It's very useful for giving you a vector edge-on to the disk.
     vecs = ortho_find(L)
 
-    for i, vec in enumerate(vecs):
-        north = vecs[0] if i > 0 else vecs[1]
-        p = yt.ProjectionPlot(ds, vec, ("gas", "density"), weight_field=("gas", "density"), north_vector=north,
-                              center=disk.center, width=2 * disk.radius, data_source=disk)
-        p.set_axes_unit("pc")
-        p.set_cmap(("gas", "density"), "turbo")
-        p.save()
-
-    for field in ("height", "cylindrical_radius"):
-        p = yt.ProfilePlot(disk, ("index", field), ("gas", "density"), weight_field=("gas", "cell_mass"))
-        p.set_unit(("index", field), "pc")
-        p.save()
-
-    p = yt.ProfilePlot(disk, ("index", "radius"), ("index", "height"), weight_field=("gas", "cell_mass"))
-    p.set_unit(("index", "height"), "pc")
-    p.set_unit(("index", "radius"), "pc")
-    p.save()
+    # for i, vec in enumerate(vecs):
+    #     north = vecs[0] if i > 0 else vecs[1]
+    #     p = yt.ProjectionPlot(ds, vec, ("gas", "density"), weight_field=("gas", "density"), north_vector=north, center=disk.center, width=2 * disk.radius, data_source=disk)
+    #     p.set_axes_unit("pc")
+    #     p.set_cmap(("gas", "density"), "turbo")
+    #     p.save()
+    #
+    # for field in ("height", "cylindrical_radius"):
+    #     p = yt.ProfilePlot(disk, ("index", field), ("gas", "density"), weight_field=("gas", "cell_mass"))
+    #     p.set_unit(("index", field), "pc")
+    #     p.save()
+    #
+    # p = yt.ProfilePlot(disk, ("index", "radius"), ("index", "height"), weight_field=("gas", "cell_mass"))
+    # p.set_unit(("index", "height"), "pc")
+    # p.set_unit(("index", "radius"), "pc")
+    # p.save()
 
     # plot disc
     #disc_prj = yt.ProjectionPlot(ds, "z", ("gas", "H_nuclei_density"), center=ss_pos, width=(2, "pc"), data_source=disk)
@@ -79,39 +81,34 @@ if __name__ == "__main__":
     #disc_prj.save()
 
     # Make surface density plot using FRB
-    w = 10 # pc
+    w = disc_r_pc*2 # pc
     dx = 1.229791e-02  # pc
     frb_resolution = int(w/dx)
-    proj = ds.proj(("gas", "H_nuclei_density"), "x", center=ss_pos, ds=ds, data_source=disk)
-    disc_frb = proj.to_frb((10, "pc"), resolution=(int(frb_resolution)), center=ss_pos)
-    disc_frb_ds = disc_frb.export_dataset(fields=[("gas", "H_nuclei_density"), ("index", "radius")])
-
-    x = disc_frb_ds.r[("index", "spherical_radius")].in_units('pc')
-    x_r = radius(x)
+    proj = ds.proj(("gas", "H_nuclei_density"), "x", width=disk.radius*2, center=ss_pos, ds=ds, data_source=disk)
+    disc_frb = proj.to_frb((disc_r_pc*2, "pc"), resolution=(int(frb_resolution)), center=ss_pos)
+    disc_frb_ds = disc_frb.export_dataset(fields=[("gas", "H_nuclei_density"), ("index", "radius"), ("index", "x")])
 
     # use frb to calculate radius
-    x = np.logspace(-4, 1, frb_resolution**2 -1)
-
-    rows, cols = (2, 5)
-    arr = [[0]*cols]*rows
     y = disc_frb_ds.r[("gas", "H_nuclei_density")]
+    y = y[int(y.shape[0] / 2):]
+    x = np.linspace(disc_frb_ds.domain_width.in_units('pc') / frb_resolution, disc_frb_ds.domain_width.in_units('pc')/2,
+                    y.shape[0])
+    #x = np.logspace(-1.91009, 1, y.shape[0])
+    x = x[:, 0]
 
-    print("disc densities: ", disc_frb_ds.r[("gas", "H_nuclei_density")].shape)
-    print(x.shape)
-
-    MIN, MAX = 0.01, 10.0
-    # density, radius = np.histogram(x_r, weights=y, bins=10 ** np.linspace(np.log10(MIN), np.log10(MAX), 520))
-    density, radius = np.histogram(x_r, weights=y, bins=1080)
-    plt.plot(radius, density)
+    nbins = 1000
+    sigma, radius = np.histogram(x, weights=y, bins=nbins)
+    plt.plot(radius[:nbins], sigma)
     plt.ylabel('$\Sigma \, (cm^{-2})$')
     plt.xlabel('$R \, (pc)$')
     plt.yscale('log')
     plt.xscale('log')
-    plot_name = 'disc_sigma_' + str(root_dir[index:]) + '_' + str(input)[7:] + '.png'
+    plot_name = 'disc_sigma_' + str(root_dir[index:]) + '_' + str(input)[7:] + '.pdf'
     plt.savefig('plots/' + plot_name, dpi=100)
     print("created plots/" + str(plot_name))
 
     create_profiles = 1
+    n_bins = 64
     if create_profiles:
         profile = yt.create_profile(
             data_source=disk,
@@ -139,6 +136,7 @@ if __name__ == "__main__":
             weight_field=("gas", "cell_mass"),
         )
 
+        # plot cylindrical Z vs density
         plt.plot(profile2.x[profile2.used], profile2[("gas", "H_nuclei_density")][profile2.used])
         plt.ylabel('n ($cm^{3}$)')
         plt.xlabel('Cylindrical Z (pc)')
@@ -146,6 +144,13 @@ if __name__ == "__main__":
         plot_name = 'disc_z_dens_' + str(root_dir[index:]) + '_' + str(input)[7:] + '.png'
         plt.savefig('plots/' + plot_name, dpi=100)
         print("created plots/" + str(plot_name))
+
+        # make Toomre Q profile
+        m_p = 1.67262192e-24 * yt.units.g # g
+        G = 6.67e-8 * (yt.units.cm ** 3) / (yt.units.g * yt.units.s ** 2)  # cgs
+        num = profile[("gas", "sound_speed")].to('cm/s') * profile[("gas", "angular_frequency")]
+        sigma, radius = np.histogram(x, weights=y, bins=n_bins)
+        denom = np.pi * G * sigma[:nbins] * m_p / yt.units.cm**2
 
         fig = plt.figure()
         fig, axs = plt.subplots(7, 1, sharex=True)
@@ -171,7 +176,7 @@ if __name__ == "__main__":
         plot_vr = axs[5].loglog(profile.x[profile.used], np.abs(profile[("gas", "radial_velocity")][profile.used]))
         plot_omega = axs[0].loglog(profile.x[profile.used], profile[("gas", "angular_frequency")][profile.used] /
                       profile[("gas", "keplerian_frequency_BH")][profile.used])
-        plot_sigma = axs[6].loglog(radius[1:], density)
+        plot_sigma = axs[6].loglog(radius[:nbins], sigma)
         plot_h = axs[3].loglog(profile.x[profile.used], profile[("index", "height")][profile.used])
 
         axs[6].set_xlabel(r"$Radius \, (pc)$", fontdict=font)
@@ -184,7 +189,8 @@ if __name__ == "__main__":
         axs[6].set_ylabel(r"$\Sigma \, (cm^{-2})$", fontdict=font)
         axs[0].set_ylabel(r"$\omega / \omega_K $", fontdict=font)
         axs[0].set_yscale('linear')
-        axs[0].set_title("2 Myr " + str(root_dir[index:]), fontproperties=font)
+        axs[0].set_title("BH Age = " + "{:.2f}".format(ss_age[0]/1e6) + " Myr" + ", " + str(root_dir[index:]),
+                         fontproperties=font)
 
         for i in range(7):
             axs[i].tick_params(axis="x", which='minor', length=2, direction="in")
