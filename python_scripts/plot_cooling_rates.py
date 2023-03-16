@@ -19,13 +19,6 @@ ds = yt.load(os.path.join(root_dir, sys.argv[1]))
 
 # add all cooling rate derived fields to ds
 add_fields_ds(ds)
-ad = ds.all_data()
-
-# define cooling rates
-r = ad["index", "radius"].to('pc')
-q_sim = ad["enzo", "simulation_cooling_rate"] # [erg g^-1 s^-1] = (g cm^2 s^-2) g^-1 s^-1 = cm^2 s^-3
-q_rad = ad["enzo", "radiative_cooling_rate"] # radiative cooling rate [erg s-1 cm-3]
-q_adv = ad["enzo", "advective_cooling_rate"] # advective cooling rate [erg s-1 cm-3]
 
 # set up figure
 fig = plt.figure()
