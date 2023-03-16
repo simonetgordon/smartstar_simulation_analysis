@@ -84,20 +84,31 @@ if __name__ == "__main__":
     w = disc_r_pc*2 # pc
     dx = 1.229791e-02  # pc
     frb_resolution = int(w/dx)
-    proj = ds.proj(("gas", "H_nuclei_density"), "x", width=disk.radius*2, center=ss_pos, ds=ds, data_source=disk)
+    proj = ds.proj(("gas", "H_nuclei_density"), "x", center=ss_pos, ds=ds, data_source=disk)
     disc_frb = proj.to_frb((disc_r_pc*2, "pc"), resolution=(int(frb_resolution)), center=ss_pos)
     disc_frb_ds = disc_frb.export_dataset(fields=[("gas", "H_nuclei_density"), ("index", "radius"), ("index", "x")])
 
     # use frb to calculate radius
     y = disc_frb_ds.r[("gas", "H_nuclei_density")]
-    y = y[int(y.shape[0] / 2):]
-    x = np.linspace(disc_frb_ds.domain_width.in_units('pc') / frb_resolution, disc_frb_ds.domain_width.in_units('pc')/2,
-                    y.shape[0])
+    #y = y[int(y.shape[0] / 2):]
+    # x = np.linspace(disc_frb_ds.domain_width.in_units('pc') / frb_resolution, disc_frb_ds.domain_width.in_units('pc')/2,
+    #                 y.shape[0])
     #x = np.logspace(-1.91009, 1, y.shape[0])
-    x = x[:, 0]
+    # x = x[:, 0]
 
-    nbins = 1000
-    sigma, radius = np.histogram(x, weights=y, bins=nbins)
+    xleft = np.abs(disc_frb_ds.domain_left_edge[0] - ss_pos).to('pc')
+    xright = np.abs(disc_frb_ds.domain_right_edge[0] - ss_pos[0]).to('pc')
+    yleft = np.abs(disc_frb_ds.domain_left_edge[1] - ss_pos[1]).to('pc')
+    yright = np.abs(disc_frb_ds.domain_right_edge[1] - ss_pos[1]).to('pc')
+
+    xwidth = (disc_frb_ds.domain_right_edge[0] - disc_frb_ds.domain_left_edge[0]).to('pc')
+    xs = np.linspace(xleft, xright, y.shape[0]) # xwidth/frb_resolution
+    ywidth = (disc_frb_ds.domain_right_edge[1] - disc_frb_ds.domain_left_edge[1]).to('pc')
+    ys = np.linspace(-yleft, yright, y.shape[0])
+    r = np.sqrt(xs**2 + ys**2)
+
+    nbins = 520
+    sigma, radius = np.histogram(r, weights=y, bins=nbins)
     plt.plot(radius[:nbins], sigma)
     plt.ylabel('$\Sigma \, (cm^{-2})$')
     plt.xlabel('$R \, (pc)$')
@@ -108,7 +119,7 @@ if __name__ == "__main__":
     print("created plots/" + str(plot_name))
 
     create_profiles = 1
-    n_bins = 64
+    n_bins = 120
     if create_profiles:
         profile = yt.create_profile(
             data_source=disk,
@@ -116,7 +127,8 @@ if __name__ == "__main__":
             fields=[("gas", "velocity_cylindrical_theta"), ("gas", "H_nuclei_density"), ('index', 'cylindrical_z'),
                     ('gas', 'temperature'), ('gas', 'sound_speed'), ('gas', 'radial_velocity'),
                     ('gas', 'angular_frequency'), ('gas', 'velocity_spherical_theta'), ('gas', 'angular_frequency_keplerian'),
-                    ('index', 'radius'), ('gas', 'keplerian_frequency_BH'), ("gas", "tangential_velocity"), ("index", "height")],
+                    ('index', 'radius'), ('gas', 'keplerian_frequency_BH'), ("gas", "tangential_velocity"), ("index", "height"),
+                    ("gas", "epicycle_frequency_k"), ("gas", "angular_frequency_square"), ('gas', 'velocity_spherical_phi')],
             n_bins=64,
             units=dict(
                        radius="pc", velocity_cylindrical_theta="km/s", sound_speed="km/s", velocity_spherical_theta="km/s",
@@ -148,8 +160,8 @@ if __name__ == "__main__":
         # make Toomre Q profile
         m_p = 1.67262192e-24 * yt.units.g # g
         G = 6.67e-8 * (yt.units.cm ** 3) / (yt.units.g * yt.units.s ** 2)  # cgs
-        num = profile[("gas", "sound_speed")].to('cm/s') * profile[("gas", "angular_frequency")]
-        sigma, radius = np.histogram(x, weights=y, bins=n_bins)
+        num = profile[("gas", "sound_speed")].to('cm/s') * profile[("gas", "epicycle_frequency_k")]
+        sigma, radius = np.histogram(r, weights=y, bins=n_bins)
         denom = np.pi * G * sigma[:nbins] * m_p / yt.units.cm**2
 
         fig = plt.figure()
@@ -176,7 +188,7 @@ if __name__ == "__main__":
         plot_vr = axs[5].loglog(profile.x[profile.used], np.abs(profile[("gas", "radial_velocity")][profile.used]))
         plot_omega = axs[0].loglog(profile.x[profile.used], profile[("gas", "angular_frequency")][profile.used] /
                       profile[("gas", "keplerian_frequency_BH")][profile.used])
-        plot_sigma = axs[6].loglog(radius[:nbins], sigma)
+        plot_sigma = axs[6].loglog(radius[:n_bins], sigma)
         plot_h = axs[3].loglog(profile.x[profile.used], profile[("index", "height")][profile.used])
 
         axs[6].set_xlabel(r"$Radius \, (pc)$", fontdict=font)
@@ -187,12 +199,14 @@ if __name__ == "__main__":
         axs[2].set_ylabel(r"$T \, (K)$", fontdict=font)
         axs[5].set_ylabel(r"$\nu_r \, (km/s)$", fontdict=font)
         axs[6].set_ylabel(r"$\Sigma \, (cm^{-2})$", fontdict=font)
+        axs[6].set_ylim([8e24, 8e26])
         axs[0].set_ylabel(r"$\omega / \omega_K $", fontdict=font)
         axs[0].set_yscale('linear')
         axs[0].set_title("BH Age = " + "{:.2f}".format(ss_age[0]/1e6) + " Myr" + ", " + str(root_dir[index:]),
                          fontproperties=font)
 
         for i in range(7):
+            axs[i].set_xlim([7e-3, 1e1])
             axs[i].tick_params(axis="x", which='minor', length=2, direction="in")
             axs[i].tick_params(axis="x", which='major', labelsize=fontsize, width=1, length=3, direction="in")
             axs[i].tick_params(axis="y", which='major', labelsize=fontsize)
