@@ -38,6 +38,7 @@ font = {'family': 'serif',
         'size': fontsize,
         }
 
+# create profiles
 c = sns.color_palette("Paired", len(DS*2))
 j = 1
 alpha = 0.7
@@ -63,6 +64,7 @@ for i, ds in enumerate(DS):
         logs={"radius": True, ("gas", "temperature"): True}
     )
 
+    # plot data
     axs[0].loglog(rp.x.value, rp[("gas", "mass")].value.cumsum(),
                color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
 
@@ -85,36 +87,37 @@ for i, ds in enumerate(DS):
 
     j += 2
 
+# set ticks
 for i in range(5):
     axs[i].tick_params(bottom=True, left=True)
     axs[i].minorticks_on()
     axs[i].tick_params(axis="x", which='minor', length=2, direction="in")
     axs[i].tick_params(axis="x", which='major', labelsize=fontsize, width=1, length=3, direction="in")
     axs[i].tick_params(axis="y", which='major', labelsize=fontsize)
-    axs[i].tick_params(axis="y", which='minor', labelsize=fontsize)
-    axs[i].grid(color='r', linestyle='-', linewidth=2)
+    axs[i].tick_params(axis="y", which='minor', length=2)
+    axs[i].grid(color='grey', linestyle='solid', linewidth=0.5, alpha=0.7)
 
+# make lines for legend
 r_lines = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth),
             Line2D([0], [0], color='grey', linestyle='dotted', lw=linewidth)]
-#axs[3].legend(r_lines, [r"$r_{200}$"], loc="upper right", fontsize=6, ncol=1)  # upper/lower
 
+# set axis labels
 axs[4].set_xlabel(r"$r \, (pc)$", fontdict=font)
 axs[4].set_ylabel(r"$\rho_{avg} \, (g \, cm^{-3})$", fontdict=font)
 axs[3].set_ylabel(r"$\delta_b$", fontdict=font)
 axs[3].axhline(y=200, color='grey', linestyle='dashed', lw=linewidth, alpha=1)
-#axs[3].axhline(y=500, color='grey', linestyle='dashed', lw=linewidth, alpha=1)
 for i in range(3):
     axs[i].axvline(x=70, color='grey', linestyle='dashed', lw=linewidth, alpha=1, label=r"$r_{200}$")
 axs[2].set_ylabel(r"$t_{dyn} \, (yr)$", fontdict=font)
-axs[0].set_ylabel(r"$M \, (M_{\odot})$", fontdict=font)
 axs[1].set_ylabel(r"$T \, (K)$", fontdict=font)
+axs[0].set_ylabel(r"$M \, (M_{\odot})$", fontdict=font)
 axs[0].legend(loc="lower right", fontsize=fontsize, ncol=2)  # upper/lower
 axs[0].set_title("Gas properties at time of BH formation", fontdict=font)
 
 # save plot as pdf
 fig = plt.gcf()
 fig.subplots_adjust(wspace=0, hspace=0)
-fig.set_size_inches(6, 8)
+fig.set_size_inches(6, 9)
 plot_name = 'radial_profile_ics_halo_1kpc.pdf'
 fig.savefig('plots/' + plot_name, dpi=100)
 print("created plots/" + str(plot_name))
