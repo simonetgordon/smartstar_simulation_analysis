@@ -174,36 +174,7 @@ if __name__ == "__main__":
         #                                           Plot Sigma
         ##########################################################################################################
 
-        # sigma
-        y = disc_frb_ds.r[("gas", "H_nuclei_density")]
-        y_2d = y.reshape(int(np.sqrt(y.shape[0])), int(np.sqrt(y.shape[0])))
-
-        # radius
-        xleft = xright = yleft = yright = 10
-        #xs = np.linspace(-xleft, xright, y.shape[0])
-        #ys = np.linspace(-yleft, yright, y.shape[0])
-        r = np.sqrt(xs ** 2 + ys ** 2)
-
-        # 1) using weighted histogram (not what we want)
-        ledge = profile.x.value[0]
-        redge = profile.x.value[-1]
-        bins = np.logspace(np.log10(5e-3), np.log10(redge), 65)
-        r_bins = np.histogram_bin_edges(r, bins=bins)
-        sigma, radius = np.histogram(r, weights=y, bins=bins)
-        #sigma = np.histogram(y, bins=bins)
-
-        # 2) make 2D histogram with r, y without zeros
-        mask = np.where(y == 0.)
-        r[mask] = 0
-        y_no_zeros = y[y != 0] #1529382 data points
-        r_no_zeros = r[r != 0]
-        r = r_no_zeros
-        y = y_no_zeros
-        bins_sigma = np.logspace(np.log10(y.min()), np.log10(y.max()), 65)
-        bins2D = [bins, bins_sigma]
-        #hist, xedges, yedges = np.histogram2d(proj_rad, proj_dens, bins=64)
-
-        # 3) divide sigma from weighted 1d histogram by r bin counts (works)
+        # 1) divide sigma from weighted 1d histogram by r bin counts (works)
         # define sigma_frb and pr from ProjectionPlot p
         sigma_frb = p.frb[("gas", "number_density")]
         bds = p.frb.bounds
@@ -226,19 +197,19 @@ if __name__ == "__main__":
         fig.savefig('plots/' + plot_name, dpi=100)
         plt.show()
 
-
-        # 4) plot all r, y points (no zeros) with a fitted line
-        fig = plt.figure()
-        plt.loglog(r, y)
-        slope, intercept, r_value, p_value, std_err = stats.linregress(np.log10(r), np.log10(y))
-        sigma_fitted = myExpFunc(r, 10 ** intercept, slope)
-        plt.plot(r, sigma_fitted, 'green', label="({0:.2E}*x**{1:.3f})".format(10 ** intercept, slope))
-        plt.legend()
-        plot_name = "disc_sigma_with_fit.png"
-        #plot_name = 'disc_sigma_' + str(root_dir[index:]) + '_' + str(input)[7:] + '.png'
-        fig.savefig('plots/' + plot_name, dpi=100)
-        print("created plots/" + str(plot_name))
-        plt.show()
+        # 2) plot all r, y points (no zeros) with a fitted line
+        # r = pr.flatten()
+        # y = sigma_frb.flatten()
+        # fig = plt.figure()
+        # plt.loglog(r, y)
+        # slope, intercept, r_value, p_value, std_err = stats.linregress(np.log10(r), np.log10(y))
+        # sigma_fitted = myExpFunc(r, 10 ** intercept, slope)
+        # plt.plot(r, sigma_fitted, 'green', label="({0:.2E}*x**{1:.3f})".format(10 ** intercept, slope))
+        # plt.legend()
+        # plot_name = "disc_sigma_with_fit.png"
+        # fig.savefig('plots/' + plot_name, dpi=100)
+        # print("created plots/" + str(plot_name))
+        # plt.show()
 
 
         ##########################################################################################################
@@ -253,7 +224,7 @@ if __name__ == "__main__":
         G = 6.67e-8 * (yt.units.cm ** 3) / (yt.units.g * yt.units.s ** 2)  # cgs
         num = profile[("gas", "sound_speed")].to('cm/s') * profile[("gas", "omega")].to('1/s')
         denom = np.pi * G * sigma * m_p
-        denom_fit_sigma = np.pi * G * myExpFunc(profile.x.value, 10 ** intercept, slope) * m_p / yt.units.cm**2
+        #denom_fit_sigma = np.pi * G * myExpFunc(profile.x.value, 10 ** intercept, slope) * m_p / yt.units.cm**2
         denom_beck_fit = np.pi * G * beckmann_fit(profile.x.value) * m_p / yt.units.cm ** 2
         denom_sigma_all = np.pi * G * sigma * m_p / yt.units.cm ** 2
 
@@ -287,25 +258,26 @@ if __name__ == "__main__":
         plot_omega = axs[0].loglog(profile.x[profile.used], profile[("gas", "omega")][profile.used] /
                       profile[("gas", "omega_k")][profile.used])
         plot_sigma = axs[6].loglog(radius[:-1], sigma)
-        plot_sigma_fitted = axs[6].plot(r, sigma_fitted)
+        #plot_sigma_fitted = axs[6].plot(r, sigma_fitted)
         #plot_sigma_weighted_hist = axs[6].loglog(radius[:-1], sigma)
         #plot_sigma_rp = axs[6].loglog(proj_rad, proj_dens)
         #plot_sigma_rp = axs[6].loglog(rad)
         plot_h = axs[3].loglog(profile.x[profile.used], profile[("index", "height")][profile.used])
         plot_toomreq = axs[7].loglog(profile.x.value, num/denom_sigma_all)
         #plot_toomreq_beck_fit = axs[7].loglog(profile.x.value, num / denom_beck_fit)
-        plot_toomreq_sigma_fit = axs[7].loglog(profile.x.value, num / denom_fit_sigma)
+        #plot_toomreq_sigma_fit = axs[7].loglog(profile.x.value, num / denom_fit_sigma)
 
         axs[7].set_xlabel(r"$Radius \, (pc)$", fontdict=font)
         axs[7].axhline(y=1, color='grey', linestyle='dashed', lw=linewidth, alpha=1)
         axs[7].set_ylabel("Toomre Q", fontdict=font)
+        axs[6].set_ylabel(r"$\Sigma \, (cm^{-2})$", fontdict=font)
+        axs[6].set_ylim(2e19, 2e25)
+        axs[5].set_ylabel(r"$\nu_r \, (km/s)$", fontdict=font)
         axs[4].set_ylabel(r"$\nu_{\theta} \,/ c_s$", fontdict=font)
-        axs[1].set_ylabel(r"$n \, (cm^{-3})$", fontdict=font)
-        axs[1].set_yscale('log')
         axs[3].set_ylabel(r"$H \, (pc)$", fontdict=font)
         axs[2].set_ylabel(r"$T \, (K)$", fontdict=font)
-        axs[5].set_ylabel(r"$\nu_r \, (km/s)$", fontdict=font)
-        axs[6].set_ylabel(r"$\Sigma \, (cm^{-2})$", fontdict=font)
+        axs[1].set_ylabel(r"$n \, (cm^{-3})$", fontdict=font)
+        axs[1].set_yscale('log')
         axs[0].set_ylabel(r"$\omega / \omega_K $", fontdict=font)
         axs[0].set_yscale('linear')
         axs[0].axhline(y=1, color='grey', linestyle='dashed', lw=linewidth, alpha=1)
