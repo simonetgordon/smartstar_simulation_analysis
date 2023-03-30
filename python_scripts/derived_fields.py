@@ -9,8 +9,12 @@ def _keplerian_frequency_BH(field, data):
 
 
 # add epicyclic frequency kappa / angular frequency omega derived field
-def _angular_frequency_keplerian(field, data):
-    return np.abs(data["gas", "radial_velocity"].to('cm/s')) / (2*np.pi*data["index", "radius"].to('cm')) #cm/s / cm = 1/s
+def _omega(field, data):
+    return np.abs(data["gas", "radial_velocity"].to('cm/s')) / (data["index", "radius"].to('cm')) #cm/s / cm = 1
+
+
+def _omega_k(field, data):
+    return np.sqrt(G*M / (data[("index", "radius")].to('cm')**3))
 
 
 def _angular_frequency(field, data):
@@ -30,7 +34,7 @@ def _angular_frequency_square(field, data):
 # For a Keplerian disk, \kappa =\Omega .
 def _epicyclic_frequency_ratio(field, data):
     omega = np.abs(data["gas", "velocity_cylindrical_theta"])/(2*np.pi*data["index", "radius"]) #cm/s / cm
-    return omega/data["gas", "angular_frequency_keplerian"]
+    return omega/data["gas", "omega_k"]
 
 
 # def _epicycle_frequency_k(field, data):
@@ -74,20 +78,31 @@ def _height(field, data):
     return np.abs(data["index", "cylindrical_z"])
 
 
-def add_fields_ds(ds):
-    ds.add_field(
-        name=("gas", "angular_frequency_keplerian"),
-        function=_angular_frequency_keplerian,
-        sampling_type="local",
-        units="1/s",
+def _baryon_overdensity_sg(field, data):
+    omega_baryon = 0.0449
+    co = data.ds.cosmology
+    return (
+        data["gas", "density"]
+        / omega_baryon
+        / co.critical_density(0.0)
+        / (1.0 + data.ds.current_redshift) ** 3
     )
 
-    ds.add_field(
-        name=("gas", "epicyclic_frequency_ratio"),
-        function=_epicyclic_frequency_ratio,
-        sampling_type="local",
-        units="dimensionless",
-    )
+
+def add_fields_ds(ds):
+    # ds.add_field(
+    #     name=("gas", "angular_frequency_keplerian"),
+    #     function=_angular_frequency_keplerian,
+    #     sampling_type="local",
+    #     units="1/s",
+    # )
+
+    # ds.add_field(
+    #     name=("gas", "epicyclic_frequency_ratio"),
+    #     function=_epicyclic_frequency_ratio,
+    #     sampling_type="local",
+    #     units="dimensionless",
+    # )
 
     ds.add_field(
         name=("gas", "angular_frequency"),
@@ -131,17 +146,40 @@ def add_fields_ds(ds):
         units="cm"
     )
 
+    # ds.add_field(
+    #     ("gas", "angular_frequency_square"),
+    #     function=_angular_frequency_square,
+    #     sampling_type="local",
+    #     units="1/s**2"
+    # )
+
+    # ds.add_field(
+    #     ("gas", "epicycle_frequency_k"),
+    #     function=_epicycle_frequency_k,
+    #     sampling_type="local",
+    #     units="1/s"
+    # )
+
     ds.add_field(
-        ("gas", "angular_frequency_square"),
-        function=_angular_frequency_square,
-        sampling_type="local",
-        units="1/s**2"
+            ("gas", "omega_k"),
+            function=_omega_k,
+            sampling_type="local",
+            units="1/s"
     )
 
     ds.add_field(
-        ("gas", "epicycle_frequency_k"),
-        function=_epicycle_frequency_k,
-        sampling_type="local",
-        units="1/s"
+            ("gas", "omega"),
+            function=_omega,
+            sampling_type="local",
+            units="1/s"
     )
+
+    ds.add_field(
+            ("gas", "baryon_overdensity_sg"),
+            function=_baryon_overdensity_sg,
+            sampling_type="local",
+            units="dimensionless"
+    )
+
+
 

@@ -88,7 +88,6 @@ if __name__ == "__main__":
 
     # make radial profile from histogram
     bins = np.logspace(np.log10(cell_width_pc), np.log10(disk.radius.to('pc')), 65)
-    #bins = 64 # this works better than logspacing
     counts_r, r_bin_edges = np.histogram(pr, bins=bins)
     sigma, radius = np.histogram(pr, weights=sigma_frb, bins=bins)
     print("r_bin_edges == radius: ", (r_bin_edges == radius))
@@ -139,12 +138,14 @@ if __name__ == "__main__":
     plt.scatter(r_no_zeros, y_no_zeros)
     plt.xscale('log')
     plt.yscale('log')
+
+    # fit all data - green
     slope, intercept, r_value, p_value, std_err = stats.linregress(np.log10(r_no_zeros), np.log10(y_no_zeros))
     sigma_fitted = myExpFunc(r_no_zeros, 10 ** intercept, slope)
     plt.plot(r_no_zeros, sigma_fitted, 'green', label="({0:.2E}*x**{1:.3f})".format(10 ** intercept, slope))
 
-    # fit for r < 0.5 pc
-    cut = 0.5
+    # fit for r < 0.5 pc - orange
+    cut = 1
     sub_pc_r = np.log10(r_no_zeros[r_no_zeros < cut])
     sub_pc_sigma = np.log10(y_no_zeros[r_no_zeros < cut])
     slope, intercept, r_value, p_value, std_err = stats.linregress(sub_pc_r, sub_pc_sigma)
@@ -152,7 +153,7 @@ if __name__ == "__main__":
     plt.plot(r_no_zeros[r_no_zeros < cut], sigma_fitted_sub_pc, 'orange',
              label="({0:.2E}*x**{1:.3f})".format(10 ** intercept, slope))
 
-    # fit for r < 0.2 pc
+    # fit for r < 0.2 pc - purple
     cut = 0.2
     sub_pc_r = np.log10(r_no_zeros[r_no_zeros < cut])
     sub_pc_sigma = np.log10(y_no_zeros[r_no_zeros < cut])
