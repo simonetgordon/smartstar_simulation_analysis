@@ -13,14 +13,14 @@ w_pccm = 80
 field = "density"
 
 # set by user
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2"
+root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm16-2"
 input = sys.argv[1]
 ds = yt.load(os.path.join(root_dir, sys.argv[1]))
 
 # naming sphere container directory
 seed = int(root_dir[43:44])
 if seed == 1:
-    index = 82
+    index = 94
 elif seed == 2:
     index = 84
 sp_container_dir = root_dir[index:]
@@ -32,11 +32,11 @@ ss_pos, ss_mass, ss_age = ss_properties(ds)
 center = ss_pos
 sp = ds.sphere(center, 2*r)
 
-fontsize = 18
+fontsize = 24
 
 # Gas density
 if field == "density":
-    field = "H_nuclei_density"
+    field = "number_density"
     p = yt.ProjectionPlot(ds, "z", ("gas", field), width=width, center=center, data_source=sp,
                           weight_field='density')
     p.set_cmap(field, 'viridis')
@@ -58,6 +58,7 @@ if field == "density":
     # save
     plot_name = 'density-' + str(root_dir[70:]) + '-' + str(input)[10:] + '-' + str(w_pccm) + 'pccm.png'
     p.save('density_plots/' + plot_name)
+    print("created density_plots/ " + str(plot_name))
 
 # Temperature
 elif field == "temperature":
