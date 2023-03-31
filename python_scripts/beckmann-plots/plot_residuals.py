@@ -1,3 +1,5 @@
+import string
+
 import yt
 import sys
 import os
@@ -32,8 +34,10 @@ def first_index(a, val, rtol=0.0001, atol=1):
 
 if __name__ == "__main__":
 
+    data_labels = [i.replace("-2", "") for i in bhl_object_labels]
+
     # initialise figure
-    plot_name = "residuals-plot-baseline-" + str(sys.argv[1][27:34])
+    plot_name = "residuals-plot-baseline-" + str(sys.argv[1][16:24]) + ".pdf"
     fig = plt.figure()
     fig, axs = plt.subplots(2, 1, sharex=True)
     plt.rcParams["font.family"] = "serif"
@@ -52,6 +56,7 @@ if __name__ == "__main__":
     baseline_age = bhl_object_list[0].ages
     baseline_accrate = bhl_object_list[0].accrates
     n_data = baseline_age.shape[0]
+    axs[0].axhline(y=0, color='grey', linestyle='--', lw=linewidth, alpha=1)
 
     # iterate over non-baseline data and generate arrays of same size as the baseline
     # using interpolation
@@ -64,13 +69,13 @@ if __name__ == "__main__":
         len(BHL.ages) == len(BHL.accrates)
 
         # find index of age that matches end age of baseline
-        i = first_index(BHL.ages, baseline_age[-1], atol=10)
+        i_age = first_index(BHL.ages, baseline_age[-1], atol=10)
 
         print("new final age accuracy: ", 1-np.abs(BHL.ages[i] - baseline_age[-1])/baseline_age[-1])
 
         # truncate the array at this point
-        trunc_age = BHL.ages[:i]
-        trunc_accrate = BHL.accrates[:i]
+        trunc_age = BHL.ages[:i_age]
+        trunc_accrate = BHL.accrates[:i_age]
 
         # interpolate this array over N evenly spaced points
         N = n_data
@@ -79,8 +84,13 @@ if __name__ == "__main__":
 
         print("----------------------------------------")
 
+        # define residual
+        residual = (interp_accrate - baseline_accrate)*yt.units.msun/yt.units.yr
+        residual_normed = np.nan_to_num((interp_accrate - baseline_accrate)/baseline_accrate)
 
+        axs[0].plot(interp_age, residual, label=data_labels[i+1])
 
-
-
-
+axs[0].set_ylabel(r"$\dot{M} \, (M_{\odot}/yr)$", fontdict=font)
+axs[0].set_xlabel(r"Time Since Formation (yr)", fontdict=font)
+fig.savefig('plots/' + plot_name, dpi=100)
+print("created ", plot_name)
