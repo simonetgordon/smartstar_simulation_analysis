@@ -12,7 +12,9 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 from matplotlib import pyplot, colors
 from mpl_toolkits.axes_grid1 import AxesGrid
+from contextlib import redirect_stdout
 from smartstar_find import ss_properties
+import re # complex str searches
 
 
 def tidy_data_labels(labels):
@@ -63,7 +65,7 @@ grid = AxesGrid(
 # find min and max field values from highest resolution simulation - for colorbar
 field = "number_density"
 ds_hr = yt.load(os.path.join(root_dir, sim[-1], dds[-1]))
-min_n = ds_hr.r[("gas", field)].min()
+min_n = ds_hr.r[("gas", field)].min()*100 # bring up to ~ 10^-1 order
 max_n = ds_hr.r[("gas", field)].max()
 max_n_index = int(np.log10(max_n))
 min_n_index = int(np.log10(min_n))
@@ -82,7 +84,7 @@ for i, dd in enumerate(dds):
     sp = ds.sphere(center, 2 * r)
 
     # set projection width from CLI input
-    widths = [150, 40, 10] * ds.units.pccm
+    widths = [4000, 50, 10] * ds.units.pccm
     k = int(sys.argv[-1])
     width = widths[k]
 
@@ -97,27 +99,35 @@ for i, dd in enumerate(dds):
     p.hide_colorbar()
 
     # annotate projection based on its [i, k] ([row, column]) value
-    if (i == 0) and (k == 2):
-        p.annotate_timestamp(corner='lower_right', redshift=True, draw_inset_box=True)
+    # if (i == 0) and (k == 2):
+    #     p.annotate_timestamp(corner='lower_right', redshift=True, draw_inset_box=True)
+
+    # find smallest cell width
+    with open('ds_stats.txt', 'w') as f:
+        with redirect_stdout(f):
+            ds.print_stats()
+    with open('ds_stats.txt', 'r') as f:
+        for line in f:
+            cell_width = re.search(r'Width: (.{9}) pc', line)
+            if cell_width:
+                dx = cell_width.group(1)
+    f.close()
+
     if k == 0:
-        p.annotate_text([0.07, 0.08], str(label), coord_system="axis",
-                        text_args={"color": "black"},
-                        inset_box_args={
-                            "boxstyle": "square,pad=0.3",
-                            "facecolor": "white",
-                            "linewidth": 3,
-                            "edgecolor": "white",
-                            "alpha": 0.5,
-                        },
-                    )
+        # age, mass and simulation label in first column
+        p.annotate_title("BH Age = {:.2f} Myr".format(ss_age[0] / 1e6))
+        p.annotate_text((0.23, 0.90), r"BH Mass: {:.2f} $\rm M_\odot$".format(ss_mass.d), coord_system="axis",
+                        text_args={"color": "white"})
+        p.annotate_text([0.07, 0.08], str(label), coord_system="axis", text_args={"color": "black"},
+                        inset_box_args={"boxstyle": "square,pad=0.3", "facecolor": "white", "linewidth": 3,
+                                        "edgecolor": "white", "alpha": 0.5},
+                        )
     if i == 1:
-        p.annotate_scale(corner='lower_right', coeff=1, unit='pccm')
+        coeff = [100, 1, 1]
+        p.annotate_scale(corner='lower_right', coeff=coeff[k], unit='pccm')
     if k == 2:
         p.annotate_marker(center, coord_system="data", color="white")  # mark ss position
-    # p.annotate_streamlines(("gas", "relative_velocity_x"), ("gas", "relative_velocity_y"))
-    p.annotate_title("BH Age = {:.2f} kyrs".format(ss_age[0] / 1e3))
-    p.annotate_text((0.17, 0.90), "BH Mass: {:.2f} Msun".format(ss_mass.d), coord_system="axis",
-                    text_args={"color": "white"})
+
 
     # this forces the ProjectionPlot to redraw itself on the AxesGrid axes.
     plot = p.plots[("gas", field)]
@@ -129,7 +139,10 @@ for i, dd in enumerate(dds):
     # redraw the plot
     p.render()
 
-    # Modify the colorbar axes properties **after** p.render() so that they are not overwritten.
+    # Modify the colorbar and axes properties **after** p.render() so that they are not overwritten.
+    if k == 0:
+        grid[i].axes.set_yticklabels("", fontsize=12)
+        grid[i].axes.set_ylabel("dx = {:.2e} pc".format(float(dx)), fontsize=12)
     if k == 2:
         ticklabels = grid.cbar_axes[i].get_yticklabels()
         grid.cbar_axes[i].set_yticklabels(ticklabels, fontsize=12)
