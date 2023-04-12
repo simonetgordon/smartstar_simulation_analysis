@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 from matplotlib import pyplot, colors
 from mpl_toolkits.axes_grid1 import AxesGrid
+from matplotlib_scalebar.scalebar import ScaleBar
+#from matplotlib_scalebar.dimension import Dimension
+import matplotlib.ticker as ticker
 from contextlib import redirect_stdout
 from smartstar_find import ss_properties
 import re # complex str searches
@@ -33,6 +36,12 @@ def first_index(a, val, rtol=0.1, atol=10):
     return next(j for j, _ in enumerate(a) if np.isclose(_, val, rtol, atol))
 
 
+def format_sci_notation(x):
+    a, b = '{:.2e}'.format(x).split('e')
+    b = int(b)
+    return r'$\rm {} \times 10^{{{}}}$'.format(a, b)
+
+
 # input data - simulations and individual outputs
 root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"
 sim = ["1B.RSm01", "1B.RSm04-2", "1B.RSm08-2"]
@@ -43,7 +52,8 @@ pyplot.rcParams['font.size'] = 12
 pyplot.rcParams['font.weight'] = 'light'
 rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
 rc('text', usetex=True)
-fontproperies = {'family': 'serif', 'color':  'black', 'weight': 'normal', 'size': 12}
+plt.rcParams["mathtext.default"] = "regular"
+fontproperties = {'family': 'serif', 'color':  'black', 'weight': 'normal', 'size': 12}
 fontsize = 10 # for projection annotations
 
 # make AxesGrid figure
@@ -84,7 +94,7 @@ for i, dd in enumerate(dds):
     sp = ds.sphere(center, 2 * r)
 
     # set projection width from CLI input
-    widths = [4000, 50, 10] * ds.units.pccm
+    widths = [4000, 80, 10] * ds.units.pccm
     k = int(sys.argv[-1])
     width = widths[k]
 
@@ -114,39 +124,62 @@ for i, dd in enumerate(dds):
     f.close()
 
     if k == 0:
-        # age, mass and simulation label in first column
-        p.annotate_title("BH Age = {:.2f} Myr".format(ss_age[0] / 1e6))
-        p.annotate_text((0.23, 0.90), r"BH Mass: {:.2f} $\rm M_\odot$".format(ss_mass.d), coord_system="axis",
+        # age, mass and simulation label in first
+        p.annotate_title("dx = {} pc".format(format_sci_notation(float(dx))))
+        p.annotate_text((0.24, 0.90), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), coord_system="axis",
                         text_args={"color": "white"})
         p.annotate_text([0.07, 0.08], str(label), coord_system="axis", text_args={"color": "black"},
                         inset_box_args={"boxstyle": "square,pad=0.3", "facecolor": "white", "linewidth": 3,
                                         "edgecolor": "white", "alpha": 0.5},
                         )
-    if i == 1:
-        coeff = [100, 1, 1]
-        p.annotate_scale(corner='lower_right', coeff=coeff[k], unit='pccm')
-    if k == 2:
-        p.annotate_marker(center, coord_system="data", color="white")  # mark ss position
 
+    if k == 1:
+        p.annotate_title("BH Age = {:.2f} Myr".format(ss_age[0] / 1e6))
+
+    # plot scalebars
+    if i == 2:
+        coeff = [10, 1e4, 1e4]
+        unit = ['pc', 'au', 'au']
+        p.annotate_scale(corner='lower_right', coeff=coeff[k], unit=unit[k], pos=(0.86, 0.08), max_frac=0.3,
+                         scale_text_format="{scale:.2e} {units}")
+
+    if i == 1:
+        # Define a custom length unit based on meter conversion
+        # pc = {'name': 'pc', 'scale': 3.086e+16}
+        # my_dim = 'pixel-length'
+
+        # Create a ScaleBar object using the custom unit
+        #scalebar = ScaleBar(0.5, units='pc', dimension=my_dim, length_fraction=0.2, location='lower right')
+        #scalebar.length_unit = {'pc': pc}
+
+    # mark BH position
+    if k == 2:
+        p.annotate_marker(center, coord_system="data", color="white")
 
     # this forces the ProjectionPlot to redraw itself on the AxesGrid axes.
     plot = p.plots[("gas", field)]
     plot.figure = fig
     plot.axes = grid[i].axes
-    if k == 2:
+    if k == 2: # temp 2 -> 0
         plot.cax = grid.cbar_axes[i]
+        grid.cbar_axes[i].set_ymargin(-0.1)
+        grid.cbar_axes[i].set_anchor((0.6, 0.2))
 
     # redraw the plot
     p.render()
 
-    # Modify the colorbar and axes properties **after** p.render() so that they are not overwritten.
-    if k == 0:
-        grid[i].axes.set_yticklabels("", fontsize=12)
-        grid[i].axes.set_ylabel("dx = {:.2e} pc".format(float(dx)), fontsize=12)
+    # Modify the scalebar, colorbar and axes properties **after** p.render() so that they are not overwritten.
+    if (i == 2) and (k != 0): # i=1 -> i=2 temp
+        plot.axes.get_yaxis().set_units('pc')
+        #plot.axes.add_artist(scalebar)
     if k == 2:
-        ticklabels = grid.cbar_axes[i].get_yticklabels()
-        grid.cbar_axes[i].set_yticklabels(ticklabels, fontsize=12)
-        grid.cbar_axes[i].set_ylabel(r'Number Density \big($\rm cm^{-3}$\big)', fontsize=12)
+        grid[i].axes.set_yticklabels("", fontsize=12)
+        grid[i].axes.set_ylabel("")
+    if i == 2: #temp 2 -> 0
+
+        # ticklabels = grid.cbar_axes[i].get_yticklabels()
+        # grid.cbar_axes[i].set_yticklabels(ticklabels, fontsize=12)
+        grid.cbar_axes[i].set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)', fontsize=12)
         grid.cbar_axes[i].minorticks_on()
 
         # make minorticks
@@ -156,7 +189,12 @@ for i, dd in enumerate(dds):
         atol = 10**(max_n_index-1)
         end_i = first_index(minorticks, float(max_n.d), rtol=0.1, atol=atol)
         minorticks = minorticks[:end_i]
+        grid.cbar_axes[i].xaxis.set_minor_locator(ticker.AutoMinorLocator())
         grid.cbar_axes[i].set_yticks(minorticks, minor=True)
         grid.cbar_axes[i].tick_params(labelsize=12)
+
+        ax_pos = grid[i].axes.get_position()
+        cb_pos = grid.cbar_axes[i].get_position()
+        cb_pos = grid.cbar_axes[i].set_position([cb_pos.x0 - 0.5, ax_pos.y0, cb_pos.width, cb_pos.height])
 
 plt.savefig(f"multiplot_axesgrid_{widths.d[k]}pccm.pdf")

@@ -26,16 +26,16 @@ class BlackHole:
         self.jeans_length = jeans_length
 
     def info(self):
-        print("------------------------------------------------------------------------------------------------------")
-        print("ages (yrs post-formation): {}, \naccrates (Msun/yr): {}, "
-              "\naverage_density (cm^-3): {}, "
-              "\naverage_vinfinity (km/s): {}, \naverage_cinfinity (km/s): {}, "
-              "\ntotal_gas_mass (K): {}, \nhl_radius (pc): {}, \nbondi_radius (pc): {}"
-              "\nmass (Msun): {}, \njeans length (pc): {}".format(
-            self.ages, self.accrates, self.average_density,
-            self.average_vinfinity, self.average_cinfinity, self.total_gas_mass,
-            self.hl_radius, self.bondi_radius, self.mass, self.jeans_length))
-        print("------------------------------------------------------------------------------------------------------")
+        # print("------------------------------------------------------------------------------------------------------")
+        # print("ages (yrs post-formation): {}, \naccrates (Msun/yr): {}, "
+        #       "\naverage_density (cm^-3): {}, "
+        #       "\naverage_vinfinity (km/s): {}, \naverage_cinfinity (km/s): {}, "
+        #       "\ntotal_gas_mass (K): {}, \nhl_radius (pc): {}, \nbondi_radius (pc): {}"
+        #       "\nmass (Msun): {}, \njeans length (pc): {}".format(
+        #     self.ages, self.accrates, self.average_density,
+        #     self.average_vinfinity, self.average_cinfinity, self.total_gas_mass,
+        #     self.hl_radius, self.bondi_radius, self.mass, self.jeans_length))
+        # print("------------------------------------------------------------------------------------------------------")
         return
 
 
@@ -95,7 +95,7 @@ def bhl_object_labels():
     return bhl_labels
 
 
-bhl_object_list = bhl_object_list(rolling=1)
+bhl_object_list = bhl_object_list(rolling=0)
 bhl_object_labels = bhl_object_labels()
 
 if __name__ == "__main__":
