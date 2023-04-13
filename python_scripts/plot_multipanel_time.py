@@ -23,26 +23,28 @@ from plot_disc_projections import _make_disk_L
 # input data - simulations and individual outputs
 root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"
 sim = ["1B.RSb01-2", "1B.RSm01"]
-dds = ["DD0128/DD0128", "DD0131/DD0131", 
-       #"DD0130/DD0130", 
-       #"DD0131/DD0131", "DD0132/DD0132", "DD0133/DD0133", 
+dds = ["DD0128/DD0128", "DD0130/DD0130", 
+       "DD0132/DD0132", 
+       "DD0134/DD0134", 
+       "DD0136/DD0136", 
+       "DD0138/DD0138",
+       #"DD0132/DD0132", "DD0133/DD0133", 
        #"DD0134/DD0134", "DD0135/DD0135", "DD0136/DD0136", "DD0137/DD0137", "DD0138/DD0138"
        ]
 
 # font settings
-pyplot.rcParams['font.size'] = 12
+pyplot.rcParams['font.size'] = 14
 pyplot.rcParams['font.weight'] = 'light'
 rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
 rc('text', usetex=True)
 plt.rcParams["mathtext.default"] = "regular"
-fontproperties = {'family': 'serif', 'color':  'black', 'weight': 'normal', 'size': 12}
-fontsize = 12 # for projection annotations
+fontsize = 14 # for projection annotations
 
 # make AxesGrid figure
 fig = plt.figure()
 grid = AxesGrid(
     fig,
-    111,
+    (0.01, 0.01, 0.55, 1.2),
     nrows_ncols=(len(dds), len(sim)),
     axes_pad=0,
     label_mode="L",
@@ -50,8 +52,8 @@ grid = AxesGrid(
     share_all=True,
     cbar_location="right",
     cbar_mode="single",
-    cbar_size="3.5%",
-    cbar_pad="0%",
+    cbar_size="3.2%",
+    cbar_pad="0.2%",
 )
 
 # find min and max field values from last simulation - for colorbar
@@ -76,8 +78,8 @@ for i, dd in enumerate(dds):
     sp = ds.sphere(center, 2 * r)
  
     # make disk data container and define angular momentum vector L
-    disc_r_pc = 2
-    disc_h_pc = 2
+    disc_r_pc = 2.1
+    disc_h_pc = 2.1
     disk, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
 
     # Gives a 3d vector and it will return 3 orthogonal vectors, the first one being the original vector
@@ -120,13 +122,13 @@ for i, dd in enumerate(dds):
 
         # first row and every second column only
         if (i == 0) and (j in [0, 2]):
-            p.annotate_title(str(label))
+            #p.annotate_title(str(label), font=16)
+            grid[k].set_title(str(label), fontsize=18)
 
         # first column only
         if j == 0:
             # age, mass and simulation label in first
-            p.annotate_text((0.58, 0.92), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), coord_system="axis",
-                            text_args={"color": "white"})
+            p.annotate_text((0.40, 0.88), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), coord_system="axis", text_args={"color": "white", "fontsize": 10})
             
             # make colorbar
             plot.cax = grid.cbar_axes[k]
@@ -138,13 +140,17 @@ for i, dd in enumerate(dds):
 
         # Modify the scalebar, colorbar and axes properties **after** p.render() so that they are not overwritten.
 
-        # xticks
+        # ticks + ticklabels
         grid[k].axes.set_xticks([])
+        grid[k].axes.set_yticks([])
         grid[k].axes.minorticks_on()
         xticks = [-0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6]
         grid[k].axes.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+        grid[k].axes.yaxis.set_minor_locator(ticker.AutoMinorLocator())
         grid[k].axes.set_xticks(xticks, major=True, crs=plot)
+        grid[k].axes.set_yticks(xticks, major=True, crs=plot)
         grid[k].axes.set_xticklabels([str(x) for x in xticks])
+        grid[k].axes.set_yticklabels([str(x) for x in xticks])
 
         if j == 0:
             grid[k].axes.set_ylabel("{:.2f}".format(ds.current_time.to('Myr')))
@@ -152,7 +158,7 @@ for i, dd in enumerate(dds):
         if i == (len(dds)-1): #temp 2 -> 0
 
             # ylabel
-            grid[k].axes.set_ylabel("(pc)")
+            grid[k].axes.set_xlabel("(pc)")
 
             # colorbar
             grid.cbar_axes[k].set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)', fontsize=12)
