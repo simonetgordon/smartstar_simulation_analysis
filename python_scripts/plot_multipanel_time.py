@@ -22,8 +22,11 @@ from plot_multi_projections import tidy_data_labels, first_index, format_sci_not
 # input data - simulations and individual outputs
 root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"
 sim = ["1B.RSb01-2", "1B.RSm01"]
-dds = ["DD0128/DD0128", "DD0129/DD0129", "DD0130/DD0130", "DD0131/DD0131", "DD0132/DD0132", "DD0133/DD0133", 
-       "DD0134/DD0134", "DD0135/DD0135", "DD0136/DD0136", "DD0137/DD0137", "DD0138/DD0138"]
+dds = ["DD0128/DD0128", "DD0129/DD0129", 
+       #"DD0130/DD0130", 
+       #"DD0131/DD0131", "DD0132/DD0132", "DD0133/DD0133", 
+       #"DD0134/DD0134", "DD0135/DD0135", "DD0136/DD0136", "DD0137/DD0137", "DD0138/DD0138"
+       ]
 
 # font settings
 pyplot.rcParams['font.size'] = 12
@@ -40,7 +43,7 @@ grid = AxesGrid(
     fig,
     121,
     nrows_ncols=(len(dds), 1),
-    axes_pad=0.3,
+    axes_pad=0.01,
     label_mode="L",
     aspect=False,
     share_all=True,
@@ -59,11 +62,12 @@ max_n_index = int(np.log10(max_n))
 min_n_index = int(np.log10(min_n))
 
 # iterate over datadumps
+k = int(sys.argv[-1]) # column
 for i, dd in enumerate(dds):
 
     # make dataset and simulation label
-    ds = yt.load(os.path.join(root_dir, sim[i], dd))
-    label = tidy_data_labels(sim[i])
+    ds = yt.load(os.path.join(root_dir, sim[k], dd))
+    label = tidy_data_labels(sim[k])
 
     # grab bh properties and make sphere centered on BH
     ss_pos, ss_mass, ss_age = ss_properties(ds)
@@ -71,8 +75,8 @@ for i, dd in enumerate(dds):
     r = 2000*yt.units.pc
     sp = ds.sphere(center, 2 * r)
 
-    # set projection width from CLI input
-    width = 1.5 * ds.units.pc
+    # set projection width in pc
+    width = 3 * ds.units.pc
 
     # make projection plot
     p = yt.ProjectionPlot(ds, "x", ("gas", field), width=width, center=center, data_source=sp, weight_field='density')
@@ -95,30 +99,30 @@ for i, dd in enumerate(dds):
                 dx = cell_width.group(1)
     f.close()
 
-    k = int(sys.argv[-1]) # column
+
+    # Annotations
+
+    # mark BH position
+    p.annotate_marker(center, coord_system="data", color="white")
+
+    if i == 0:
+        p.annotate_title(str(label))
+
     if k == 0:
         # age, mass and simulation label in first
-        p.annotate_title("dx = {} pc".format(format_sci_notation(float(dx))))
-        p.annotate_text((0.24, 0.90), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), coord_system="axis",
+        p.annotate_text((1, 1), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), coord_system="axis",
                         text_args={"color": "white"})
-        p.annotate_text([0.07, 0.08], str(label), coord_system="axis", text_args={"color": "black"},
-                        inset_box_args={"boxstyle": "square,pad=0.3", "facecolor": "white", "linewidth": 3,
-                                        "edgecolor": "white", "alpha": 0.5},
-                        )
-
     if k == 1:
         p.annotate_title("BH Age = {:.2f} Myr".format(ss_age[0] / 1e6))
 
-
-    # mark BH position
-    if k == 2:
-        p.annotate_marker(center, coord_system="data", color="white")
 
     # this forces the ProjectionPlot to redraw itself on the AxesGrid axes.
     plot = p.plots[("gas", field)]
     plot.figure = fig
     plot.axes = grid[i].axes
-    if k == 2: # temp 2 -> 0
+
+    # make colorbar
+    if k == 0: # temp 2 -> 0
         plot.cax = grid.cbar_axes[i]
         grid.cbar_axes[i].set_ymargin(-0.1)
         grid.cbar_axes[i].set_anchor((0.6, 0.2))
@@ -128,10 +132,9 @@ for i, dd in enumerate(dds):
 
     # Modify the scalebar, colorbar and axes properties **after** p.render() so that they are not overwritten.
     if k == 0:
-        #grid[i].axes.set_yticklabels(fontsize=12)
-        grid[i].axes.set_ylabel(dd.current_time().to('Myr'))
+        grid[i].axes.set_ylabel("{:.2f}".format(ds.current_time.to('Myr')))
 
-    if i == len(dds)-1: #temp 2 -> 0
+    if i == (len(dds)-1): #temp 2 -> 0
 
         # ticklabels = grid.cbar_axes[i].get_yticklabels()
         # grid.cbar_axes[i].set_yticklabels(ticklabels, fontsize=12)
@@ -151,6 +154,6 @@ for i, dd in enumerate(dds):
 
         ax_pos = grid[i].axes.get_position()
         cb_pos = grid.cbar_axes[i].get_position()
-        cb_pos = grid.cbar_axes[i].set_position([cb_pos.x0 - 0.5, ax_pos.y0, cb_pos.width, cb_pos.height])
-
-plt.savefig(f"multiplot_axesgrid_time_{width.d[k]}pc.pdf")
+        cb_pos = grid.cbar_axes[i].set_position([cb_pos.x0 - 0.1, ax_pos.y0, cb_pos.width, cb_pos.height])
+        
+plt.savefig(f"multiplot_axesgrid_time_{width.d}pc.pdf", bbox_inches='tight')
