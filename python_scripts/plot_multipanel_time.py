@@ -44,7 +44,7 @@ fontsize = 14 # for projection annotations
 fig = plt.figure()
 grid = AxesGrid(
     fig,
-    (0.01, 0.01, 0.75, 1.15),
+    (0.01, 0.01, 0.78, 1.15),
     nrows_ncols=(len(dds), len(sim)*2),
     axes_pad=0,
     label_mode="L",
@@ -53,7 +53,7 @@ grid = AxesGrid(
     cbar_location="right",
     cbar_mode="single",
     cbar_size="3.2%",
-    cbar_pad="0.2%",
+    cbar_pad="0%",
 )
 
 # find min and max field values from last simulation - for colorbar
