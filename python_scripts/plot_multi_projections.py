@@ -1,7 +1,7 @@
 ########################################  MultiPanel Projections  ########################################
 # Uses a combination of AxesGrid and yt.ProjectionPlot to produce a multipanel figure.
 # Can only produce this figure column by column. The full row x col figure needs to be assembled in ppt.
-# to run: python plot_multipanel_projections.py [width index k]
+# to run: python plot_multi_projections.py [width index k]
 ##########################################################################################################
 
 import os
@@ -60,7 +60,7 @@ fontsize = 10 # for projection annotations
 fig = plt.figure()
 grid = AxesGrid(
     fig,
-    121,
+    (0, 0, 0.3, 0.85),
     nrows_ncols=(3, 1),
     axes_pad=0.3,
     label_mode="L",
@@ -94,7 +94,7 @@ for i, dd in enumerate(dds):
     sp = ds.sphere(center, 2 * r)
 
     # set projection width from CLI input
-    widths = [4000, 80, 10] * ds.units.pccm
+    widths = [3500, 80, 10] * ds.units.pccm
     k = int(sys.argv[-1])
     width = widths[k]
 
@@ -109,8 +109,6 @@ for i, dd in enumerate(dds):
     p.hide_colorbar()
 
     # annotate projection based on its [i, k] ([row, column]) value
-    # if (i == 0) and (k == 2):
-    #     p.annotate_timestamp(corner='lower_right', redshift=True, draw_inset_box=True)
 
     # find smallest cell width
     with open('ds_stats.txt', 'w') as f:
@@ -126,8 +124,8 @@ for i, dd in enumerate(dds):
     if k == 0:
         # age, mass and simulation label in first
         p.annotate_title("dx = {} pc".format(format_sci_notation(float(dx))))
-        p.annotate_text((0.24, 0.90), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), coord_system="axis",
-                        text_args={"color": "white"})
+        # p.annotate_text((0.24, 0.90), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), coord_system="axis",
+        #                 text_args={"color": "white"})
         p.annotate_text([0.07, 0.08], str(label), coord_system="axis", text_args={"color": "black"},
                         inset_box_args={"boxstyle": "square,pad=0.3", "facecolor": "white", "linewidth": 3,
                                         "edgecolor": "white", "alpha": 0.5},
@@ -138,12 +136,15 @@ for i, dd in enumerate(dds):
 
     # plot scalebars
     if i == 2:
-        coeff = [10, 1e4, 1e4]
+        coeff = [10, 1e5, 1e4]
         unit = ['pc', 'au', 'au']
-        p.annotate_scale(corner='lower_right', coeff=coeff[k], unit=unit[k], pos=(0.86, 0.08), max_frac=0.3,
-                         scale_text_format="{scale:.2e} {units}")
+        if k == 0:
+            p.annotate_scale(corner='lower_right', coeff=coeff[k], unit=unit[k], pos=(0.86, 0.08), max_frac=0.3)
+        else:
+            p.annotate_scale(corner='lower_right', coeff=coeff[k], unit=unit[k], pos=(0.86, 0.08), max_frac=0.3,
+                             scale_text_format="{scale:.0e} {units}")
 
-    if i == 1:
+    # if i == 1:
         # Define a custom length unit based on meter conversion
         # pc = {'name': 'pc', 'scale': 3.086e+16}
         # my_dim = 'pixel-length'
@@ -155,27 +156,44 @@ for i, dd in enumerate(dds):
     # mark BH position
     if k == 2:
         p.annotate_marker(center, coord_system="data", color="white")
+        p.annotate_title(r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)))
 
     # this forces the ProjectionPlot to redraw itself on the AxesGrid axes.
     plot = p.plots[("gas", field)]
     plot.figure = fig
     plot.axes = grid[i].axes
-    if k == 2: # temp 2 -> 0
-        plot.cax = grid.cbar_axes[i]
-        grid.cbar_axes[i].set_ymargin(-0.1)
-        grid.cbar_axes[i].set_anchor((0.6, 0.2))
+    plot.cax = grid.cbar_axes[i]
 
     # redraw the plot
     p.render()
+
+    # ticks + ticklabels
+    xticks = grid[0].axes.get_xticks()[1:-1]
+    grid[i].axes.set_xticks([])
+    grid[i].axes.set_yticks([])
+    grid[i].axes.minorticks_on()
+    grid[i].axes.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+    grid[i].axes.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+    grid[i].axes.set_xticks(xticks, major=True, crs=plot)
+    grid[i].axes.set_yticks(xticks, major=True, crs=plot)
+    if k == 0:
+        grid[i].axes.set_xticklabels([str(int(x)) for x in xticks])
+    elif k == 2:
+        grid[i].axes.set_xticklabels(["-0.15", "-0.1", "-0.05", "0", "0.05", "0.1", "0.15"])
+    elif k == 1:
+        grid[i].axes.set_xticklabels(["-1", "-0.5", "0", "0.5", "1"])
+
+    grid[i].axes.set_yticklabels("")
+    grid[i].axes.set_ylabel("")
+    grid[i].axes.set_xlabel("")
+    grid[i].axes.set_xlabel("(pc)")
 
     # Modify the scalebar, colorbar and axes properties **after** p.render() so that they are not overwritten.
     if (i == 2) and (k != 0): # i=1 -> i=2 temp
         plot.axes.get_yaxis().set_units('pc')
         #plot.axes.add_artist(scalebar)
-    if k == 2:
-        grid[i].axes.set_yticklabels("", fontsize=12)
-        grid[i].axes.set_ylabel("")
-    if i == 2: #temp 2 -> 0
+
+    if k == 2: #temp 2 -> 0
 
         # ticklabels = grid.cbar_axes[i].get_yticklabels()
         # grid.cbar_axes[i].set_yticklabels(ticklabels, fontsize=12)
@@ -189,12 +207,10 @@ for i, dd in enumerate(dds):
         atol = 10**(max_n_index-1)
         end_i = first_index(minorticks, float(max_n.d), rtol=0.1, atol=atol)
         minorticks = minorticks[:end_i]
-        grid.cbar_axes[i].xaxis.set_minor_locator(ticker.AutoMinorLocator())
+        grid.cbar_axes[i].yaxis.set_minor_locator(ticker.AutoMinorLocator())
         grid.cbar_axes[i].set_yticks(minorticks, minor=True)
         grid.cbar_axes[i].tick_params(labelsize=12)
 
-        ax_pos = grid[i].axes.get_position()
-        cb_pos = grid.cbar_axes[i].get_position()
-        cb_pos = grid.cbar_axes[i].set_position([cb_pos.x0 - 0.5, ax_pos.y0, cb_pos.width, cb_pos.height])
-
-plt.savefig(f"multiplot_axesgrid_{widths.d[k]}pccm.pdf")
+plot_name = f"multiplot_axesgrid_{widths.d[k]}pccm.pdf"
+plt.savefig('plots/'+ plot_name, bbox_inches='tight')
+print("created plots/", plot_name)
