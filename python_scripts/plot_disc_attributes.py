@@ -143,7 +143,7 @@ if __name__ == "__main__":
         shape = disc_frb.buff_size
         dx = (bds[1] - bds[0]) / shape[0]
         dy = (bds[3] - bds[2]) / shape[1]
-        px, py = np.meshgrid(np.arange((bds[0] + dx / 2), (bds[1] + dx / 2),xw dx),
+        px, py = np.meshgrid(np.arange((bds[0] + dx / 2), (bds[1] + dx / 2), dx),
                             np.arange((bds[2] + dy / 2), (bds[3] + dy / 2), (dy)))
         pr = ds.arr(np.sqrt(px ** 2 + py ** 2), "code_length").to('pc')
 
