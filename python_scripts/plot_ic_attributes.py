@@ -18,7 +18,7 @@ y = sys.argv[-1] # naming plot
 
 root_dir = ["~/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
             "~/disk14/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann/"]
-sim = ["1B.RSb01", "2B.RSb1"]
+sim = ["1B.RSb01-2", "2B.RSb1"]
 dds = ["DD0128/DD0128", "DD0198/DD0198"]
 labels = []
 DS = []
@@ -37,13 +37,12 @@ plt.rcParams['font.size'] = fontsize
 plt.rcParams['font.weight'] = 'light'
 rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
 rc('text', usetex=True)
-fontproperties = {'family': 'serif', 'color':  'black', 'weight': 'normal', 'size': 12}
 
 plt.rcParams["mathtext.default"] = "regular"
 plt.rcParams['lines.linewidth'] = linewidth
 
 # colours for plotting
-c = ['dodgerblue', 'limegreen', 'crimson', 'salmon', 'lightgreen', 'khaki', 'plum', 'seagreen', 'steelblue', 'salmon']
+c = ['firebrick', 'royalblue', 'crimson', 'dodgerblue', 'limegreen', 'salmon', 'lightgreen', 'khaki', 'plum', 'seagreen', 'steelblue', 'salmon']
 
 fig = plt.figure()
 n_subplots = 4
@@ -119,7 +118,7 @@ axs[n_subplots-1].set_xlabel(r"$\rm Radius \, (pc)$", fontdict=None)
 axs[n_subplots-1].set_xlim(8e-3, 1.5e3)
 xticks = np.logspace(-2, 3, 6)
 axs[3].set_xticks(xticks)
-axs[3].set_ylabel(r"$\rm \rho \, (cm^{-3})$", fontdict=None)
+axs[3].set_ylabel(r"$\rm n \, (cm^{-3})$", fontdict=None)
 #axs[3].set_ylabel(r"$\rm \delta_b$", fontdict=None)
 #axs[3].axhline(y=200, color='grey', linestyle='dashed', lw=linewidth, alpha=1)
 for i in range(n_subplots):
@@ -128,13 +127,13 @@ axs[2].set_ylabel(r"$\rm t_{ff} \, (Myr)$", fontdict=None)
 #axs[2].set_ylim(200, rp2[("gas", "blackhole_freefall_timescale")][rp2.used].to("Myr").d.max()+100)
 axs[1].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
 axs[0].set_ylabel(r"$\rm M_{encl} \, (M_{\odot})$", fontdict=None)
-axs[0].legend(loc="lower right", fontsize=fontsize, ncol=1)  # upper/lower
+axs[0].legend(loc="lower right", fontsize=fontsize-1, ncol=1)  # upper/lower
 #axs[0].set_title("Gas properties at time of BH formation", fontdict=None)
 
 # save plot as pdf
 fig = plt.gcf()
 fig.subplots_adjust(wspace=0, hspace=0)
-fig.set_size_inches(5.1, 7.2)
+fig.set_size_inches(4.6, 6.2)
 plot_name = 'radial_profile_ics_halo_1kpc.pdf'
-fig.savefig('plots/' + plot_name, dpi=100)
+fig.savefig('plots/' + plot_name, bbox_inches='tight')
 print("created plots/" + str(plot_name))

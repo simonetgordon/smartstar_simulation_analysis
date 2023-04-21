@@ -1,6 +1,6 @@
 """
 Plots 6x1 radial profile of disc attributes (excluding surface density)
-python -i plot_disc_attributes.py "1Bb01-1Sb01-x3"
+python -i plot_disc_attributes.py "1Bb01-1Sb01-x3" 
 """
 import yt
 import sys
@@ -16,10 +16,12 @@ from matplotlib import rc
 from find_disc_attributes import _make_disk_L
 from plot_multi_projections import tidy_data_labels
 
+
 def orbital_velocity(ds, disk):
     #G = ds.parameters['GravitationalConstant']
     G = 6.67e-8 * (yt.units.cm ** 3)/(yt.units.g*yt.units.s**2) # cgs
     return np.sqrt(G * ds.r['SmartStar', 'particle_mass'].to('g') / disk['index', 'radius'].to('cm'))
+
 
 def radial_profile(field, disk, n_bins, cell_width_pc):
     bins = np.logspace(np.log10(cell_width_pc), np.log10(disk["index", "radius"].to('pc').max()), n_bins+1)
@@ -33,34 +35,33 @@ def radial_profile(field, disk, n_bins, cell_width_pc):
     return r_no_zeros, y_no_zeros
 
 
-# datasets
-input = sys.argv[-1]
-root_dir =["/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/", 
-           "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/",
-            "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/" ]
-sim = ["1B.RSb01-2", "1S.RSb01", "1B.RSm01"]
-dds = ["DD0144/DD0144", "DD0154/DD0154", "DD0144/DD0144"]
-labels = []
-DS = []
-for i, dd in enumerate(dds):
-    ds = yt.load(os.path.join(root_dir[i], sim[i], dd))
-    add_fields_ds(ds)
-    j = []
-    label = str(sim[i]) + "-" + str(float(ds.current_time.to('Myr')))[:5] + "Myr"
-    DS.append(ds)
-    labels.append(label)
-
-labels = tidy_data_labels(labels)
-
-# naming plot
-seed = int(root_dir[0][43:44])
-if seed == 1:
-    index = 82
-elif seed == 2:
-    index = 84
-
-
 if __name__ == "__main__":
+
+    # datasets
+    input = sys.argv[-1]
+    root_dir =["/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/", 
+            "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/",
+                "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/" ]
+    sim = ["1B.RSb01-2", "1S.RSb01", "1B.RSm01"]
+    dds = ["DD0144/DD0144", "DD0154/DD0154", "DD0144/DD0144"]
+    labels = []
+    DS = []
+    for i, dd in enumerate(dds):
+        ds = yt.load(os.path.join(root_dir[i], sim[i], dd))
+        add_fields_ds(ds)
+        j = []
+        label = str(sim[i]) + "-" + str(float(ds.current_time.to('Myr')))[:5] + "Myr"
+        DS.append(ds)
+        labels.append(label)
+
+    labels = tidy_data_labels(labels)
+
+    # naming plot
+    seed = int(root_dir[0][43:44])
+    if seed == 1:
+        index = 82
+    elif seed == 2:
+        index = 84
 
     # font settings
     fontsize = 12 # for projection annotations
@@ -125,27 +126,15 @@ if __name__ == "__main__":
         )
 
         ##########################################################################################################
-        #                                           Create Height Plot
+        #                                           Calculate disc height
         ##########################################################################################################
 
-        cr = ds.cut_region(disk, ["obj[('gas', 'number_density')] > 4e6"])
+        # querying height (abs(cylindrical_z)) on a cut region of max disc density/5
+        cut = disk[('gas', 'number_density')].d.max()/8 
+        cr = ds.cut_region(disk, ["obj[('gas', 'number_density')] > {}".format(cut)])
         h_disc = cr[("index", "height")].to('pc')
         r_disc = cr[("index", "radius")].to('pc')
         r_h, h = radial_profile(h_disc, cr, n_bins, cell_width_pc[k])
-
-        frb_resolution=int(disk.radius.to('pc')/cell_width_pc[k])
-        disc_height_sum=cr.sum('dz',axis="z")
-        disc_frb=disc_height_sum.to_frb(width=2*disk.radius.to('pc'), resolution=frb_resolution, center=disk.center)
-        height_data=disc_frb['dz'].in_units('pc')
-
-        # get radius
-        bds = disc_frb.bounds
-        shape = disc_frb.buff_size
-        dx = (bds[1] - bds[0]) / shape[0]
-        dy = (bds[3] - bds[2]) / shape[1]
-        px, py = np.meshgrid(np.arange((bds[0] + dx / 2), (bds[1] + dx / 2), dx),
-                            np.arange((bds[2] + dy / 2), (bds[3] + dy / 2), (dy)))
-        pr = ds.arr(np.sqrt(px ** 2 + py ** 2), "code_length").to('pc')
 
 
         ##########################################################################################################
@@ -166,18 +155,21 @@ if __name__ == "__main__":
         plot_theta = axs[4].plot(profile.x.value, np.abs(profile[("gas", "tangential_velocity")].value), color=c[k])
         plot_vr = axs[5].plot(profile.x[profile.used], profile[("gas", "radial_velocity")][profile.used], color=c[k])
         r, vorb = radial_profile(orbital_velocity(ds, disk).to('km/s'), disk, n_bins, cell_width_pc[k])
-        plot_vorb = axs[6].plot(r, vorb, color=c[k])
+        #plot_vorb = axs[6].plot(r, vorb, color=c[k])
+        plot_hratio = axs[6].plot(r_h, h/r_h, color=c[k])
 
 
         # format plots
         axs[-1].set_xlabel("Radius (pc)", fontdict=None)
-        axs[6].set_ylabel(r"$\rm \nu_{orbit} \, (km/s)$", fontdict=None)
+        #axs[6].set_ylabel(r"$\rm \nu_{orbit} \, (km/s)$", fontdict=None)
+        axs[6].set_ylabel(r"$\rm H/r $", fontdict=None)
         axs[5].set_ylabel(r"$\rm \nu_r \, (km/s)$", fontdict=None)
         axs[5].set_yscale('linear')
         axs[4].set_ylabel(r"$\rm \nu_{\theta} \, (km/s)$", fontdict=None)
         axs[4].set_ylim([-1,25])
         axs[3].set_ylabel(r"$\rm H \, (pc)$", fontdict=None)
         axs[2].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
+        axs[2].set_ylim([50,2.1e4])
         axs[1].set_ylabel(r"$\rm n \, (cm^{-3})$", fontdict=None)
         axs[1].set_yscale('log')
         axs[0].set_ylabel(r"$\rm \omega / \omega_K $", fontdict=None)
