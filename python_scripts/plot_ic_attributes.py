@@ -59,9 +59,9 @@ for i, ds in enumerate(DS):
         sp,
         "radius",
         [("gas", "mass"), ("gas", "temperature"), ("gas", "dynamical_time"), ("gas", "baryon_overdensity_sg"),
-         ("gas", "blackhole_freefall_timescale"), ("gas", "theta_vel_dynamical_timescale") ],
-         units={"radius": "pc", ("gas", "mass"): "Msun"},
-        logs={"radius": True, ("gas", "mass"): True, ("gas", "temperature"): True},
+         ("gas", "blackhole_freefall_timescale"), ("gas", "theta_vel_dynamical_timescale"), ("deposit", "all_mass") ],
+         units={"radius": "pc", ("gas", "mass"): "Msun", ("deposit", "all_mass"): "Msun"},
+        logs={"radius": True, ("gas", "mass"): True, ("gas", "temperature"): True, ("deposit", "all_mass"):True},
         weight_field=None
     )
 
@@ -76,7 +76,11 @@ for i, ds in enumerate(DS):
 
     # plot data
     axs[0].loglog(rp.x.value, rp[("gas", "mass")].value.cumsum(),
-               color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
+               color=c[i], linestyle='solid', label=labels[i] + "_gas", alpha=alpha)
+    axs[0].loglog(rp.x.value, rp[("deposit", "all_mass")].value.cumsum(),
+            color=c[i+2], linestyle='solid', label= labels[i] + "_DM", alpha=alpha)
+    r200 = rp[("deposit", "all_mass")].value.cumsum().max() + rp[("gas", "mass")].value.cumsum().max()
+    print("r200 mass: ", r200)
 
     axs[1].loglog(rp2.x[rp2.used], rp2[("gas", "temperature")][rp2.used],
                   color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
@@ -127,7 +131,7 @@ axs[2].set_ylabel(r"$\rm t_{ff} \, (Myr)$", fontdict=None)
 #axs[2].set_ylim(200, rp2[("gas", "blackhole_freefall_timescale")][rp2.used].to("Myr").d.max()+100)
 axs[1].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
 axs[0].set_ylabel(r"$\rm M_{encl} \, (M_{\odot})$", fontdict=None)
-axs[0].legend(loc="lower right", fontsize=fontsize-1, ncol=1)  # upper/lower
+axs[0].legend(loc="lower right", fontsize=fontsize-2, ncol=2)  # upper/lower
 #axs[0].set_title("Gas properties at time of BH formation", fontdict=None)
 
 # save plot as pdf
