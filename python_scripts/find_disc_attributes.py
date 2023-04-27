@@ -14,29 +14,25 @@ from yt.utilities.math_utils import ortho_find
 import matplotlib as mpl
 mpl.rcParams['agg.path.chunksize'] = 10000
 from scipy import stats
+from matplotlib import rc
 
-# set by user
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2"
-input = sys.argv[1]
-ds = yt.load(os.path.join(root_dir, sys.argv[1]))
-add_fields_ds(ds)
-beckmann_method = 1
+# font settings
+fontsize = 12 # for projection annotations
+linewidth = 2
+plt.rcParams['font.size'] = fontsize
+plt.rcParams['font.weight'] = 'light'
+rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
+rc('text', usetex=True)
 
-# naming plot
-seed = int(root_dir[43:44])
-print(seed)
-if seed == 1:
-    index = 82
-elif seed == 2:
-    index = 84
-
+plt.rcParams["mathtext.default"] = "regular"
+plt.rcParams['lines.linewidth'] = linewidth
 
 # make disc data container
 def _make_disk_L(ds, center, width, height):
     sp = ds.sphere(center, width)
     L = sp.quantities.angular_momentum_vector()
     L /= np.sqrt((L ** 2).sum())
-    disk = ds.disk(ss_pos, L, width, height)
+    disk = ds.disk(center, L, width, height)
     return disk, L
 
 
@@ -48,6 +44,21 @@ def myExpFunc(x, a, b):
     return a * np.power(x, b)
 
 if __name__ == "__main__":
+
+    # set by user
+    root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm01"
+    input = sys.argv[1]
+    ds = yt.load(os.path.join(root_dir, sys.argv[1]))
+    add_fields_ds(ds)
+    beckmann_method = 1
+
+    # naming plot
+    seed = int(root_dir[43:44])
+    print(seed)
+    if seed == 1:
+        index = 82
+    elif seed == 2:
+        index = 84
 
     # grab bh particle properties
     ss_pos, ss_mass, ss_age = ss_properties(ds)
@@ -186,7 +197,7 @@ if __name__ == "__main__":
         n_bins=64,
         units=dict(
                    radius="pc", velocity_cylindrical_theta="km/s", sound_speed="km/s", velocity_spherical_theta="km/s",
-                   cylindrical_z="pc", radial_velocity="km/s", keplerian_frequency_BH="1/s", tangential_velocity="km/s",
+                   cylindrical_z="pc", radial_velocity="cm/s", keplerian_frequency_BH="1/s", tangential_velocity="km/s",
                    height="pc"),
         logs=dict(cylindrical_radius=False),
         weight_field=("gas", "cell_mass"),
@@ -252,19 +263,8 @@ if __name__ == "__main__":
     #                                           Plot All Disc Attributes
     ##########################################################################################################
 
-    fig = plt.figure()
     n_subplots = 8
     fig, axs = plt.subplots(n_subplots, 1, sharex=True)
-    plt.rcParams["font.family"] = "serif"
-    plt.rcParams["mathtext.default"] = "regular"
-    linewidth = 1
-    plt.rcParams['lines.linewidth'] = linewidth
-
-    fontsize = 8
-    font = {'family': 'serif',
-            'weight': 'normal',
-            'size': fontsize,
-            }
 
     # ignore invalid value error in plot_theta divide
     np.seterr(invalid='ignore')
@@ -291,22 +291,23 @@ if __name__ == "__main__":
     #plot_toomreq_beck_fit = axs[7].loglog(profile.x.value, num / denom_beck_fit)
 
     # format plots
-    axs[7].set_xlabel(r"$Radius \, (pc)$", fontdict=font)
-    axs[7].axhline(y=1, color='grey', linestyle='dashed', lw=linewidth, alpha=1)
-    axs[7].set_ylabel("Toomre Q", fontdict=font)
-    axs[6].set_ylabel(r"$\Sigma \, (cm^{-2})$", fontdict=font)
+    axs[7].set_xlabel("Radius (pc)", fontdict=None)
+    axs[7].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
+    axs[7].set_ylabel("Toomre Q", fontdict=None)
+    axs[6].set_ylabel(r"$\rm \Sigma \, (cm^{-2})$", fontdict=None)
     axs[6].set_ylim(2e19, 2e25)
-    axs[5].set_ylabel(r"$\nu_r \, (km/s)$", fontdict=font)
-    axs[4].set_ylabel(r"$\nu_{\theta} \,/ c_s$", fontdict=font)
-    axs[3].set_ylabel(r"$H \, (pc)$", fontdict=font)
-    axs[2].set_ylabel(r"$T \, (K)$", fontdict=font)
-    axs[1].set_ylabel(r"$n \, (cm^{-3})$", fontdict=font)
+    axs[5].set_ylabel(r"$\rm \nu_r \, (km/s)$", fontdict=None)
+    axs[5].set_yscale('linear')
+    axs[4].set_ylabel(r"$\rm \nu_{\theta} \,/ c_s$", fontdict=None)
+    axs[3].set_ylabel(r"$\rm H \, (pc)$", fontdict=None)
+    axs[2].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
+    axs[1].set_ylabel(r"$\rm n \, (cm^{-3})$", fontdict=None)
     axs[1].set_yscale('log')
-    axs[0].set_ylabel(r"$\omega / \omega_K $", fontdict=font)
+    axs[0].set_ylabel(r"$\rm \omega / \omega_K $", fontdict=None)
     axs[0].set_yscale('linear')
-    axs[0].axhline(y=1, color='grey', linestyle='dashed', lw=linewidth, alpha=1)
+    axs[0].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
     axs[0].set_title("BH Age = " + "{:.2f}".format(ss_age[0]/1e6) + " Myr" + ", " + str(root_dir[index:]),
-                     fontproperties=font)
+                     fontproperties=None)
 
     for i in range(n_subplots):
         axs[i].set_xlim([7e-3, 1e1])
@@ -323,26 +324,26 @@ if __name__ == "__main__":
     fig.savefig('plots/' + plot_name, dpi=100)
     print("created plots/" + str(plot_name))
 
-    # Produce a 2D array of uniform pixel sizes of the disc height at the maximum resolution of simulation
-    beckmann_method = 0
-    if beckmann_method:
-        # make disc object
-        rho_disc = 0  # by density projection plot inspection
-        print(ss_mass)
-        ad = ds.all_data()
-        ad = ds.all_data()
-        disc = ad.cut_region(disk, ["obj['density'].in_units('amu/cm**3') > {0}".format(rho_disc)])
-        disc_height_sum = disc.sum(('index', 'z'), axis=('index', 'y'))
-        print("disc height sum: ", disc_height_sum)
-
-        sphere_pc = (width * ds.length_unit.in_units("code_length")).in_units("pc")
-        dx = 7.687095e-04 # pc
-        print("sphere_pc = ", sphere_pc)
-        frb_resolution = int(sphere_pc/dx)
-        print("frb_res = ", frb_resolution)
-        disc_frb = disc_height_sum.to_frb(width=(2*sphere_pc, 'pc'), resolution=frb_resolution, center=ss_pos)
-        height_data = disc_frb['dy'].in_units('pc')
-        print(height_data > 0)
+    # # Produce a 2D array of uniform pixel sizes of the disc height at the maximum resolution of simulation
+    # beckmann_method = 0
+    # if beckmann_method:
+    #     # make disc object
+    #     rho_disc = 0  # by density projection plot inspection
+    #     print(ss_mass)
+    #     ad = ds.all_data()
+    #     ad = ds.all_data()
+    #     disc = ad.cut_region(disk, ["obj['density'].in_units('amu/cm**3') > {0}".format(rho_disc)])
+    #     disc_height_sum = disc.sum(('index', 'z'), axis=('index', 'y'))
+    #     print("disc height sum: ", disc_height_sum)
+    #
+    #     sphere_pc = (width * ds.length_unit.in_units("code_length")).in_units("pc")
+    #     dx = 7.687095e-04 # pc
+    #     print("sphere_pc = ", sphere_pc)
+    #     frb_resolution = int(sphere_pc/dx)
+    #     print("frb_res = ", frb_resolution)
+    #     disc_frb = disc_height_sum.to_frb(width=(2*sphere_pc, 'pc'), resolution=frb_resolution, center=ss_pos)
+    #     height_data = disc_frb['dy'].in_units('pc')
+    #     print(height_data > 0)
 
 
     # Used a fixed resolution buffer to grid the height data onto something I could work with. Here “pc” is the total

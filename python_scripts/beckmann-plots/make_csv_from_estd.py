@@ -13,18 +13,19 @@ from itertools import zip_longest
 
 # turn on to combine multiple estd simulation txt output files
 MULTIPLE_ESTDS = 1
-SMALL = 0
+SMALL = 1
 
 # user input
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm16-2"
-estds = ['estd_0.out', 'estd_1.out', 'estd_2.out',
-         'estd_3.out',
-         'estd_4.out',
-         'estd_5.out',
-         'estd_6.out',
-         # 'estd_7.out',
+root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.RSb01"
+estds = [#'estd_0.out', 'estd_1.out', 'estd_2.out',
+         #'estd_3.out',
+         #'estd_4.out', # 128 - 132
+         'estd_5.out', # 130 - 137
+         'estd_6.out',# 137 - 140
+         'estd_7.out', # 140 - 145
+         'estd_10.out', # 145 - 147
          # 'estd_8.out',
-         'estd.out']
+         'estd.out'] # 147 - 154
 
 # naming output file
 seed = int(root_dir[43:44])
@@ -149,7 +150,10 @@ for line in open(output):
     if hl:
         hl_radius.append(hl.group(1))
         bondi_radius.append(bondi.group(1))
-        jeans_length.append(jeans.group(1))
+        try:
+            jeans_length.append(jeans.group(1))
+        except AttributeError:
+            continue
 
 hl_radius = np.array(_remove_strings(hl_radius))
 bondi_radius = np.array(_remove_strings(bondi_radius))

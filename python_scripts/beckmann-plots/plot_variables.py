@@ -87,7 +87,8 @@ c2 = ['#856798', '#0a888a', '#56ae57', '#ba6873', '#ffc512', '#436bad', '#9d0759
 c0 = ['#9d0216', '#E66101', '#436bad', '#A6611A']
 #c = sns.diverging_palette(140, 300, s=100, l=50, sep=5, center="light", n=len(bhl_object_list*2))
 #c = sns.color_palette("spectral", len(bhl_object_list*2), desat=1)
-c = sns.blend_palette(['mediumblue',"#2CA02C", '#17BECF', "#e377c2", "#76549A"], len(bhl_object_list*2))
+#c = sns.blend_palette(['blueviolet', 'orange', 'springgreen', "#2CA02C", '#17BECF', "#e377c2", "#76549A"], len(bhl_object_list*2))
+c = ['blueviolet', 'turquoise', 'limegreen']
 
 l = tidy_data_labels(bhl_object_labels)
 j = 0
@@ -117,7 +118,7 @@ for i, BHL in enumerate(bhl_object_list):
 
     # 2) Accretion Rates
     axs[1].plot(age, accrate, color=c[j], linestyle='solid', label=l[i], alpha=alpha)
-    axs[1].plot(age, eddington_rate(mass), color=c[j], linestyle='dashed', label=l[i], alpha=alpha)
+    axs[1].plot(age, eddington_rate(mass), color=c[j], linestyle='dotted', label=l[i], alpha=alpha)
 
     # 3) Densities
     axs[2].plot(age, density, color=c[j], linestyle='solid', label=l[i], alpha=alpha)
@@ -133,7 +134,7 @@ for i, BHL in enumerate(bhl_object_list):
     # 6) Jeans length
     axs[5].plot(age, jeans, color=c[j], linestyle='solid', label=l[i]+'-jeans-length', alpha=alpha)
 
-    j += 2
+    j += 1
 
 for i in range(num_subplots):
     axs[i].set_xticks(np.arange(0.1, 1.1, 0.1))
@@ -167,22 +168,26 @@ for i in [4, 5]:
         dx = [8.4e-03, 4.2e-03, 2.1e-03]
     elif x == "s2-40msun-2-":
         dx = [1.3e-03, 5.2e-04, 1.3e-04]
-    c1 = c2 = c3 = 'black'
+
+    dx_1s = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04]
+    c1 = c3 = 'lightcoral'
+    c2 = 'indianred'
     l1 = 'dashed'
     l2 = 'dashdot'
     l3 = 'dotted'
     axs[i].axhline(y=dx[0], color=c1, linestyle=l1, lw=linewidth,  label="dx = " + str(dx[0]) + "pc", alpha=1)
+    axs[i].axhline(y=dx_1s[2], color=c2, linestyle=l1, lw=linewidth,  label="dx = " + str(dx_1s[2]) + "pc", alpha=1)
     #axs[i].axhline(y=dx[1], color=c2, linestyle=l2, lw=linewidth*0.5, label="dx = " + str(dx[1]) + "pc", alpha=1)
     #axs[i].axhline(y=dx[2], color=c3, linestyle=l3, lw=linewidth*0.5, label="dx = " + str(dx[2]) + "pc", alpha=1)
     #axs[i].axhline(y=0.00077, color=c[6], linestyle='solid', label="dx = 7.7e-04 pc")
 axs[5].set_xlabel(r"BH Age (Myr)", fontdict=None)
 
 if xlim == 1:
-    axs[0].set_ylim([200, 2600])
-    axs[1].set_ylim([5e-6, 7e-3])
-    axs[2].set_ylim([2e4,8e7])
+    axs[0].set_ylim([0, 2800])
+    axs[1].set_ylim([2e-8, 9e-3])
+    axs[2].set_ylim([7e3,8e7])
     axs[3].set_ylim([0.1, 11])
-    axs[5].set_ylim([8e-3, 12])
+    axs[5].set_ylim([8e-4, 12])
 if xlim == 3:
     axs[0].set_ylim([0, 8000])
     #axs[1].set_ylim([5e-5, 2e-2])
@@ -203,7 +208,7 @@ elif x == "s2-40msun-2":
     dx = ["dx = 1.3e-03 pc", "dx = 5.2e-04 pc", "dx = 1.3e-04  pc"]
 
 dx_lines = [Line2D([0], [0], color=c1, lw=linewidth, linestyle=l1),
-            #Line2D([0], [0], color=c2, lw=linewidth, linestyle=l2),
+            Line2D([0], [0], color=c2, lw=linewidth, linestyle=l1),
             #Line2D([0], [0], color=c3, lw=linewidth, linestyle=l3),
             #Line2D([0], [0], color=c0[3], lw=linewidth, linestyle='dashed'),
             ]
@@ -211,17 +216,17 @@ vel_lines = [Line2D([0], [0], color='grey', lw=linewidth),
             Line2D([0], [0], color='grey', linestyle='dotted', lw=linewidth)]
 radius_lines = [Line2D([0], [0], color='grey', lw=linewidth),
                 Line2D([0], [0], color='grey', linestyle='dotted', lw=linewidth)]
-accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
-axs[0].legend(loc="lower right", fontsize=fontsize-1, ncol=2)  # upper/lower
-axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], fontsize=fontsize-1, ncol=2)  # upper/lower
-axs[3].legend(vel_lines, [r"$\rm \nu_{\infty}$", r"\rm $c_{\infty}$"], loc="upper left", fontsize=fontsize-1, ncol=2)  # upper/lower
-axs[4].legend(radius_lines, [r"$\rm r_{HL}$", r"$\rm r_{Bondi}$"], loc="upper right", fontsize=fontsize-1, ncol=2)  # upper/lower
+accrate_line = [Line2D([0], [0], color='grey', linestyle='dotted', lw=linewidth)]
+axs[0].legend(fontsize=fontsize-1, ncol=1)  # upper/lower
+axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-1, ncol=2)  # upper/lower
+axs[3].legend(vel_lines, [r"$\rm \nu_{\infty}$", r"\rm $c_{\infty}$"], loc="upper left", fontsize=fontsize-1, ncol=1)  # upper/lower
+axs[4].legend(radius_lines, [r"$\rm r_{HL}$", r"$\rm r_{Bondi}$"], fontsize=fontsize-1, ncol=2)  # upper/lower
 axs[5].legend(dx_lines, dx, fontsize=fontsize-1, ncol=1)
 
 # save plot as pdf
 fig = plt.gcf()
 fig.subplots_adjust(wspace=0, hspace=0)
-fig.set_size_inches(5.4, 8)
+fig.set_size_inches(5.4, 9)
 plot_name = 'time-' + str(x) + str(y) + '.pdf'
 fig.savefig('plots/' + plot_name, bbox_inches='tight')
 print("created plots/", plot_name)

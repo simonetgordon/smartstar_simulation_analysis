@@ -66,7 +66,7 @@ def _radiative_cooling_rate(field, data):
 # advective cooling rate [erg s-1 cm-3]
 def _advective_cooling_rate(field, data):
     kb = 1.3807e-16 * ((yt.units.cm ** 2 * yt.units.g) / (yt.units.s ** 2 * yt.units.K))
-    xi = -0.6
+    xi = -0.65
     m_p = 1.6726e-24*yt.units.g
     num = (data["gas", "density"].to('g/cm**3') * data["gas", "radial_velocity"].to('cm/s') *
            data['gas', 'temperature'] * kb * xi)
@@ -87,6 +87,29 @@ def _baryon_overdensity_sg(field, data):
         / co.critical_density(0.0)
         / (1.0 + data.ds.current_redshift) ** 3
     )
+
+
+def _blackhole_freefall_timescale(field, data):
+    num = np.pi * data['index', 'radius'].to('cm')**1.5
+    try:
+        denom = 2 * np.sqrt(2 * G * data['SmartStar', 'particle_mass'].to('g')[0])
+    except IndexError:
+        denom = 2 * np.sqrt(2 * G * M)
+    return num/denom
+
+
+def _theta_vel_dynamical_timescale(field, data):
+    return (2 * np.pi * data['index', 'radius'].to('cm')) / data['gas', 'velocity_spherical_theta']
+
+def _orbital_velocity(field, data):
+    # center = data['SmartStar', 'particle_position']
+    # vel = data['gas', 'velocity']
+    # pos = data['gas', 'position'] - center
+    # radial = np.sum(vel * pos, axis=1) / np.linalg.norm(pos, axis=1)
+    # tangential = np.sqrt(np.linalg.norm(vel, axis=1)**2 - radial**2)
+    #orbital = np.sqrt(np.abs(tangential**2 - ds.parameters['gravitational_constant'] * data['gas', 'mass'] / np.linalg.norm(pos, axis=1)))
+    # np.sqrt(np.abs(data['gas', 'tangential_velocity']**2 - G * data['gas', 'mass'])/ data['index', 'radius'])
+    return np.sqrt(G * M / data['index', 'radius'])
 
 
 def add_fields_ds(ds):
@@ -179,6 +202,27 @@ def add_fields_ds(ds):
             function=_baryon_overdensity_sg,
             sampling_type="local",
             units="dimensionless"
+    )
+
+    ds.add_field(
+        ("gas", "blackhole_freefall_timescale"),
+        function=_blackhole_freefall_timescale,
+        sampling_type="local",
+        units="s"
+    )
+
+    ds.add_field(
+        ("gas", "theta_vel_dynamical_timescale"),
+        function=_theta_vel_dynamical_timescale,
+        sampling_type="local",
+        units="s"
+    )
+
+    ds.add_field(
+        ("gas", "orbital_velocity"),
+        function=_orbital_velocity,
+        sampling_type="local",
+        units="cm/s"
     )
 
 

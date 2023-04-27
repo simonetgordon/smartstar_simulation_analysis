@@ -43,7 +43,7 @@ if __name__ == "__main__":
             "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/",
                 "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/" ]
     sim = ["1B.RSb01-2", "1S.RSb01", "1B.RSm01"]
-    dds = ["DD0144/DD0144", "DD0154/DD0154", "DD0144/DD0144"]
+    dds = ["DD0138/DD0138", "DD0142/DD0142", "DD0138/DD0138"]
     labels = []
     DS = []
     for i, dd in enumerate(dds):
@@ -100,7 +100,7 @@ if __name__ == "__main__":
         profile = yt.create_profile(
             data_source=disk,
             bin_fields=[("index", "radius")],
-            fields=[("gas", "velocity_cylindrical_theta"), ("gas", "H_nuclei_density"), ('index', 'cylindrical_z'),
+            fields=[("gas", "velocity_cylindrical_theta"), ("gas", "number_density"), ('index', 'cylindrical_z'),
                     ('gas', 'temperature'), ('gas', 'sound_speed'), ('gas', 'radial_velocity'), ('gas', 'velocity_magnitude'),
                     ('gas', 'angular_frequency'), ('gas', 'velocity_spherical_theta'),
                     ('index', 'radius'), ('gas', 'keplerian_frequency_BH'), ("gas", "tangential_velocity"), ("index", "height"),
@@ -149,7 +149,7 @@ if __name__ == "__main__":
         c = ['blueviolet', 'turquoise', 'limegreen']
         plot_omega = axs[0].loglog(profile.x[profile.used], profile[("gas", "omega")][profile.used] /
                     profile[("gas", "omega_k")][profile.used], color=c[k], label=labels[k])
-        plot_density = axs[1].plot(profile.x[profile.used], profile[("gas", "H_nuclei_density")][profile.used], color=c[k])
+        plot_density = axs[1].plot(profile.x[profile.used], profile[("gas", "number_density")][profile.used], color=c[k])
         plot_temp = axs[2].loglog(profile.x[profile.used], profile[("gas", "temperature")][profile.used], color=c[k])
         plot_h = axs[3].loglog(r_h, h, color=c[k])
         plot_theta = axs[4].plot(profile.x.value, np.abs(profile[("gas", "tangential_velocity")].value), color=c[k])

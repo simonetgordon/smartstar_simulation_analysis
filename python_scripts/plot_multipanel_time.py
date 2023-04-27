@@ -1,7 +1,7 @@
 ##################################  MultiPanel Projections - over time ###################################
 # Uses a combination of AxesGrid and yt.ProjectionPlot to produce a multipanel figure accross time.
 # The size of each panel is fixed in spatial dimension.
-# to run: python plot_multipanel_projections.py 0
+# to run: python -i plot_multipanel_time.py 0
 ##########################################################################################################
 
 import os
@@ -21,14 +21,18 @@ from plot_multi_projections import tidy_data_labels, first_index, format_sci_not
 from plot_disc_projections import _make_disk_L
 
 # input data - simulations and individual outputs
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"
-sim = ["1B.RSb01-2", "1B.RSm01"]
-dds = ["DD0128/DD0128", "DD0130/DD0130", 
+root_dir = ["/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+            "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/"]
+sim = ["1B.RSb01-2", "1S.RSb01"]
+dds = [#"DD0128/DD0128", 
+       "DD0130/DD0130", 
        "DD0132/DD0132", 
        "DD0134/DD0134", 
-       "DD0136/DD0136", 
+       "DD0136/DD0136",
+       #"DD0137/DD0137", 
        "DD0138/DD0138",
-       #"DD0132/DD0132", "DD0133/DD0133", 
+       "DD0140/DD0140", 
+       #"DD0133/DD0133", 
        #"DD0134/DD0134", "DD0135/DD0135", "DD0136/DD0136", "DD0137/DD0137", "DD0138/DD0138"
        ]
 
@@ -44,7 +48,7 @@ fontsize = 14 # for projection annotations
 fig = plt.figure()
 grid = AxesGrid(
     fig,
-    (0.01, 0.01, 0.78, 1.15),
+    (0.01, 0.01, 0.77, 1.16),
     nrows_ncols=(len(dds), len(sim)*2),
     axes_pad=0,
     label_mode="L",
@@ -52,24 +56,26 @@ grid = AxesGrid(
     share_all=True,
     cbar_location="right",
     cbar_mode="single",
-    cbar_size="3.2%",
+    cbar_size="2%",
     cbar_pad="0%",
 )
 
 # find min and max field values from last simulation - for colorbar
 field = "number_density"
-ds_hr = yt.load(os.path.join(root_dir, sim[0], dds[-1]))
-min_n = ds_hr.r[("gas", field)].min()*1e4 # bring up to ~ 10^3 order
-max_n = ds_hr.r[("gas", field)].max()
+ds_hr = yt.load(os.path.join(root_dir[1], sim[1], dds[-1]))
+min_n = ds_hr.r[("gas", field)].min()*3e5 # bring up to ~ 10^3 order
+max_n = ds_hr.r[("gas", field)].max()*1e-2
 max_n_index = int(np.log10(max_n))
 min_n_index = int(np.log10(min_n))
 
+norths_face = []
+norths_edge = []
 # iterate over datadumps
 for s,_ in enumerate(sim):
     for i, dd in enumerate(dds):
 
         # make dataset and simulation label
-        ds = yt.load(os.path.join(root_dir, sim[s], dd))
+        ds = yt.load(os.path.join(root_dir[s], sim[s], dd))
         label = tidy_data_labels(sim[s])
 
         # grab bh properties and make sphere centered on BH
@@ -101,12 +107,20 @@ for s,_ in enumerate(sim):
             # make projection plot
             if (j == 0) or (j == 2):
                 north = vecs[1]
-                p = yt.ProjectionPlot(ds, vecs[v], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
-                            center=disk.center, width=width, data_source=disk)
+                print("north vec face-on: ", north)
+                if north[-1] < 0:
+                    north *= [1,1,-1]
+                norths_face.append(north)
+                # p = yt.ProjectionPlot(ds, vecs[v], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
+                #             center=disk.center, width=width, data_source=disk)
+                p = yt.ProjectionPlot(ds, 'x', ("gas", field), width=width, center=disk.center, data_source=disk, weight_field='density')
             else:
                 north = vecs[0]
-                p = yt.ProjectionPlot(ds, vecs[v+2], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
-                                    center=disk.center, width=2 * disk.radius, data_source=disk)
+                norths_edge.append(north)
+                print("north vec edge-on: ", north)
+                # p = yt.ProjectionPlot(ds, vecs[v+1], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
+                #                     center=disk.center, width=2 * disk.radius, data_source=disk)
+                p = yt.ProjectionPlot(ds, 'x', ("gas", field), width=width, center=disk.center, data_source=disk, weight_field='density')
             p.set_axes_unit('pc')
             p.set_font_size(fontsize)
 
@@ -117,8 +131,8 @@ for s,_ in enumerate(sim):
 
             # Annotations
 
-            # mark BH position
-            p.annotate_marker(center, coord_system="data", color="white")
+            # streamlines
+            p.annotate_streamlines(("gas", "velocity_y"), ("gas", "velocity_z"), density = 0.7, linewidth=0.6, color="blue")
 
             # this forces the ProjectionPlot to redraw itself on the AxesGrid axes.
             plot = p.plots[("gas", field)]
@@ -138,6 +152,9 @@ for s,_ in enumerate(sim):
                 plot.cax = grid.cbar_axes[k]
                 #grid.cbar_axes[k].set_ymargin(-0.1)
                 #grid.cbar_axes[k].set_anchor((0.6, 0.2))
+
+            # mark BH position
+            p.annotate_marker(center, coord_system="data", color="white")
 
             p.render()
 
@@ -163,7 +180,8 @@ for s,_ in enumerate(sim):
             if j == 0:
                 grid[k].axes.set_ylabel("{:.2f}".format(ds.current_time.to('Myr')))
 
-            if i == (len(dds)-1): #temp 2 -> 0
+            # bottom row
+            if i == (len(dds)-1):
 
                 # ylabel
                 grid[k].axes.set_xlabel("(pc)")
@@ -187,6 +205,7 @@ for s,_ in enumerate(sim):
                 cb_pos = grid.cbar_axes[k].get_position()
                 #cb_pos = grid.cbar_axes[k].set_position([cb_pos.x0 - 0.1, ax_pos.y0, cb_pos.width, cb_pos.height])
 
-plot_name = f"multiplot_axesgrid_time_{width.d}pc.pdf"    
+num = str(sys.argv[-1])
+plot_name = f"multiplot_axesgrid_time_{width.d}pc_{num}.pdf"    
 plt.savefig('plots/'+ plot_name, bbox_inches='tight')
 print("created plots/", plot_name)

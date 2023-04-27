@@ -20,30 +20,30 @@ field = "density"
 
 # set by user
 root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.RSb01"
-
-# ## First check there is a local /data area                                                                                                                                                                 
-# if not os.path.isdir("/data"):
-#     sys.exit("Error: no /data")
-
-# ## Second, check we have a directory. If not, then create one.                                                                                                                                             
-# UserName=os.getlogin()
-# LocalDir=os.path.join("/data",UserName)
-# if not os.path.isdir(LocalDir):
-#     print("Creating Directory "+LocalDir)
-#     os.mkdir(LocalDir)
-
-# ## Third, check if the data is already there, and if not, copy it over.                                                                                                                                    
-# DataDumpFull = sys.argv[1]
-# DataDump = DataDumpFull.split('/')
-# LocalData = os.path.join(LocalDir,DataDump[0])
-# if not os.path.isdir(LocalData):
-#     print("Copying data to "+LocalData)
-#     shutil.copytree(os.path.join(root_dir,DataDump[0]),LocalData)
-#     print("Done copying data")
-# else:
-#     print("Found a local copy in "+LocalData)
-
 input = sys.argv[1]
+
+## First check there is a local /data area                                                                                                                                                                 
+if os.path.isdir("/data"):
+    #sys.exit("Error: no /data")
+
+    ## Second, check we have a directory. If not, then create one.                                                                                                                                             
+    UserName=os.getlogin()
+    LocalDir=os.path.join("/data",UserName)
+    if not os.path.isdir(LocalDir):
+        print("Creating Directory "+LocalDir)
+        os.mkdir(LocalDir)
+
+    ## Third, check if the data is already there, and if not, copy it over.                                                                                                                                    
+    DataDumpFull = sys.argv[1]
+    DataDump = DataDumpFull.split('/')
+    LocalData = os.path.join(LocalDir,DataDump[0])
+    if not os.path.isdir(LocalData):
+        print("Copying data to "+LocalData)
+        shutil.copytree(os.path.join(root_dir,DataDump[0]),LocalData)
+        print("Done copying data")
+    else:
+        print("Found a local copy in "+LocalData)
+    root_dir = LocalDir
 
 # Load the data from the local directory                                                                                                                                                                   
 ds = yt.load(os.path.join(root_dir, sys.argv[1]))
@@ -100,7 +100,7 @@ if field == "density":
 
     # annotate
     #p.annotate_scale(corner='lower_right')
-    p.annotate_streamlines(("gas", "velocity_y"), ("gas", "velocity_z"), density = 0.7, linewidth=0.6, color='white')
+    p.annotate_streamlines(("gas", "velocity_y"), ("gas", "velocity_z"), density = 0.7, linewidth=0.6, color='yellow')
                            #field_color=("gas", "velocity_x")
                            # )
     p.annotate_timestamp(corner='lower_right', redshift=True, draw_inset_box=False)
