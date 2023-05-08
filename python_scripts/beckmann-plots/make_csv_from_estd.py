@@ -5,41 +5,6 @@ import numpy as np
 import csv
 from itertools import zip_longest
 
-##########################################################################################################
-#                                    Make csv file of BH/gas properties
-#
-# to run: python make_csv_from_estd.py
-##########################################################################################################
-
-# turn on to combine multiple estd simulation txt output files
-MULTIPLE_ESTDS = 1
-SMALL = 1
-
-# user input
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.RSb01"
-estds = [#'estd_0.out', 'estd_1.out', 'estd_2.out',
-         #'estd_3.out',
-         #'estd_4.out', # 128 - 132
-         'estd_5.out', # 130 - 137
-         'estd_6.out',# 137 - 140
-         'estd_7.out', # 140 - 145
-         'estd_10.out', # 145 - 147
-         # 'estd_8.out',
-         'estd.out'] # 147 - 154
-
-# naming output file
-seed = int(root_dir[43:44])
-if seed == 1:
-    index = 82
-elif seed == 2:
-    index = 84
-if SMALL:
-    index -= 1
-
-# writing data arrays to this file
-write_to = "data_files/data-" + str(root_dir[index:] + ".csv")
-
-
 def _remove_strings(lst):
     for index, i in enumerate(lst):
         try:
@@ -59,48 +24,71 @@ def _remove_strings(lst):
     return lst
 
 
+def extract_penultimate_directory(filepath):
+    # split the filepath into directory and file components
+    directory, filename = os.path.split(filepath)
+    # split the directory component into its path elements
+    path_elements = directory.split(os.path.sep)
+    # return the penultimate element, or None if not found
+    return path_elements[-2] if len(path_elements) > 1 else None
+
+##########################################################################################################
+#                                    Make csv file of BH/gas properties
+#
+# to run: python make_csv_from_estd.py
+##########################################################################################################
+
+# user input
+root_dir = "/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSmf64/estd-data/"
+
+# Get list of .out files in directory
+estds = [f for f in os.listdir(root_dir) if f.endswith(".out")]
+
+# Collect all .out files in the root directory
+out_files = []
+misc_files = []
+for file in os.listdir(root_dir):
+    if file.endswith(".out"):
+        if file.startswith("estd_"):
+            out_files.append(file)
+        else:
+            misc_files.append(file)
+
+# Sort .out files by the 1 or 2 digit number in their filename
+estds = sorted(out_files, key=lambda x: int(x.split("_")[1].split(".")[0]) 
+               if len(x.split("_")[1].split(".")[0]) <= 2 else float('inf'))
+# Append estd.out file to end
+estds.extend(misc_files)
+
+# Extract the string after "seed" and before the next "-" character
+match = re.search(r"seed(\d+)-", root_dir)
+
+# Extract sim name as the penultimate dir in the filepath
+sim = extract_penultimate_directory(root_dir)
+print("Creating combined .csv for simulation ", sim)
+
+
 ##########################################################################################################
 #                                  Read from simulation output txt file(s)
 ##########################################################################################################
 
-if MULTIPLE_ESTDS:
-    output_combined = 'estd_files/' + str(root_dir[index:])
-    path = Path(os.path.join('estd_files', output_combined))
+output_combined = 'estd_files/' + sim
 
-    files = []
-    data_list = []
-    for estd in estds:
-        f = os.path.join(root_dir, estd)
-        files.append(f)
-        data_list.append("")
+with open(output_combined, "w") as outfile:
+    # Append contents of each .out file to output file
+    for out_file in estds:# writing data arrays to this file
+        with open(root_dir + out_file, "r") as infile:
+            outfile.write(infile.read())
 
-    for i, f in enumerate(files):
-        # Reading data from file
-        with open(f) as fp:
-            data_list[i] = fp.read()
-
-    # Merging files
-    # To add the data of file2
-    # from next line
-    data = ""
-    for i in range(len(files)):
-        data += "\n"
-        data += data_list[i]
-
-    Path(output_combined).touch()
-    with open(output_combined, 'w') as fp:
-        fp.write(data)
-    output = output_combined
-else:
-    output = os.path.join(root_dir, 'estd.out')
-
+output = output_combined
+print("Created combined .csv for simulation ", sim)
 
 ##########################################################################################################
 #                                  Accretion Arrays: accrates, ages
 ##########################################################################################################
 accrates = []
 ages = []
-for line in open(output):
+for line in open(output_combined):
     accrate = re.search(r'accrate = (.{8})', line)
     age = re.search(r'Age = (.{12})', line)
     if accrate:
@@ -119,7 +107,7 @@ average_density = []
 total_gas_mass = []
 average_vinfinity = []
 average_cinfinity = []
-for line in open(output):
+for line in open(output_combined):
     avg_dens = re.search(r'Avg_rho = (.{12})', line)
     avg_cinf = re.search(r'Avg_cinf = (.{12})', line)
     avg_vinf = re.search(r'Avg_vinf = (.{12})', line)
@@ -143,7 +131,7 @@ average_cinfinity = np.array([float(i) for i in average_cinfinity])
 hl_radius = []
 bondi_radius = []
 jeans_length = []
-for line in open(output):
+for line in open(output_combined):
     hl = re.search(r'HLRadius = (.{12})', line)
     bondi = re.search(r'BondiRadius = (.{12})', line)
     jeans = re.search(r'JeansLengthOfRegion = (.{12})', line)
@@ -164,7 +152,7 @@ jeans_length = np.array(_remove_strings(jeans_length))
 ##########################################################################################################
 
 mass = []
-for line in open(output):
+for line in open(output_combined):
     bh_mass = re.search(r'cmass = (.{12})', line)
     if bh_mass:
         mass.append(bh_mass.group(1))
@@ -184,6 +172,7 @@ headerList = ['age', 'accrate', 'average density', 'average vinfinity', 'average
 all_data = [ages, accrates, average_density, average_vinfinity, average_cinfinity,
             total_gas_mass, hl_radius, bondi_radius, jeans_length, mass]
 
+write_to = "data_files/data-" + str(sim + ".csv")
 with open(write_to, "w+") as f:
     dw = csv.DictWriter(f, delimiter=',', fieldnames=headerList)
     dw.writeheader()
