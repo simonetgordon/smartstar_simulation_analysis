@@ -1,7 +1,7 @@
 ##################################  MultiPanel Projections - over time ###################################
 # Uses a combination of AxesGrid and yt.ProjectionPlot to produce a multipanel figure accross time.
-# The size of each panel is fixed in spatial dimension.
-# to run: python -i plot_multipanel_time.py 0
+# The size of each panel is fixed in spatial dimension. default 4x6
+# to run: python -i plot_multipanel_time.py 1Smf8_1Sm04
 ##########################################################################################################
 
 import os
@@ -21,19 +21,20 @@ from plot_multi_projections import tidy_data_labels, first_index, format_sci_not
 from plot_disc_projections import _make_disk_L
 
 # input data - simulations and individual outputs
-root_dir = ["/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
-            "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/"]
-sim = ["1B.RSb01-2", "1S.RSb01"]
+root_dir = ["/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/",
+            "/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/"]
+sim = ["1S.RSmf8", "1S.RSm04"]
 dds = [#"DD0128/DD0128", 
        "DD0130/DD0130", 
+       "DD0131/DD0131",
        "DD0132/DD0132", 
+       "DD0133/DD0133", 
        "DD0134/DD0134", 
-       "DD0136/DD0136",
+       "DD0135/DD0135", 
+       #"DD0136/DD0136",
        #"DD0137/DD0137", 
-       "DD0138/DD0138",
-       "DD0140/DD0140", 
-       #"DD0133/DD0133", 
-       #"DD0134/DD0134", "DD0135/DD0135", "DD0136/DD0136", "DD0137/DD0137", "DD0138/DD0138"
+       #DD0138/DD0138",
+       #"DD0140/DD0140", 
        ]
 
 # font settings
@@ -48,7 +49,7 @@ fontsize = 14 # for projection annotations
 fig = plt.figure()
 grid = AxesGrid(
     fig,
-    (0.01, 0.01, 0.77, 1.16),
+    (0.01, 0.01, 0.76, 1.152),
     nrows_ncols=(len(dds), len(sim)*2),
     axes_pad=0,
     label_mode="L",
@@ -64,7 +65,7 @@ grid = AxesGrid(
 field = "number_density"
 ds_hr = yt.load(os.path.join(root_dir[1], sim[1], dds[-1]))
 min_n = ds_hr.r[("gas", field)].min()*3e5 # bring up to ~ 10^3 order
-max_n = ds_hr.r[("gas", field)].max()*1e-2
+max_n = ds_hr.r[("gas", field)].max()*1e-5
 max_n_index = int(np.log10(max_n))
 min_n_index = int(np.log10(min_n))
 
@@ -111,19 +112,18 @@ for s,_ in enumerate(sim):
                 if north[-1] < 0:
                     north *= [1,1,-1]
                 norths_face.append(north)
-                # p = yt.ProjectionPlot(ds, vecs[v], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
-                #             center=disk.center, width=width, data_source=disk)
-                p = yt.ProjectionPlot(ds, 'x', ("gas", field), width=width, center=disk.center, data_source=disk, weight_field='density')
+                p = yt.ProjectionPlot(ds, vecs[v], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
+                                      center=disk.center, width=width, data_source=disk)
+                # p = yt.ProjectionPlot(ds, 'x', ("gas", field), width=width, center=disk.center, data_source=disk, weight_field='density')
             else:
                 north = vecs[0]
                 norths_edge.append(north)
                 print("north vec edge-on: ", north)
-                # p = yt.ProjectionPlot(ds, vecs[v+1], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
-                #                     center=disk.center, width=2 * disk.radius, data_source=disk)
-                p = yt.ProjectionPlot(ds, 'x', ("gas", field), width=width, center=disk.center, data_source=disk, weight_field='density')
+                p = yt.ProjectionPlot(ds, vecs[v+2], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
+                                    center=disk.center, width=2 * disk.radius, data_source=disk)
+                #p = yt.ProjectionPlot(ds, 'x', ("gas", field), width=width, center=disk.center, data_source=disk, weight_field='density')
             p.set_axes_unit('pc')
             p.set_font_size(fontsize)
-
             # Ensure the colorbar limits match for all plots
             p.set_cmap(field, 'viridis')
             p.set_zlim(("gas", field), min_n, max_n)
@@ -132,7 +132,7 @@ for s,_ in enumerate(sim):
             # Annotations
 
             # streamlines
-            p.annotate_streamlines(("gas", "velocity_y"), ("gas", "velocity_z"), density = 0.7, linewidth=0.6, color="blue")
+            #p.annotate_streamlines(("gas", "velocity_y"), ("gas", "velocity_z"), density = 0.7, linewidth=0.6, color="blue")
 
             # this forces the ProjectionPlot to redraw itself on the AxesGrid axes.
             plot = p.plots[("gas", field)]
