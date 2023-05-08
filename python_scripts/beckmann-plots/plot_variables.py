@@ -7,9 +7,9 @@ import seaborn as sns
 from matplotlib import rc
 
 ##########################################################################################################
-#                                           Plot BHL Variables
+#                                     Plot BHL Variables vs time
 #
-# to run: python plot_variables.py [csv1] [csv2] [csv3] [output_plotname]
+# to run: python plot_variables.py [csv1] [csv2] [csv3] [output_plotname e.g mass-flux-x4]
 ##########################################################################################################
 
 def tidy_data_labels(labels):
@@ -62,9 +62,9 @@ def eddington_rate(mparticle_msun):
 
 
 
-x = "s1-270msun-" # plot number
+x = "s1-40msun-" # plot number
 y = sys.argv[-1] # naming plot
-xlim = 1
+xlim = 0.225
 linewidth = 1.5
 fontsize = 12
 
@@ -88,21 +88,21 @@ c0 = ['#9d0216', '#E66101', '#436bad', '#A6611A']
 #c = sns.diverging_palette(140, 300, s=100, l=50, sep=5, center="light", n=len(bhl_object_list*2))
 #c = sns.color_palette("spectral", len(bhl_object_list*2), desat=1)
 #c = sns.blend_palette(['blueviolet', 'orange', 'springgreen', "#2CA02C", '#17BECF', "#e377c2", "#76549A"], len(bhl_object_list*2))
-c = ['blueviolet', 'turquoise', 'limegreen']
+c = ['blueviolet', 'turquoise', 'limegreen', 'darkgreen']
 
 l = tidy_data_labels(bhl_object_labels)
 j = 0
 alpha = 0.9
-time_cutoff = 1 # Myrs
-i_start = 0
+time_cutoff = 0.42 # Myrs
+i_start = 1
 for i, BHL in enumerate(bhl_object_list):
     # convert ages from yrs to Myrs
     BHL.ages = np.array(BHL.ages) / 1e6
 
     # find index of age that matches end age of time limit
-    i_age = first_index(BHL.ages[i_start:], time_cutoff, rtol=1e-8, atol=0.01) 
+    i_age = first_index(BHL.ages[i_start:], time_cutoff, rtol=1e-5, atol=0.2) 
     
-    window_size = 100
+    window_size = 50
     age = movingaverage(BHL.ages[i_start:i_age], window_size)
     mass =  movingaverage(BHL.mass[i_start:i_age], window_size)
     accrate = movingaverage(BHL.accrates[i_start:i_age], window_size)
@@ -137,7 +137,7 @@ for i, BHL in enumerate(bhl_object_list):
     j += 1
 
 for i in range(num_subplots):
-    axs[i].set_xticks(np.arange(0.1, 1.1, 0.1))
+    axs[i].set_xticks(np.arange(0, time_cutoff, 0.1))
     axs[i].minorticks_on()
     axs[i].xaxis.set_minor_locator(plt.MultipleLocator(0.02))
     axs[i].tick_params(axis="x", which='minor', length=2, direction="in")
@@ -172,13 +172,14 @@ for i in [4, 5]:
     dx_1s = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04]
     c1 = c3 = 'lightcoral'
     c2 = 'indianred'
-    l1 = 'dashed'
+    l1 = 'dashdot'
     l2 = 'dashdot'
     l3 = 'dotted'
-    axs[i].axhline(y=dx[0], color=c1, linestyle=l1, lw=linewidth,  label="dx = " + str(dx[0]) + "pc", alpha=1)
-    axs[i].axhline(y=dx_1s[2], color=c2, linestyle=l1, lw=linewidth,  label="dx = " + str(dx_1s[2]) + "pc", alpha=1)
-    #axs[i].axhline(y=dx[1], color=c2, linestyle=l2, lw=linewidth*0.5, label="dx = " + str(dx[1]) + "pc", alpha=1)
-    #axs[i].axhline(y=dx[2], color=c3, linestyle=l3, lw=linewidth*0.5, label="dx = " + str(dx[2]) + "pc", alpha=1)
+    alpha_dx = 0.5
+    axs[i].axhline(y=dx[0], color=c[0], linestyle=l1, lw=linewidth,  label="dx = " + str(dx[0]) + "pc", alpha=alpha_dx)
+    axs[i].axhline(y=dx[1], color=c[1], linestyle=l1, lw=linewidth,  label="dx = " + str(dx[1]) + "pc", alpha=alpha_dx)
+    axs[i].axhline(y=dx[2], color=c[2], linestyle=l1, lw=linewidth, label="dx = " + str(dx[2]) + "pc", alpha=alpha_dx)
+    axs[i].axhline(y=dx[3], color=c[3], linestyle=l1, lw=linewidth, label="dx = " + str(dx[3]) + "pc", alpha=alpha_dx)
     #axs[i].axhline(y=0.00077, color=c[6], linestyle='solid', label="dx = 7.7e-04 pc")
 axs[5].set_xlabel(r"BH Age (Myr)", fontdict=None)
 
@@ -207,10 +208,10 @@ elif x == "s2-40msun-":
 elif x == "s2-40msun-2":
     dx = ["dx = 1.3e-03 pc", "dx = 5.2e-04 pc", "dx = 1.3e-04  pc"]
 
-dx_lines = [Line2D([0], [0], color=c1, lw=linewidth, linestyle=l1),
-            Line2D([0], [0], color=c2, lw=linewidth, linestyle=l1),
-            #Line2D([0], [0], color=c3, lw=linewidth, linestyle=l3),
-            #Line2D([0], [0], color=c0[3], lw=linewidth, linestyle='dashed'),
+dx_lines = [Line2D([0], [0], color=c[0], lw=linewidth, linestyle=l1),
+            Line2D([0], [0], color=c[1], lw=linewidth, linestyle=l1),
+            Line2D([0], [0], color=c[2], lw=linewidth, linestyle=l1),
+            Line2D([0], [0], color=c[3], lw=linewidth, linestyle=l1),
             ]
 vel_lines = [Line2D([0], [0], color='grey', lw=linewidth),
             Line2D([0], [0], color='grey', linestyle='dotted', lw=linewidth)]
@@ -221,7 +222,7 @@ axs[0].legend(fontsize=fontsize-1, ncol=1)  # upper/lower
 axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-1, ncol=2)  # upper/lower
 axs[3].legend(vel_lines, [r"$\rm \nu_{\infty}$", r"\rm $c_{\infty}$"], loc="upper left", fontsize=fontsize-1, ncol=1)  # upper/lower
 axs[4].legend(radius_lines, [r"$\rm r_{HL}$", r"$\rm r_{Bondi}$"], fontsize=fontsize-1, ncol=2)  # upper/lower
-axs[5].legend(dx_lines, dx, fontsize=fontsize-1, ncol=1)
+axs[5].legend(dx_lines, dx, fontsize=fontsize-2, ncol=1)
 
 # save plot as pdf
 fig = plt.gcf()
