@@ -15,11 +15,11 @@ from mpl_toolkits.axes_grid1 import AxesGrid
 import time
 
 # set by user
-w_pccm = 1.5
+w_pccm = 8
 field = "density"
 
 # set by user
-root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.RSb01"
+root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSm16-2"
 input = sys.argv[1]
 
 ## First check there is a local /data area                                                                                                                                                                 
@@ -70,11 +70,8 @@ width = (w_pccm, 'pc')
 r = 2000 # pc
 ss_pos, ss_mass, ss_age = ss_properties(ds)
 center = ss_pos
-tic = time.perf_counter()
 sp = ds.sphere(center, 2*r)
 disk, L = _make_disk_L(ds, center, 0.5*yt.units.pc, 0.2*yt.units.pc)
-toc = time.perf_counter()
-print(f"Made the disc in {toc - tic:0.4f} seconds")
 
 # font settings
 fontsize = 26
@@ -89,7 +86,6 @@ plt.rcParams['lines.linewidth'] = linewidth
 
 # Gas density
 if field == "density":
-    tic = time.perf_counter()
     field = "number_density"
     p = yt.ProjectionPlot(ds, 'x', ("gas", field), width=width, center=center, data_source=sp,
                           weight_field='density')
@@ -100,18 +96,18 @@ if field == "density":
 
     # annotate
     #p.annotate_scale(corner='lower_right')
-    p.annotate_streamlines(("gas", "velocity_y"), ("gas", "velocity_z"), density = 0.7, linewidth=0.6, color='yellow')
+    #p.annotate_streamlines(("gas", "velocity_y"), ("gas", "velocity_z"), density = 0.7, linewidth=0.6, color='yellow')
                            #field_color=("gas", "velocity_x")
                            # )
     p.annotate_timestamp(corner='lower_right', redshift=True, draw_inset_box=False)
     p.annotate_text((0.55, 0.94), r"BH Mass: {:.2f} $\rm M_\odot$".format(ss_mass.d), coord_system="axis",
                     text_args={"color": "white"})
-    #p.annotate_grids(min_level=18, cmap='Spectral') # not supported in OffAxisProjection
+    p.annotate_grids(min_level=18, cmap='Spectral') # not supported in OffAxisProjection
     p.annotate_marker(center, coord_system="data", color="white")  # mark ss position
     p.annotate_sphere(ss_pos, radius=(1.23e-2, "pc"), circle_args={"color": "white"})
     #p.annotate_cell_edges(line_width=0.00002, alpha=0.7, color='white')
     #p.annotate_streamlines(("gas", "relative_velocity_x"), ("gas", "relative_velocity_y"))
-    #p.annotate_title("BH Age = {:.2f} kyrs".format(ss_age[0]/1e3))
+    p.annotate_title("High Resolution Region (Grid Level = 18)")
 
     # save
     plot_name = 'density-' + str(root_dir[81:]) + '-' + str(input)[10:] + '-' + str(w_pccm) + 'pccm.png'
