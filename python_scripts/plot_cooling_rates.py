@@ -1,6 +1,6 @@
 """
 For producing radial profiles of advective vs radiative cooling in nuclear disc
-python plot_cooling_rates.py DD0130/DD0130
+python -i plot_cooling_rates.py DD0130/DD0130
 """
 
 import yt
@@ -8,6 +8,7 @@ import shutil
 import sys
 import os
 import numpy as np
+import pandas as pd
 from smartstar_find import ss_properties
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
@@ -35,14 +36,19 @@ def interpolate_data(arr, N=100):
     interp_arr = f(t_interp)
     return interp_arr
 
-# set by user
-root_dir = ["/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann",
-            "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann", 
-            "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann"]
+# my data 
+root_dir = ["/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann",
+            "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann", 
+            "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann"]
 sim = ["1B.RSb01-2", "1B.RSb01-2", "1B.RSb16", ]
 dds = ["DD0138/DD0138", "DD0258/DD0258", "DD0166/DD0166"]
 labels = []
 DS = []
+
+# Beckmann data
+data_beck = pd.read_csv("cooling_line_beckmann.csv")
+radius_beck = data_beck['radius'].tolist()
+q_ratio_beck = data_beck['qratio'].tolist()
 
 ## First check there is a local /data area                                                                                                                                                                 
 if os.path.isdir("/data"):
@@ -95,17 +101,12 @@ a2 = np.arange(1, 10, 1)
 minorticks = np.outer(a1, a2).flatten()
 plt.yticks(minorticks, minor=True)
 
+# plot Beckmann cooling line
+plt.loglog(radius_beck, q_ratio_beck, color="grey", label="Beckmann_2018")
+
 for j, ds in enumerate(dds):
     # Load the data from the local directory
     ds = yt.load(os.path.join(root_dir[j], sim[j], ds))
-
-    # naming plot
-    seed = int(root_dir[j][43])
-    print(seed)
-    if seed == 1:
-        index = 82
-    elif seed == 2:
-        index = 84
 
     # add all cooling rate derived fields to ds
     add_fields_ds(ds)
@@ -156,6 +157,6 @@ for j, ds in enumerate(dds):
     trans = mtransforms.blended_transform_factory(axs.transData, axs.transAxes)
     plt.fill_between(x_avg, 0, y_avg.max(), where=x_avg <= disc_r, facecolor=cr[0], transform=trans, alpha=0.5)
 
-plot_name = 'radial-profile-plot-cooling-rate-' + str(sim[0]) + '_' + str(sim[1]) + '_' + str(sim[2]) + '.pdf'
+plot_name = 'radial-profile-plot-cooling-rate-' + str(sim[0]) + '_' + str(sim[1]) + '_' + str(sim[2]) + 'beckmann.pdf'
 plt.savefig('plots/' + plot_name, dpi=100)
 print("created ", 'plots/' + plot_name)
