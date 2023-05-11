@@ -8,8 +8,8 @@ from plot_variables import tidy_data_labels, first_index, interpolate_data, movi
 ##########################################################################################################
 #                                     Plot radius resolution vs time
 #
-# to run: python plot_radius_resolution.py [csv1] [csv2] [csv3] [output_plotname e.g mass-flux-x4]
-# for 2x2 update: list MF runs first, then BHL runs. Name: MF+BHL-0.3Myr
+# to run: python plot_radius_resolution.py [csv1] [csv2] [csv3] [output_plotname e.g MF-BHL]
+# for 2x2 update: list MF runs first, then BHL runs. Name: MF+BHL
 ##########################################################################################################
 
 # set x-axis extent in Myr and simulation set
