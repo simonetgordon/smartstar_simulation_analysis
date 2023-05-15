@@ -11,13 +11,43 @@ from smartstar_find import ss_properties
 from plot_disc_projections import _make_disk_L
 from yt.utilities.math_utils import ortho_find
 from plot_multi_projections import tidy_data_labels
+import matplotlib.pyplot as plt
+from matplotlib import rc
 #from yt.extensions.p2p import add_p2p_fields, add_p2p_particle_filters
 
+
+def extract_ultimate_directory(filepath):
+    # split the filepath into directory and file components
+    directory, filename = os.path.split(filepath)
+    # split the directory component into its path elements
+    path_elements = directory.split(os.path.sep)
+    # return the penultimate element, or None if not found
+    return path_elements[-1] if len(path_elements) > 1 else None
+
+
+##################################  Parameters ###################################
+
+# 1) set map variable
 map = "density"
-# set by user
-root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2"
+
+# 2) set image orientation + north vector
+orient = "face-on"
+
+# 3) set width of box
+w_pccm = 300
+w_pc = 20 # convert to pc for label
+
+# 4) set colorbar limits
+c_min = 8e2
+c_max = 8e9
+
+# 5) data
+root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb08" 
+#root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.RSb01"
 enzo_file = "smartstar-production-runs.enzo"
 sim = os.path.join(root_dir, enzo_file)
+
+#################################################################################
 
 # naming sphere container directory
 seed = int(root_dir[38])
@@ -27,7 +57,7 @@ elif seed == 2:
     index = 84
 sp_container_dir = root_dir[index:]
 
-sim_str = tidy_data_labels(str(root_dir[76:]))
+sim_str = tidy_data_labels(extract_ultimate_directory(sim))
 
 if __name__ == "__main__":
     es = yt.load_simulation(sim, "Enzo", find_outputs=True)
@@ -45,7 +75,7 @@ if __name__ == "__main__":
         center0 = 0.5 * (left_edge + right_edge)
 
     ## find north vector a (near-end) ds
-    ds_final = yt.load(os.path.join(root_dir, "DD0300/DD0300"))
+    ds_final = yt.load(os.path.join(root_dir, "DD0160/DD0160"))
     ss_pos, ss_mass, ss_age = ss_properties(ds_final)
     center = ss_pos
     r = 2000*yt.units.pc
@@ -63,9 +93,6 @@ if __name__ == "__main__":
     vecs = ortho_find(L)
     v = 0
 
-    # set image orientation + north vector
-    orient = "face-on"
-
     if orient == "face-on":
         orient_str = "face_on_"
         dir = vecs[0]
@@ -81,27 +108,23 @@ if __name__ == "__main__":
         #add_p2p_fields(ds)                                                                                                                                                                                
 
         ss_pos, ss_mass, ss_age = ss_properties(ds)
+        center = ss_pos
 
         if nested_level > 0:
             region = ds.box(center0 - 0.5 * my_width,
                             center0 + 0.5 * my_width)
             width = (my_width, "unitary")
 
-        center = ss_pos
-        w_pccm = 30
-        w_pc = 50
-        #swap_axes = True
-
         if map == "density":
             # h number density
             field = "number_density"
-            p1 = yt.ProjectionPlot(ds, dir, ("gas", field), width=(w_pc, 'pc'), north_vector=north, center=center, data_source=region,
+            p1 = yt.ProjectionPlot(ds, dir, ("gas", field), width=(w_pccm, 'pccm'), north_vector=north, center=center, data_source=region,
                                    weight_field=("gas", field))
             p1.set_cmap(field, 'viridis')
-            p1.set_zlim(("gas", field), 8e0, 9e7)
+            p1.set_zlim(("gas", field), 8e2, 8e9)
 
             # format
-            a = 0.72
+            a = 0.65
             b = 0.95
             b2 = 0.03
             p1.set_axes_unit('pc')
@@ -114,12 +137,13 @@ if __name__ == "__main__":
             # else:
             #     p1.annotate_timestamp("lower_right", redshift=True, draw_inset_box=True, coord_system="axis")
             #p1.annotate_scale(corner='lower_left')
+            p1.set_font({"size": 24})
             p1.annotate_marker(center, coord_system="data", color="white")  # mark ss position
             p1.annotate_text((a, b), r"BH Mass: {:.0f} $\rm M_\odot$".format(ss_mass.d), coord_system="axis",
                              text_args={"color": "white"})
             p1.annotate_text((a, b-0.05), "BH Age = {:.2f} Myr".format(ss_age[0] / 1e6), coord_system="axis",
                              text_args={"color": "white"})
-            p1.annotate_text((0.86, b2), "z = {:.2f}".format(ds.current_redshift), coord_system="axis",
+            p1.annotate_text((0.82, b2), "z = {:.2f}".format(ds.current_redshift), coord_system="axis",
                              text_args={"color": "white"})
             #p1.annotate_title("{} pccm across".format(w_pccm))
             p1.annotate_text([0.05, 0.05], sim_str, coord_system="axis", text_args={"color": "black"},
@@ -127,7 +151,7 @@ if __name__ == "__main__":
                                             "edgecolor": "white", "alpha": 0.5},
                             )
 
-            dirname = "frames_" + orient_str + field + "_" + sim_str + "_" + str(w_pc) + "pc/"
+            dirname = "frames_" + orient_str + field + "_" + str(sim_str) + "_" + str(w_pc) + "pc/"
             p1.save(dirname)
         
         elif map == "temperature":
