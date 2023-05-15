@@ -30,7 +30,7 @@ def extract_ultimate_directory(filepath):
 # 1) set map variable
 map = "density"
 
-# 2) set image orientation + north vector
+# 2) set image orientation used to produce north vector
 orient = "face-on"
 
 # 3) set width of box
@@ -38,8 +38,8 @@ w_pccm = 300
 w_pc = 20 # convert to pc for label
 
 # 4) set colorbar limits
-c_min = 8e2
-c_max = 8e9
+c_min = 3e2
+c_max = 8e8
 
 # 5) data
 root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb08" 
@@ -121,7 +121,7 @@ if __name__ == "__main__":
             p1 = yt.ProjectionPlot(ds, dir, ("gas", field), width=(w_pccm, 'pccm'), north_vector=north, center=center, data_source=region,
                                    weight_field=("gas", field))
             p1.set_cmap(field, 'viridis')
-            p1.set_zlim(("gas", field), 8e2, 8e9)
+            p1.set_zlim(("gas", field), c_min, c_max)
 
             # format
             a = 0.65
