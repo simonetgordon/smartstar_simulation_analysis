@@ -30,16 +30,18 @@ def extract_ultimate_directory(filepath):
 # 1) set map variable
 map = "density"
 
-# 2) set image orientation used to produce north vector
+# 2) set image orientation (face-on or edge-on) used to produce north vector
 orient = "face-on"
 
 # 3) set width of box
-w_pccm = 300
-w_pc = 20 # convert to pc for label
+w_pccm = 200
+#w_pccm = 30
+w_pc = 8 # convert to pc for label
+#w_pc = 1 # convert to pc for label
 
 # 4) set colorbar limits
 c_min = 3e2
-c_max = 8e8
+c_max = 8e9
 
 # 5) data
 root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb08" 
