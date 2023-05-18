@@ -43,18 +43,18 @@ def format_sci_notation(x):
 
 if __name__ == "__main__":
     # input data - simulations and individual outputs
-    root_dir = "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"
-    sim = ["1B.RSm01", "1B.RSm04-2", "1B.RSm08-2"]
-    dds = ["DD0148/DD0148", "DD0148/DD0148", "DD0238/DD0238"]
+    root_dir = "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"
+    sim = ["1B.RSb01-2", "1B.RSb04", "1B.RSb08"]
+    dds = ["DD0148/DD0148", "DD0148/DD0148", "DD0184/DD0184"]
 
     # font settings
-    pyplot.rcParams['font.size'] = 12
+    pyplot.rcParams['font.size'] = 14
     pyplot.rcParams['font.weight'] = 'light'
     rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
     rc('text', usetex=True)
     plt.rcParams["mathtext.default"] = "regular"
     fontproperties = {'family': 'serif', 'color':  'black', 'weight': 'normal', 'size': 12}
-    fontsize = 10 # for projection annotations
+    fontsize = 12 # for projection annotations
 
     # make AxesGrid figure
     fig = plt.figure()
@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
         # mark BH position
         if k == 2:
-            p.annotate_marker(center, coord_system="data", color="white")
+            p.annotate_marker(center, coord_system="data", color="black")
             p.annotate_title(r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)))
 
         # this forces the ProjectionPlot to redraw itself on the AxesGrid axes.
@@ -197,7 +197,7 @@ if __name__ == "__main__":
 
             # ticklabels = grid.cbar_axes[i].get_yticklabels()
             # grid.cbar_axes[i].set_yticklabels(ticklabels, fontsize=12)
-            grid.cbar_axes[i].set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)', fontsize=12)
+            grid.cbar_axes[i].set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)', fontsize=14)
             grid.cbar_axes[i].minorticks_on()
 
             # make minorticks
@@ -209,8 +209,10 @@ if __name__ == "__main__":
             minorticks = minorticks[:end_i]
             grid.cbar_axes[i].yaxis.set_minor_locator(ticker.AutoMinorLocator())
             grid.cbar_axes[i].set_yticks(minorticks, minor=True)
-            grid.cbar_axes[i].tick_params(labelsize=12)
+            grid.cbar_axes[i].tick_params(labelsize=14)
 
     plot_name = f"multiplot_axesgrid_{widths.d[k]}pccm.pdf"
+    plt.savefig('plots/'+ plot_name, bbox_inches='tight')
+    plot_name = f"multiplot_axesgrid_{widths.d[k]}pccm.png"
     plt.savefig('plots/'+ plot_name, bbox_inches='tight')
     print("created plots/", plot_name)
