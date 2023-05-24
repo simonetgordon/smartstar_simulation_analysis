@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from scipy.optimize import curve_fit
+from scipy.stats import kendalltau
 import numpy as np
 import sys
 from read_arrays_from_csv import bhl_object_list, bhl_object_labels
@@ -36,9 +37,9 @@ def A_dyn_friction(M_msun, c_s_kmps):
 if __name__ == "__main__":
     # set x-axis extent in Myr and simulation set
     xlim = 0.1 #0.225 for 1S
-    sim = "s1-10.8msun-"
-    atol = 8e-5  # 7e-2 for 1B.m, 1e-4 otherwise
-    eddington = 1
+    sim = "s2-270msun-"
+    atol = 5e-4  # 7e-2 for 1B.m, 1e-4 otherwise
+    eddington = 0
     accretion = sys.argv[-1] # naming plot with accretion scheme
     c = ['blueviolet', 'turquoise', 'limegreen', 'darkgreen']  # line colours s1
     #c = ['indigo', 'blueviolet', 'violet', 'dodgerblue', 'turquoise', 'limegreen', 'darkgreen'] # line colours s2S
@@ -216,6 +217,10 @@ if __name__ == "__main__":
     line_str_pearson_hl_mf = r"Pearson Coeff = $\rm %.2f$" % (pearson_coeff_hl_mf)
     line_str_pearson_bondi_mf = r"Pearson Coeff = $\rm %.2f$" % (pearson_coeff_bondi_mf)
 
+    # calculate Kendall tau and p-value
+    tau, p_value = kendalltau(accrate_total_bhl, res_hl_total_bhl)
+    print("Kendall's tau:", tau)
+    print("p-value:", p_value)
 
     ################################ Format Plot ####################################
 
@@ -286,7 +291,7 @@ if __name__ == "__main__":
     fig = plt.gcf()
     fig.subplots_adjust(wspace=0.02, hspace=0.02)
     fig.set_size_inches(8, 6)
-    plot_name = 'accrate-dx_res-' + str(sim) + str(accretion) + "-" + str(xlim) + 'Myr.pdf'
-    fig.savefig('plots/'+plot_name, bbox_inches='tight')
-    print("created plots/",plot_name)
+    plot_name = 'plots/accrate-dx_res-' + str(sim) + str(accretion) + "-" + str(xlim) + 'Myr.pdf'
+    fig.savefig(plot_name, bbox_inches='tight')
+    print("created ",plot_name)
 
