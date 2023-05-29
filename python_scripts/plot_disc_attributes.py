@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from derived_fields import add_fields_ds
 from yt.utilities.math_utils import ortho_find
 import matplotlib as mpl
-from scipy import stats
+import pandas as pd
 from matplotlib import rc
 from find_disc_attributes import _make_disk_L
 from plot_multi_projections import tidy_data_labels
@@ -39,29 +39,23 @@ if __name__ == "__main__":
 
     # datasets
     input = sys.argv[-1]
-    root_dir =["/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/", 
-            "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/",
-                "/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/" ]
+    root_dir =["/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/", 
+               "/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/",
+               "/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/" ]
     sim = ["1B.RSb01-2", "1S.RSb01", "1B.RSm01"]
-    dds = ["DD0138/DD0138", "DD0142/DD0142", "DD0138/DD0138"]
+    dds = ["DD0138/DD0138", "DD0140/DD0140", "DD0138/DD0138"]
     labels = []
     DS = []
     for i, dd in enumerate(dds):
         ds = yt.load(os.path.join(root_dir[i], sim[i], dd))
         add_fields_ds(ds)
         j = []
-        label = str(sim[i]) + "-" + str(float(ds.current_time.to('Myr')))[:5] + "Myr"
+        formation_time = 124.76 # Myr
+        label = str(sim[i]) + "-" + str(float(ds.current_time.to('Myr')) - formation_time)[:3] + "Myr"
         DS.append(ds)
         labels.append(label)
 
     labels = tidy_data_labels(labels)
-
-    # naming plot
-    seed = int(root_dir[0][43:44])
-    if seed == 1:
-        index = 82
-    elif seed == 2:
-        index = 84
 
     # font settings
     fontsize = 12 # for projection annotations
@@ -78,7 +72,43 @@ if __name__ == "__main__":
     # create figure
     n_subplots = 7
     fig, axs = plt.subplots(n_subplots, 1, sharex=True)
+
+
+    """""""""""""""""""""
+    1) Plot Beckmann data
+    """""""""""""""""""""
+
+    # make array of Beckmann data
+    beck_data_fp = '/cephfs/sgordon/smartstar_simulation_analysis/python_scripts/beckmann-data/R_128_Figure14/'
+    csv_files = ['omega.csv', 'number_density.csv', 'temperature.csv', 'height.csv', 'theta_c_ratio.csv', 'radial_velocity.csv']
+    beck_data_arr = []
+    l_beck = "R_128-1.6Myr" # label
+    alpha = 0.9      # transparency of lines
     
+    # Loop through each CSV file
+    for k, file_name in enumerate(csv_files):
+        # Create the full file path
+        file_path = beck_data_fp + file_name
+        
+        # Load CSV file into DataFrame
+        df = pd.read_csv(file_path)
+        
+        # Extract NumPy array and append to the list
+        beck_data_arr.append(df.to_numpy())
+        beck_data = df.to_numpy()
+
+        if k == 5:
+            beck_data[:, 1] = beck_data[:, 1]/1e5
+
+        axs[k].plot(beck_data[:,0], beck_data[:, 1], color="darkblue", linestyle='solid', label=l_beck, alpha=alpha)
+
+        if k == 3:
+            axs[6].plot(beck_data[:,0], beck_data[:, 1]/beck_data[:,0], color="darkblue", linestyle='solid', label=l_beck, alpha=alpha)
+
+
+    """""""""""""""""
+    2) Plot my data
+    """""""""""""""""
 
     for k, ds in enumerate(DS):
 
@@ -130,12 +160,13 @@ if __name__ == "__main__":
         ##########################################################################################################
 
         # querying height (abs(cylindrical_z)) on a cut region of max disc density/5
-        cut = disk[('gas', 'number_density')].d.max()/8 
+        cut = disk[('gas', 'number_density')].d.max()/5
+        if k == 1:
+            cut = 1e5
         cr = ds.cut_region(disk, ["obj[('gas', 'number_density')] > {}".format(cut)])
         h_disc = cr[("index", "height")].to('pc')
         r_disc = cr[("index", "radius")].to('pc')
         r_h, h = radial_profile(h_disc, cr, n_bins, cell_width_pc[k])
-
 
         ##########################################################################################################
         #                                           Plot All Disc Attributes
@@ -149,24 +180,32 @@ if __name__ == "__main__":
         c = ['blueviolet', 'turquoise', 'limegreen']
         plot_omega = axs[0].loglog(profile.x[profile.used], profile[("gas", "omega")][profile.used] /
                     profile[("gas", "omega_k")][profile.used], color=c[k], label=labels[k])
-        plot_density = axs[1].plot(profile.x[profile.used], profile[("gas", "number_density")][profile.used], color=c[k])
-        plot_temp = axs[2].loglog(profile.x[profile.used], profile[("gas", "temperature")][profile.used], color=c[k])
-        plot_h = axs[3].loglog(r_h, h, color=c[k])
-        plot_theta = axs[4].plot(profile.x.value, np.abs(profile[("gas", "tangential_velocity")].value), color=c[k])
-        plot_vr = axs[5].plot(profile.x[profile.used], profile[("gas", "radial_velocity")][profile.used], color=c[k])
+        plot_density = axs[1].plot(profile.x[profile.used], profile[("gas", "number_density")][profile.used], color=c[k], label=labels[k])
+        plot_temp = axs[2].loglog(profile.x[profile.used], profile[("gas", "temperature")][profile.used], color=c[k], label=labels[k])
+        plot_h = axs[3].loglog(r_h, h, color=c[k], label=labels[k])
+        plot_theta = axs[4].plot(profile.x.value, np.abs(profile[("gas", "tangential_velocity")].value/profile[("gas", "sound_speed")].value), 
+                                 color=c[k], label=labels[k])
+        plot_vr = axs[5].plot(profile.x[profile.used], np.abs(profile[("gas", "radial_velocity")][profile.used]), color=c[k], label=labels[k])
         r, vorb = radial_profile(orbital_velocity(ds, disk).to('km/s'), disk, n_bins, cell_width_pc[k])
         #plot_vorb = axs[6].plot(r, vorb, color=c[k])
-        plot_hratio = axs[6].plot(r_h, h/r_h, color=c[k])
+        plot_hratio = axs[6].plot(r_h, h/r_h, color=c[k], label=labels[k])
 
+
+        ##########################################################################################################
+        #                                               Format Plots
+        ##########################################################################################################
 
         # format plots
         axs[-1].set_xlabel("Radius (pc)", fontdict=None)
         #axs[6].set_ylabel(r"$\rm \nu_{orbit} \, (km/s)$", fontdict=None)
         axs[6].set_ylabel(r"$\rm H/r $", fontdict=None)
+        axs[6].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
+        axs[6].set_yscale('log')
         axs[5].set_ylabel(r"$\rm \nu_r \, (km/s)$", fontdict=None)
-        axs[5].set_yscale('linear')
-        axs[4].set_ylabel(r"$\rm \nu_{\theta} \, (km/s)$", fontdict=None)
-        axs[4].set_ylim([-1,25])
+        axs[5].set_yscale('log')
+        axs[4].set_ylabel(r"$\rm \nu_{\theta}/c_s$", fontdict=None)
+        axs[4].set_ylim([-1,99])
+        axs[4].set_yscale('log')
         axs[3].set_ylabel(r"$\rm H \, (pc)$", fontdict=None)
         axs[2].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
         axs[2].set_ylim([50,2.1e4])
@@ -175,7 +214,7 @@ if __name__ == "__main__":
         axs[0].set_ylabel(r"$\rm \omega / \omega_K $", fontdict=None)
         axs[0].set_yscale('linear')
         axs[0].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
-        axs[0].legend(fontsize=fontsize-1)
+        axs[3].legend(loc="lower right", fontsize=fontsize-1)
         #axs[0].set_title("BH Age = " + "{:.2f}".format(ss_age[0]/1e6) + " Myr" + ", " + str(root_dir[index:]))
 
         for i in range(n_subplots):
