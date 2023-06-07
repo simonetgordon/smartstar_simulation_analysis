@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import rc
 from scipy.interpolate import interp1d
+import yt
 
 ##########################################################################################################
 #                                     Plot BHL Variables vs time
@@ -27,7 +28,7 @@ def tidy_data_labels(labels):
 
 
 def first_index(a, val, rtol=0.1, atol=10):
-    return next(j for j, _ in enumerate(a) if np.isclose(_, val, rtol, atol))
+    return next(m for m, _ in enumerate(a) if np.isclose(_, val, rtol, atol))
 
 
 def interpolate_data(arr, N=1000):
@@ -66,11 +67,17 @@ if __name__ == "__main__":
 
     ############################### Parameters ###############################
 
-    x = "beck-comp-"    # simulation type
+    x = "s1-40msun-"    # simulation type
     y = sys.argv[-1]    # naming plot
-    xlim = 1            # Myrs
+    xlim = 0.53         # Myrs
     time_cutoff = xlim  # Myrs
-    i_start = 1         # initial index
+    i_start = 0         # start index
+    include_beckmann_data = False
+    alpha = 0.9         # transparency of lines
+    num_subplots = 6    # number of subplots
+    rtol=1e-6
+    atol=2e-3           # 1e-4 for 1S.m, 
+    title = '1S.b Local Properties Comparison'
 
     ##########################################################################
 
@@ -85,52 +92,66 @@ if __name__ == "__main__":
 
     # set up figure
     fig = plt.figure()
-    num_subplots = 5
     fig, axs = plt.subplots(num_subplots, 1, sharex=True)
+
+    # identify cell widths for this simulation
+    for i in [4]:
+        if x == "s1-270msun-":
+            dx = [1.229791e-02, 3.074475e-03, 1.537645e-03, 7.692833e-04]
+        elif x == "beck-comp-":
+            dx = [1.229791e-02, 3.074475e-03]
+        elif x == "s1-40msun-":
+            dx = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04]
+        elif x == "s2-270msun-":
+            dx = [8.298311e-03, 2.074568e-03, 1.537645e-03, 7.687095e-04, 3.8435475e-04, 1.296596e-04]
+        elif x == "s2-40msun-":
+            dx = [8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04]
+        elif x == "s2-40msun-2-":
+            dx = [1.3e-03, 5.2e-04, 1.3e-04]
 
     """""""""""""""""""""
     1) Plot Beckmann data
     """""""""""""""""""""
 
-    # make array of Beckmann data
-    beck_data_fp = '/cephfs/sgordon/smartstar_simulation_analysis/python_scripts/beckmann-data/D_126_tiny_Figure6'
-    csv_files = ['mass.csv', 'accretion_rate.csv', 'number_density.csv', 'velocity.csv', 'radii.csv']
-    beck_data_arr = []
-    l_beck = "D_126_tiny" # label
-    alpha = 0.9           # transparency of lines
-    
-    # Loop through each CSV file
-    for k, file_name in enumerate(csv_files):
-        # Create the full file path
-        file_path = beck_data_fp + '/' + file_name
+    if include_beckmann_data:
+        # make array of Beckmann data
+        beck_data_fp = '/cephfs/sgordon/smartstar_simulation_analysis/python_scripts/beckmann-data/D_126_tiny_Figure6'
+        csv_files = ['mass.csv', 'accretion_rate.csv', 'number_density.csv', 'velocity.csv', 'radii.csv']
+        beck_data_arr = []
+        l_beck = "D_126_tiny" # label
         
-        # Load CSV file into DataFrame
-        df = pd.read_csv(file_path)
-        
-        # Extract NumPy array and append to the list
-        beck_data_arr.append(df.to_numpy())
-        beck_data = df.to_numpy()
+        # Loop through each CSV file
+        for k, file_name in enumerate(csv_files):
+            # Create the full file path
+            file_path = beck_data_fp + '/' + file_name
+            
+            # Load CSV file into DataFrame
+            df = pd.read_csv(file_path)
+            
+            # Extract NumPy array and append to the list
+            beck_data_arr.append(df.to_numpy())
+            beck_data = df.to_numpy()
 
-        axs[k].plot(beck_data[:,0], beck_data[:, 1], color="darkblue", linestyle='solid', label=l_beck, alpha=alpha)
+            axs[k].plot(beck_data[:,0], beck_data[:, 1], color="darkblue", linestyle='solid', label=l_beck, alpha=alpha)
 
-    csv_files = ['mass.csv','accretion_rate.csv', 'number_density.csv']
-    beck_data_fp = '/cephfs/sgordon/smartstar_simulation_analysis/python_scripts/beckmann-data/R_128_Figure11'
-    beck_data_arr_2 = []
-    l_beck = "R_128" # label
+        csv_files = ['mass.csv','accretion_rate.csv', 'number_density.csv']
+        beck_data_fp = '/cephfs/sgordon/smartstar_simulation_analysis/python_scripts/beckmann-data/R_128_Figure11'
+        beck_data_arr_2 = []
+        l_beck = "R_128" # label
 
-    # Loop through each CSV file
-    for k, file_name in enumerate(csv_files):
-        # Create the full file path
-        file_path = beck_data_fp + '/' + file_name
-        
-        # Load CSV file into DataFrame
-        df = pd.read_csv(file_path)
-        
-        # Extract NumPy array and append to the list
-        beck_data_arr_2.append(df.to_numpy())
-        beck_data = df.to_numpy()
+        # Loop through each CSV file
+        for k, file_name in enumerate(csv_files):
+            # Create the full file path
+            file_path = beck_data_fp + '/' + file_name
+            
+            # Load CSV file into DataFrame
+            df = pd.read_csv(file_path)
+            
+            # Extract NumPy array and append to the list
+            beck_data_arr_2.append(df.to_numpy())
+            beck_data = df.to_numpy()
 
-        axs[k].plot(beck_data[:,0], beck_data[:, 1], color="royalblue", linestyle='solid', label=l_beck, alpha=alpha)
+            axs[k].plot(beck_data[:,0], beck_data[:, 1], color="royalblue", linestyle='solid', label=l_beck, alpha=alpha)
 
 
     """""""""""""""""
@@ -149,23 +170,42 @@ if __name__ == "__main__":
     l = tidy_data_labels(bhl_object_labels)
     j = 0
 
+    # define baseline age and accrate lines + number of data points
+    window_size = 20
+    baseline_age_raw = bhl_object_list[-1].ages[i_start:]
+    n_data_max = baseline_age_raw.shape[-1]
+    N = int(n_data_max/2)
+    baseline_age = interpolate_data(bhl_object_list[-1].ages[i_start:], N=N)
+    baseline_accrate = interpolate_data(movingaverage(bhl_object_list[-1].accrates[i_start:], window_size), N=N)
+    baseline_mass = interpolate_data(movingaverage(bhl_object_list[-1].mass[i_start:], window_size), N=N)
+    time_cutoff = baseline_age[-1]/1e6
+    i_age = first_index((np.array(bhl_object_list[-1].ages)/1e6)[i_start:int(n_data_max + (n_data_max/2.5))], time_cutoff, rtol=rtol, atol=atol)
+    baseline_mass_no_avg = interpolate_data(bhl_object_list[-1].mass[i_start:i_age], N=N)
+    baseline_accrate_no_avg = interpolate_data(bhl_object_list[-1].accrates[i_start:i_age], N=N)
+    time_cutoff = baseline_age[-1]/1e6
+    print("baseline details")
+    print("======================================")
+    print("i_age: {}, age: {}, accrate max: {}, final mass: {}".format(i_age, baseline_age[-1], baseline_accrate.max(), baseline_mass.max()))
     for i, BHL in enumerate(bhl_object_list):
         # convert ages from yrs to Myrs
         BHL.ages = np.array(BHL.ages) / 1e6
 
         # find index of age that matches end age of time limit
-        i_age = first_index(BHL.ages[i_start:], time_cutoff, rtol=1e-2, atol=5e-3)  # 0.02 for 2B group.
-        
-        window_size = 20
-        age = movingaverage(BHL.ages[i_start:i_age], window_size)
-        mass =  movingaverage(BHL.mass[i_start:i_age], window_size)
-        accrate = movingaverage(BHL.accrates[i_start:i_age], window_size)
-        density = movingaverage(BHL.average_density[i_start:i_age], window_size)
-        avg_vinf = movingaverage(BHL.average_vinfinity[i_start:i_age], window_size)
-        avg_cinf = movingaverage(BHL.average_cinfinity[i_start:i_age], window_size)
-        hl_radius = movingaverage(BHL.hl_radius[i_start:i_age], window_size)
-        bondi_radius = movingaverage(BHL.bondi_radius[i_start:i_age], window_size)
-        jeans = movingaverage(BHL.jeans_length[i_start:i_age], window_size)
+        i_age = first_index(BHL.ages[i_start:int(n_data_max + (n_data_max/2.5))], time_cutoff, rtol=rtol, atol=atol)  # 0.02 for 2B group.
+
+        print("age = ", BHL.ages[i_start:i_age])
+        print("i_age = ", i_age)
+        age = interpolate_data(movingaverage(BHL.ages[i_start:i_age], window_size), N=N)
+        mass =  interpolate_data(movingaverage(BHL.mass[i_start:i_age], window_size), N=N)
+        accrate = interpolate_data(movingaverage(BHL.accrates[i_start:i_age], window_size), N=N)
+        density = interpolate_data(movingaverage(BHL.average_density[i_start:i_age], window_size), N=N)
+        avg_vinf = interpolate_data(movingaverage(BHL.average_vinfinity[i_start:i_age], window_size), N=N)
+        avg_cinf = interpolate_data(movingaverage(BHL.average_cinfinity[i_start:i_age], window_size), N=N)
+        hl_radius = interpolate_data(movingaverage(BHL.hl_radius[i_start:i_age], window_size), N=N)
+        bondi_radius = interpolate_data(movingaverage(BHL.bondi_radius[i_start:i_age], window_size), N=N)
+        jeans = interpolate_data(movingaverage(BHL.jeans_length[i_start:i_age], window_size), N=N)
+
+        print("data points: ", mass.shape[0])
 
         # 1) BH Mass
         axs[0].plot(age, mass, color=c[j], linestyle='solid', label=l[i], alpha=alpha)
@@ -178,15 +218,42 @@ if __name__ == "__main__":
         axs[2].plot(age, density, color=c[j], linestyle='solid', label=l[i], alpha=alpha)
 
         # 4) Velocities
-        #axs[3].plot(age, avg_vinf/avg_cinf, color=c[j], linestyle='solid', label=l[i]+'-vinf', alpha=alpha)
-        axs[3].plot(age, avg_vinf, color=c[j], linestyle='solid', label=l[i]+'-vinf', alpha=alpha)
+        axs[3].plot(age, avg_vinf/avg_cinf, color=c[j], linestyle='solid', label=l[i]+'-Mach', alpha=alpha)
+        #axs[3].plot(age, avg_vinf, color=c[j], linestyle='solid', label=l[i]+'-vinf', alpha=alpha)
 
         # 5) HL radius
-        axs[4].plot(age, hl_radius, color=c[j], linestyle='solid', label=l[i], alpha=alpha)
+        axs[4].plot(age, hl_radius/dx[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
         #axs[4].plot(age, bondi_radius, color=c[j], linestyle='dotted', label=l[i], alpha=alpha)
+        print("average radius resolution: ", hl_radius.mean()/dx[i])
 
         # 6) Jeans length
         #axs[5].plot(age, jeans, color=c[j], linestyle='solid', label=l[i]+'-jeans-length', alpha=alpha)
+
+        # 6) Scatter Residual
+        #interp_age = interpolate_data(age, N=N)
+        #interp_accrate = interpolate_data(accrate, N=N)
+        interp_age = interpolate_data(BHL.ages[i_start:i_age], N=N)
+        interp_accrate = accrate
+        accrate = interpolate_data(BHL.accrates[i_start:i_age], N=N)
+        baseline_accrate = interpolate_data(movingaverage(bhl_object_list[-1].accrates[i_start:i_age], window_size), N=N)
+        mass =  interpolate_data(BHL.mass[i_start:i_age], N=N)
+        baseline_mass = interpolate_data(bhl_object_list[-1].mass[i_start:i_age], N=N)
+        residual = np.abs(accrate - baseline_accrate_no_avg)
+
+        # if i == 0:
+        # # don't include the baseline 
+        # # continue
+        #     residual = interpolate_data(bhl_object_list[0].mass[i_start:i_age], N=N) - interpolate_data(bhl_object_list[-1].mass[i_start:i_age], N=N)
+        #     print("residuals: ", residual)
+            
+        print("Min residual: ", residual.min())
+        print("Interp age max: ", interp_age.max())
+        axs[5].scatter(interp_age, residual, s=5, color=c[i], linestyle='solid', marker='o', label=l[i], alpha=0.6)
+        #axs[5].axhline(y=0, color='grey', linestyle='dashed', label=l[i], alpha=alpha)
+        yscale_residual = 'log'
+        #axs[5].set_ylim([1e-8, 1e-1])
+
+        print("=============================")
 
         j += 1
 
@@ -194,7 +261,7 @@ if __name__ == "__main__":
     ############################### Format plots #############################
 
     # include title (might remove later)
-    axs[0].set_title('Local Properties Comparison')
+    axs[0].set_title(title)
 
     for i in range(num_subplots):
         axs[i].set_xticks(np.arange(0, time_cutoff, 0.1))
@@ -211,53 +278,43 @@ if __name__ == "__main__":
     axs[0].set_ylabel(r"$\rm M_{BH} \, (M_{\odot})$", fontdict=None)
     axs[1].set_ylabel(r"$\rm \dot{M} \, (M_{\odot}/yr)$", fontdict=None)
     axs[2].set_ylabel(r"$\rm n \, (H \, cm^{-3})$", fontdict=None)
-    axs[3].set_ylabel(r"$\rm \nu \, (km/s)$", fontdict=None)
-    #axs[3].set_ylabel(r"$\rm Mach$", fontdict=None)
-    axs[4].set_ylabel(r"$\rm r_{HL} \, (pc)$", fontdict=None)
+    #axs[3].set_ylabel(r"$\rm \nu \, (km/s)$", fontdict=None)
+    axs[3].set_ylabel(r"$\rm Mach$", fontdict=None)
+    #axs[4].set_ylabel(r"$\rm r_{HL} \, (pc)$", fontdict=None)
+    axs[4].set_ylabel(r"$\rm r_{HL}/dx $", fontdict=None)
     #axs[5].set_ylabel(r"$\rm r_{jeans} \, (pc)$", fontdict=None)
-    #axs[3].set_yscale('linear')
+    axs[5].set_ylabel(r"$\rm \Delta \dot{M} \, (M_{\odot}/yr)$", fontdict=None)
+    axs[5].set_yscale(yscale_residual)
     axs[0].set_yscale('log')
+    axs[-1].set_xlabel('BH Age (Myr)')
     #axs[0].set_title(str(x) + str(y), fontdict=None)
-    for i in [4]:
-        if x == "s1-270msun-":
-            dx = [1.229791e-02, 3.074475e-03, 1.537645e-03, 7.692833e-04]
-        elif x == "beck-comp-":
-            dx = [1.229791e-02, 3.074475e-03]
-        elif x == "s1-40msun-":
-            dx = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04]
-        elif x == "s2-270msun-":
-            dx = [8.298311e-03, 2.074568e-03, 1.537645e-03, 7.687095e-04, 3.8435475e-04, 1.296596e-04]
-        elif x == "s2-40msun-":
-            dx = [8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04]
-        elif x == "s2-40msun-2-":
-            dx = [1.3e-03, 5.2e-04, 1.3e-04]
 
-        dx_1s = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04]
-        c1 = c3 = 'lightcoral'
-        c2 = 'indianred'
-        l1 = 'dashdot'
-        l2 = 'dashdot'
-        l3 = 'dotted'
-        alpha_dx = 0.5
-        axs[i].axhline(y=dx[0], color=c[0], linestyle=l1, lw=linewidth,  label="dx = " + str(dx[0]) + "pc", alpha=alpha_dx)
-        axs[i].axhline(y=dx[1], color=c[1], linestyle=l1, lw=linewidth,  label="dx = " + str(dx[1]) + "pc", alpha=alpha_dx)
-        # axs[i].axhline(y=dx[2], color=c[2], linestyle=l1, lw=linewidth, label="dx = " + str(dx[2]) + "pc", alpha=alpha_dx)
-        # axs[i].axhline(y=dx[3], color=c[3], linestyle=l1, lw=linewidth, label="dx = " + str(dx[3]) + "pc", alpha=alpha_dx)
-        #axs[i].axhline(y=0.00077, color=c[6], linestyle='solid', label="dx = 7.7e-04 pc")
-    #axs[5].set_xlabel(r"BH Age (Myr)", fontdict=None)
+    dx_1s = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04]
+    c1 = c3 = 'lightcoral'
+    c2 = 'indianred'
+    l1 = 'dashdot'
+    l2 = 'dashdot'
+    l3 = 'dotted'
+    alpha_dx = 0.5
+    #axs[i].axhline(y=dx[0], color=c[0], linestyle=l1, lw=linewidth,  label="dx = " + str(dx[0]) + "pc", alpha=alpha_dx)
+    #axs[i].axhline(y=dx[1], color=c[1], linestyle=l1, lw=linewidth,  label="dx = " + str(dx[1]) + "pc", alpha=alpha_dx)
+    # axs[i].axhline(y=dx[2], color=c[2], linestyle=l1, lw=linewidth, label="dx = " + str(dx[2]) + "pc", alpha=alpha_dx)
+    # axs[i].axhline(y=dx[3], color=c[3], linestyle=l1, lw=linewidth, label="dx = " + str(dx[3]) + "pc", alpha=alpha_dx)
+    #axs[i].axhline(y=0.00077, color=c[6], linestyle='solid', label="dx = 7.7e-04 pc")
+#axs[5].set_xlabel(r"BH Age (Myr)", fontdict=None)
 
-    if xlim == 1:
-        axs[4].set_ylim([1.01e-5, 9e-1])
+    #if xlim == 1:
+        # axs[4].set_ylim([1.01e-5, 9e-1])
     #     # axs[0].set_ylim([0, 2800])
     #     # axs[1].set_ylim([2e-8, 9e-3])
     #     # axs[2].set_ylim([7e3,8e7])
     #     # axs[3].set_ylim([0.1, 11])
     #     # #axs[5].set_ylim([8e-4, 12])
-    # elif xlim == 3:
-    #     axs[0].set_ylim([0, 8000])
-    #     #axs[1].set_ylim([5e-5, 2e-2])
-    #     #axs[2].set_ylim([8e3, 3e8])
-    #     #axs[3].set_ylim([0, 25])
+    if x == "s1-40msun-":
+        axs[0].set_ylim([0, 45])
+        #axs[1].set_ylim([5e-5, 2e-2])
+        #axs[2].set_ylim([8e3, 3e8])
+        axs[3].set_ylim([6e-1, 5e1])
 
 
     ############################### Legends ################################
@@ -290,11 +347,11 @@ if __name__ == "__main__":
     accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
 
     # Include legends
-    axs[0].legend(fontsize=fontsize-1, ncol=2, loc="lower right")  # upper/lower
+    axs[0].legend(fontsize=fontsize-1, ncol=2, loc="upper left")  # upper/lower
     axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-1, ncol=2)
     #axs[3].legend(vel_lines, [r"$\rm \nu_{\infty}$", r"\rm $c_{\infty}$"], loc="upper left", fontsize=fontsize-1, ncol=1)
     #axs[4].legend(radius_lines, [r"$\rm r_{HL}$", r"$\rm r_{Bondi}$"], fontsize=fontsize-1, ncol=1)
-    axs[4].legend(dx_lines, dx, fontsize=fontsize-2, ncol=1)
+    #axs[4].legend(dx_lines, dx, fontsize=fontsize-2, ncol=1)
 
     ##########################################################################
 
