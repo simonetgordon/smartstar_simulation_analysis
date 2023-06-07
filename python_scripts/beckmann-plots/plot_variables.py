@@ -15,6 +15,18 @@ import yt
 # list data files in order of low res -> high res
 ##########################################################################################################
 
+
+def resample_data(accretion_rates, times, common_time):
+    resampled_acc_rates = []
+    for i in range(len(accretion_rates)):
+        # Create an interpolator for each simulation
+        interpolator = interp1d(times[i], accretion_rates[i], kind='linear', fill_value='extrapolate')
+
+        # Resample the accretion rates onto the common time grid
+        resampled_acc_rates.append(interpolator(common_time))
+    return resampled_acc_rates
+
+
 def tidy_data_labels(labels):
     # for lists of labels
     if len(labels) < 50:
@@ -69,7 +81,7 @@ if __name__ == "__main__":
 
     x = "s1-40msun-"    # simulation type
     y = sys.argv[-1]    # naming plot
-    xlim = 0.53         # Myrs
+    xlim = 0.802         # Myrs
     time_cutoff = xlim  # Myrs
     i_start = 0         # start index
     include_beckmann_data = False
@@ -159,98 +171,70 @@ if __name__ == "__main__":
     """""""""""""""""
 
     # set line colours
-    c1 = ['#d46a7e', 'lightblue', 'lightgreen', 'khaki', 'plum', 'seagreen', 'steelblue', 'salmon']
-    # purple/lavender, greeny-blue, cameo green, dusky-pink/darker pink, mustard yellow, classic blues, fuschia/burgundy
-    c2 = ['#856798', '#0a888a', '#56ae57', '#ba6873', '#ffc512', '#436bad', '#9d0759', '#9d0216', 
-          '#7bc8f6', '#d0c101', '#c4387f','#7bb274', '#06b48b', '#6c3461']
-    c0 = ['#9d0216', '#E66101', '#436bad', '#A6611A']
     c = ['blueviolet', 'turquoise', 'limegreen', 'darkgreen']
 
     # set BHL properties parameters
     l = tidy_data_labels(bhl_object_labels)
     j = 0
 
-    # define baseline age and accrate lines + number of data points
-    window_size = 20
-    baseline_age_raw = bhl_object_list[-1].ages[i_start:]
-    n_data_max = baseline_age_raw.shape[-1]
-    N = int(n_data_max/2)
-    baseline_age = interpolate_data(bhl_object_list[-1].ages[i_start:], N=N)
-    baseline_accrate = interpolate_data(movingaverage(bhl_object_list[-1].accrates[i_start:], window_size), N=N)
-    baseline_mass = interpolate_data(movingaverage(bhl_object_list[-1].mass[i_start:], window_size), N=N)
-    time_cutoff = baseline_age[-1]/1e6
-    i_age = first_index((np.array(bhl_object_list[-1].ages)/1e6)[i_start:int(n_data_max + (n_data_max/2.5))], time_cutoff, rtol=rtol, atol=atol)
-    baseline_mass_no_avg = interpolate_data(bhl_object_list[-1].mass[i_start:i_age], N=N)
-    baseline_accrate_no_avg = interpolate_data(bhl_object_list[-1].accrates[i_start:i_age], N=N)
-    time_cutoff = baseline_age[-1]/1e6
-    print("baseline details")
-    print("======================================")
-    print("i_age: {}, age: {}, accrate max: {}, final mass: {}".format(i_age, baseline_age[-1], baseline_accrate.max(), baseline_mass.max()))
-    for i, BHL in enumerate(bhl_object_list):
-        # convert ages from yrs to Myrs
-        BHL.ages = np.array(BHL.ages) / 1e6
+    # try new resampling method
+    times = [BHL.ages/1e6 for BHL in bhl_object_list]
 
-        # find index of age that matches end age of time limit
-        i_age = first_index(BHL.ages[i_start:int(n_data_max + (n_data_max/2.5))], time_cutoff, rtol=rtol, atol=atol)  # 0.02 for 2B group.
+    # Find the minimum and maximum times among all simulations
+    min_time = min([min(t) for t in times])
+    min_final_time = min([t[-1] for t in times])
 
-        print("age = ", BHL.ages[i_start:i_age])
-        print("i_age = ", i_age)
-        age = interpolate_data(movingaverage(BHL.ages[i_start:i_age], window_size), N=N)
-        mass =  interpolate_data(movingaverage(BHL.mass[i_start:i_age], window_size), N=N)
-        accrate = interpolate_data(movingaverage(BHL.accrates[i_start:i_age], window_size), N=N)
-        density = interpolate_data(movingaverage(BHL.average_density[i_start:i_age], window_size), N=N)
-        avg_vinf = interpolate_data(movingaverage(BHL.average_vinfinity[i_start:i_age], window_size), N=N)
-        avg_cinf = interpolate_data(movingaverage(BHL.average_cinfinity[i_start:i_age], window_size), N=N)
-        hl_radius = interpolate_data(movingaverage(BHL.hl_radius[i_start:i_age], window_size), N=N)
-        bondi_radius = interpolate_data(movingaverage(BHL.bondi_radius[i_start:i_age], window_size), N=N)
-        jeans = interpolate_data(movingaverage(BHL.jeans_length[i_start:i_age], window_size), N=N)
+    # Define the common time grid
+    num_steps = int(len(times[-1])/5)  # take time steps from last (most refined) simulation
+    print("num points: ", num_steps)
+    common_time = np.linspace(min_time, min_final_time, num_steps)
 
-        print("data points: ", mass.shape[0])
+    # resample BHL attributes over the common_time - produces a list of length 4 (for each simulations), 
+    # where list elements = attribute array
+    mass = resample_data([BHL.mass for BHL in bhl_object_list], times, common_time)
+    accretion_rates = resample_data([BHL.accrates for BHL in bhl_object_list], times, common_time)
+    density = resample_data([BHL.average_density for BHL in bhl_object_list], times, common_time)
+    avg_vinf = resample_data([BHL.average_vinfinity for BHL in bhl_object_list], times, common_time)
+    avg_cinf = resample_data([BHL.average_cinfinity for BHL in bhl_object_list], times, common_time)
+    hl_radius = resample_data([BHL.hl_radius for BHL in bhl_object_list], times, common_time)
+    bondi_radius = resample_data([BHL.hl_radius for BHL in bhl_object_list], times, common_time)
+    #jeans = resample_data([BHL.jeans for BHL in bhl_object_list], times, common_time)
+
+    # Print the resampled data
+    for i in range(len(accretion_rates)):
+        print(f"Resampled data for Simulation {i+1}:")
+        print("Accretion Rates:", accretion_rates[i])
+        print("Time:", common_time)
+        print()
+
+    for i in range(len(mass)):
 
         # 1) BH Mass
-        axs[0].plot(age, mass, color=c[j], linestyle='solid', label=l[i], alpha=alpha)
+        axs[0].plot(common_time, mass[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
 
         # 2) Accretion Rates
-        axs[1].plot(age, accrate, color=c[j], linestyle='solid', label=l[i], alpha=alpha)
-        axs[1].plot(age, eddington_rate(mass), color=c[j], linestyle='dashed', label=l[i], alpha=alpha)
+        axs[1].plot(common_time, accretion_rates[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
+        axs[1].plot(common_time, eddington_rate(mass[i]), color=c[j], linestyle='dashed', label=l[i], alpha=alpha)
 
         # 3) Densities
-        axs[2].plot(age, density, color=c[j], linestyle='solid', label=l[i], alpha=alpha)
+        axs[2].plot(common_time, density[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
 
         # 4) Velocities
-        axs[3].plot(age, avg_vinf/avg_cinf, color=c[j], linestyle='solid', label=l[i]+'-Mach', alpha=alpha)
-        #axs[3].plot(age, avg_vinf, color=c[j], linestyle='solid', label=l[i]+'-vinf', alpha=alpha)
+        axs[3].plot(common_time, avg_vinf[i]/avg_cinf[i], color=c[j], linestyle='solid', label=l[i]+'-Mach', alpha=alpha)
+        #axs[3].plot(common_time, avg_vinf, color=c[j], linestyle='solid', label=l[i]+'-vinf', alpha=alpha)
 
         # 5) HL radius
-        axs[4].plot(age, hl_radius/dx[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
-        #axs[4].plot(age, bondi_radius, color=c[j], linestyle='dotted', label=l[i], alpha=alpha)
-        print("average radius resolution: ", hl_radius.mean()/dx[i])
-
-        # 6) Jeans length
-        #axs[5].plot(age, jeans, color=c[j], linestyle='solid', label=l[i]+'-jeans-length', alpha=alpha)
+        axs[4].plot(common_time, hl_radius[i]/dx[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
+        #axs[4].plot(common_time, bondi_radius, color=c[j], linestyle='dotted', label=l[i], alpha=alpha)
+        print("average radius resolution: ", hl_radius[i].mean()/dx[i])
 
         # 6) Scatter Residual
-        #interp_age = interpolate_data(age, N=N)
-        #interp_accrate = interpolate_data(accrate, N=N)
-        interp_age = interpolate_data(BHL.ages[i_start:i_age], N=N)
-        interp_accrate = accrate
-        accrate = interpolate_data(BHL.accrates[i_start:i_age], N=N)
-        baseline_accrate = interpolate_data(movingaverage(bhl_object_list[-1].accrates[i_start:i_age], window_size), N=N)
-        mass =  interpolate_data(BHL.mass[i_start:i_age], N=N)
-        baseline_mass = interpolate_data(bhl_object_list[-1].mass[i_start:i_age], N=N)
-        residual = np.abs(accrate - baseline_accrate_no_avg)
-
-        # if i == 0:
-        # # don't include the baseline 
-        # # continue
-        #     residual = interpolate_data(bhl_object_list[0].mass[i_start:i_age], N=N) - interpolate_data(bhl_object_list[-1].mass[i_start:i_age], N=N)
-        #     print("residuals: ", residual)
+        residual = (accretion_rates[i] - accretion_rates[-1])
             
         print("Min residual: ", residual.min())
-        print("Interp age max: ", interp_age.max())
-        axs[5].scatter(interp_age, residual, s=5, color=c[i], linestyle='solid', marker='o', label=l[i], alpha=0.6)
+        axs[5].scatter(common_time, residual, s=5, color=c[j], linestyle='solid', marker='o', label=l[i], alpha=0.6)
         #axs[5].axhline(y=0, color='grey', linestyle='dashed', label=l[i], alpha=alpha)
-        yscale_residual = 'log'
+        yscale_residual = 'linear'
         #axs[5].set_ylim([1e-8, 1e-1])
 
         print("=============================")
@@ -311,10 +295,10 @@ if __name__ == "__main__":
     #     # axs[3].set_ylim([0.1, 11])
     #     # #axs[5].set_ylim([8e-4, 12])
     if x == "s1-40msun-":
-        axs[0].set_ylim([0, 45])
+        axs[0].set_ylim([0, 80])
         #axs[1].set_ylim([5e-5, 2e-2])
         #axs[2].set_ylim([8e3, 3e8])
-        axs[3].set_ylim([6e-1, 5e1])
+        axs[3].set_ylim([3e-1, 5e1])
 
 
     ############################### Legends ################################
