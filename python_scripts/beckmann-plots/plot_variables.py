@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 from matplotlib import rc
 from scipy.interpolate import interp1d
+from scipy.ndimage import convolve1d
+import matplotlib.ticker as ticker
 import yt
 
 ##########################################################################################################
@@ -16,7 +18,7 @@ import yt
 ##########################################################################################################
 
 
-def resample_data(accretion_rates, times, common_time):
+def resample_data(accretion_rates, times, common_time, smooth_simulations=2, window_size=3):
     resampled_acc_rates = []
     for i in range(len(accretion_rates)):
         # Create an interpolator for each simulation
@@ -24,6 +26,13 @@ def resample_data(accretion_rates, times, common_time):
 
         # Resample the accretion rates onto the common time grid
         resampled_acc_rates.append(interpolator(common_time))
+
+    # Smooth the specified number of simulations with a moving average
+    if smooth_simulations > 0 and len(accretion_rates) >= smooth_simulations:
+        smooth_indices = range(-1, -smooth_simulations-1, -1)  # Indices of the last 'smooth_simulations' simulations (reversed)
+        for idx in smooth_indices:
+            resampled_acc_rates[idx] = convolve1d(resampled_acc_rates[idx], np.ones(window_size)/window_size, mode='reflect')
+
     return resampled_acc_rates
 
 
@@ -77,21 +86,23 @@ def eddington_rate(mparticle_msun):
 
 if __name__ == "__main__":
 
-    ############################### Parameters ###############################
+    ###################################### Parameters ######################################
 
-    x = "s1-40msun-"    # simulation type
-    y = sys.argv[-1]    # naming plot
-    xlim = 0.802         # Myrs
-    time_cutoff = xlim  # Myrs
-    i_start = 0         # start index
+    x = "s1-40msun-"        # simulation type
+    y = sys.argv[-1]        # naming plot
+    xlim = 0.803             # Myrs
+    time_cutoff = xlim      # Myrs
+    i_start = 0             # start index
     include_beckmann_data = False
-    alpha = 0.9         # transparency of lines
-    num_subplots = 6    # number of subplots
-    rtol=1e-6
-    atol=2e-3           # 1e-4 for 1S.m, 
+    alpha = 0.9             # transparency of lines
+    num_subplots = 6        # number of subplots
+    smooth_simulations = 2  # number of simulations to smooth (starting from last sim)
+    window = 4              # window size to average over
+    rtol=1e-6   
+    atol=2e-3               # 1e-4 for 1S.m, 
     title = '1S.b Local Properties Comparison'
 
-    ##########################################################################
+    ########################################################################################
 
     # text format
     linewidth = 1.5
@@ -191,11 +202,11 @@ if __name__ == "__main__":
 
     # resample BHL attributes over the common_time - produces a list of length 4 (for each simulations), 
     # where list elements = attribute array
-    mass = resample_data([BHL.mass for BHL in bhl_object_list], times, common_time)
-    accretion_rates = resample_data([BHL.accrates for BHL in bhl_object_list], times, common_time)
-    density = resample_data([BHL.average_density for BHL in bhl_object_list], times, common_time)
-    avg_vinf = resample_data([BHL.average_vinfinity for BHL in bhl_object_list], times, common_time)
-    avg_cinf = resample_data([BHL.average_cinfinity for BHL in bhl_object_list], times, common_time)
+    mass = resample_data([BHL.mass for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
+    accretion_rates = resample_data([BHL.accrates for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
+    density = resample_data([BHL.average_density for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
+    avg_vinf = resample_data([BHL.average_vinfinity for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
+    avg_cinf = resample_data([BHL.average_cinfinity for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
     hl_radius = resample_data([BHL.hl_radius for BHL in bhl_object_list], times, common_time)
     bondi_radius = resample_data([BHL.hl_radius for BHL in bhl_object_list], times, common_time)
     #jeans = resample_data([BHL.jeans for BHL in bhl_object_list], times, common_time)
@@ -232,7 +243,13 @@ if __name__ == "__main__":
         residual = (accretion_rates[i] - accretion_rates[-1])
             
         print("Min residual: ", residual.min())
-        axs[5].scatter(common_time, residual, s=5, color=c[j], linestyle='solid', marker='o', label=l[i], alpha=0.6)
+        if i == 2:
+            alpha2 = 0.1
+        elif i == 1:
+            alpha2 = 0.3
+        else: 
+            alpha2 = 0.6
+        axs[5].scatter(common_time, residual, s=3, color=c[j], linestyle='solid', marker='o', label=l[i], alpha=alpha2)
         #axs[5].axhline(y=0, color='grey', linestyle='dashed', label=l[i], alpha=alpha)
         yscale_residual = 'linear'
         #axs[5].set_ylim([1e-8, 1e-1])
@@ -242,7 +259,7 @@ if __name__ == "__main__":
         j += 1
 
 
-    ############################### Format plots #############################
+    ############################### Format plots #################################
 
     # include title (might remove later)
     axs[0].set_title(title)
@@ -258,6 +275,7 @@ if __name__ == "__main__":
         axs[i].set_yscale('log')
         axs[i].set_xlim([0, xlim+0.01]) # for truncated view
 
+
     # format plots
     axs[0].set_ylabel(r"$\rm M_{BH} \, (M_{\odot})$", fontdict=None)
     axs[1].set_ylabel(r"$\rm \dot{M} \, (M_{\odot}/yr)$", fontdict=None)
@@ -269,7 +287,16 @@ if __name__ == "__main__":
     #axs[5].set_ylabel(r"$\rm r_{jeans} \, (pc)$", fontdict=None)
     axs[5].set_ylabel(r"$\rm \Delta \dot{M} \, (M_{\odot}/yr)$", fontdict=None)
     axs[5].set_yscale(yscale_residual)
+    axs[5].yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
+    axs[5].ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
+    # Move the "x 10^-4" label below the tick labels
+    axs[5].yaxis.set_minor_locator(ticker.AutoMinorLocator())
     axs[0].set_yscale('log')
+    #axs[5].yaxis.get_offset_text().set_y(0.01)
+    #axs[5].yaxis.offsetText.set_position((0, -0.15))
+    offset_text = axs[5].yaxis.get_offset_text()
+    offset_text.set_verticalalignment('top')
+    offset_text.set_x(-0.113)
     axs[-1].set_xlabel('BH Age (Myr)')
     #axs[0].set_title(str(x) + str(y), fontdict=None)
 
@@ -295,7 +322,7 @@ if __name__ == "__main__":
     #     # axs[3].set_ylim([0.1, 11])
     #     # #axs[5].set_ylim([8e-4, 12])
     if x == "s1-40msun-":
-        axs[0].set_ylim([0, 80])
+        #axs[0].set_ylim([0, 80])
         #axs[1].set_ylim([5e-5, 2e-2])
         #axs[2].set_ylim([8e3, 3e8])
         axs[3].set_ylim([3e-1, 5e1])
