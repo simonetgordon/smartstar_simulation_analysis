@@ -171,7 +171,7 @@ if __name__ == "__main__":
 
             # Metallicity
             field = "SN_Colour"
-            p3 = yt.ProjectionPlot(ds, "x", ("enzo", field), width=(w_pccm, 'pccm'), center= center, data_source=region,
+            p3 = yt.ProjectionPlot(ds, "x", ("enzo", field), width=(w_pccm, 'pccm'), north_vector=north, center=center, data_source=region,
                                    weight_field=("gas", "density"))
             p3.set_cmap(field, 'kamae')
             p3.set_axes_unit('pc')
@@ -181,8 +181,8 @@ if __name__ == "__main__":
         elif map == "h2":
             # H2 fraction
             field = "H2_p0_fraction"
-            p4 = yt.ProjectionPlot(ds, "x", ("gas", field ), width=(w_pccm,'pccm'), center=center,
-                                   data_source=region, weight_field='cell_mass')
+            p4 = yt.ProjectionPlot(ds, "x", ("gas", field ), north_vector=north, width=(w_pccm,'pccm'), center=center, data_source=region, 
+                                   weight_field='cell_mass')
             p4.set_cmap(field, "kelp")
             p4.set_axes_unit('pc')
 
