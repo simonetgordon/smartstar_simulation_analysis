@@ -31,9 +31,9 @@ def apply_annotations_and_save(p, title=None):
 
     # top left text
     p.annotate_text((a, b), r"BH Mass: {:.0f} $\rm M_\odot$".format(ss_mass.d), coord_system="axis",
-                        text_args={"color": "white"}) 
+                        text_args={"color": "black"}) 
     p.annotate_text((a, b-0.05), "BH Age = {:.2f} Myr".format(ss_age[0] / 1e6), coord_system="axis",
-                        text_args={"color": "white"})
+                        text_args={"color": "black"})
     
     # lower right text
     p.annotate_text((0.82, b2), "z = {:.2f}".format(ds.current_redshift), coord_system="axis",
@@ -82,7 +82,7 @@ c_max = 8e9
 
 # 5) data
 #root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb08" 
-root_dir = "/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.RSb04"
+root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.RSmf8"
 enzo_file = "smartstar-production-runs.enzo"
 sim = os.path.join(root_dir, enzo_file)
 
@@ -106,7 +106,7 @@ if __name__ == "__main__":
         center0 = 0.5 * (left_edge + right_edge)
 
     # find north vector a (near-end) ds
-    ds_final = yt.load(os.path.join(root_dir, "DD0142/DD0142"))
+    ds_final = yt.load(os.path.join(root_dir, "DD0136/DD0136"))
     ss_pos, ss_mass, ss_age = ss_properties(ds_final)
     center = ss_pos
     r = 2000*yt.units.pc
