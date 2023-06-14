@@ -33,6 +33,7 @@ fig, axs = plt.subplots(1, num_subplots, sharey=True)
 
 # misc parameters
 l = tidy_data_labels(bhl_object_labels)
+l = ['10.8msun.UR8', '10.8msun.UR4', '10.8msun.R01', '10.8msun.R04', '10.8msun.UR8', '10.8msun.UR4', '10.8msun.R01', '10.8msun.R04']
 j = 0
 alpha = 0.9
 time_cutoff = 0.42 # Myrs
@@ -78,7 +79,6 @@ for j in range(num_subplots):
     axs[1].tick_params(axis="y", which='major', width=1, length=4, direction="in")
     axs[j].tick_params(axis="x", which='major', labelsize=fontsize, width=1, length=4, direction="in")
     axs[j].set_yscale('log')
-    axs[j].legend(loc='upper left')
     
 
 # format individual subplots
@@ -86,14 +86,15 @@ axs[0].set_title("Mass-Flux Accretion", fontdict=None)
 axs[0].set_xlabel("BH Age (Myr)", fontdict=None)
 axs[1].set_title("BHL Accretion", fontdict=None)
 axs[1].set_xlabel("BH Age (Myr)", fontdict=None)
-axs[1].text(0.17, 270, 'High Resolution', fontsize=12, color=c[-1])
-axs[1].text(0.17, 1200, 'Low Resolution', fontsize=12, color=c[0])
+axs[1].text(0.26, 270, 'High Resolution', fontsize=12, color=c[-1])
+axs[1].text(0.26, 1200, 'Low Resolution', fontsize=12, color=c[0])
 # Add an arrow
 arrow_props = dict(facecolor='red', arrowstyle='->')
-axs[1].annotate('', xy=(0.24, 380), xytext=(0.24, 1100),
+axs[1].annotate('', xy=(0.34, 380), xytext=(0.34, 1100),
             arrowprops=arrow_props)
 # set  y-label for both
 axs[0].set_ylabel(r"BH Mass ($\rm M_\odot$)", fontdict=None)
+axs[1].legend(loc='upper left')
 
 
 # save plot as pdf
