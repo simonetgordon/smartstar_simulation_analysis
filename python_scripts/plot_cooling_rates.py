@@ -40,13 +40,19 @@ def interpolate_data(arr, N=100):
 root_dir = ["/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann",
             "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann", 
             "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann"]
-sim = ["1B.RSb01-2", "1B.RSb01-2", "1B.RSb16", ]
-dds = ["DD0138/DD0138", "DD0258/DD0258", "DD0166/DD0166"]
+sim = [
+    #"1B.RSb01-2", 
+    "1B.RSb01-2", 
+    "1B.RSb16"]
+dds = [
+    "DD0138/DD0138", 
+    # "DD0258/DD0258", 
+    "DD0166/DD0166"]
 labels = []
 DS = []
 
 # Beckmann data
-data_beck = pd.read_csv("cooling_line_beckmann.csv")
+data_beck = pd.read_csv("beckmann-data/cooling_line_beckmann.csv")
 radius_beck = data_beck['radius'].tolist()
 q_ratio_beck = data_beck['qratio'].tolist()
 
@@ -84,15 +90,16 @@ plt.rcParams["mathtext.default"] = "regular" # for the same font used in regular
 rc('text', usetex=True)
 
 # colors
-c = ['blueviolet', 'plum', 'green']
+c = [
+    #'blueviolet,'
+    'plum', 'green']
 
 # set up figure
 fig, axs = plt.subplots(1, sharex=True)
-fig.set_size_inches(7.5, 5.5)
 
 # set x and y labels
-plt.xlabel(r"Radius (pc)")
-plt.ylabel(r"$\rm Q_{adv} / Q_{rad}$")
+plt.xlabel(r"Radius (pc)", fontsize=20)
+plt.ylabel(r"$\rm Q_{adv} / Q_{rad}$", fontsize=20)
 # set minorticks
 min_n_index = -3
 max_n_index = 1
@@ -102,8 +109,9 @@ minorticks = np.outer(a1, a2).flatten()
 plt.yticks(minorticks, minor=True)
 
 # plot Beckmann cooling line
-plt.loglog(radius_beck, q_ratio_beck, color="grey", label="Beckmann_2018")
+plt.loglog(radius_beck, q_ratio_beck, color="royalblue", label="Beckmann_2018")
 
+labels = ['270msun.BHL.1Myr.R01', '270msun.BHL.1Myr.R16']
 for j, ds in enumerate(dds):
     # Load the data from the local directory
     ds = yt.load(os.path.join(root_dir[j], sim[j], ds))
@@ -125,9 +133,9 @@ for j, ds in enumerate(dds):
     )
 
     # make ds label
-    label = tidy_data_labels(str(sim[j]) + "_" + "{:.2f}".format(ss_age[0]/1e6) + "Myr")
-    DS.append(ds)
-    labels.append(label)
+    # label = tidy_data_labels(str(sim[j]) + "_" + "{:.2f}".format(ss_age[0]/1e6) + "Myr")
+    # DS.append(ds)
+    # labels.append(label)
 
     # take absolute value of cooling rate
     cooling_ratio = np.abs(profile[("enzo", "radiative_cooling_rate")][profile.used] / \
@@ -139,6 +147,7 @@ for j, ds in enumerate(dds):
     plt.loglog(x_avg, y_avg, color=c[j], label=labels[j])
     plt.axhline(y=1, color='grey', linestyle='dashed', linewidth=2, alpha=1)
     plt.xlim(4e-4, 10.2)
+    plt.ylim(2e-4, 1.2e4)
     plt.legend()
 
     # annotate with simulation data
@@ -149,14 +158,22 @@ for j, ds in enumerate(dds):
     #plt.text(0.2, 5e-4, label, verticalalignment='top', bbox=props)
 
     # 2) Denote disc region
-    rdiscs = [0.15, 0.04]
+    rdiscs = [0.15, 
+              #0.04
+              ]
     disc_r = rdiscs[0] # pc -from projection plot inspection
     accretion_r = 1.23e-2
-    cr = ["lemonchiffon", "peachpuff"]
-    plt.axvline(accretion_r, color="black", alpha=0.5)
+    cr = ["lemonchiffon", "lemonchiffon"]
+    plt.axvline(accretion_r, color="black", alpha=1)
     trans = mtransforms.blended_transform_factory(axs.transData, axs.transAxes)
-    plt.fill_between(x_avg, 0, y_avg.max(), where=x_avg <= disc_r, facecolor=cr[0], transform=trans, alpha=0.5)
+    if j == 1:
+        plt.fill_between(x_avg, 0, y_avg.max(), where=x_avg <= disc_r, facecolor=cr[0], transform=trans, alpha=0.5)
 
-plot_name = 'radial-profile-plot-cooling-rate-' + str(sim[0]) + '_' + str(sim[1]) + '_' + str(sim[2]) + 'beckmann.pdf'
+plt.title("Advective/Radiative Cooling Rate Radial Profile", fontsize=20)
+
+plot_name = 'radial-profile-plot-cooling-rate-' + str(sim[0]) + "_" + str(sim[1]) + '-beckmann.pdf'
+#+ '_' + str(sim[1]) + '_' + str(sim[2]) 
+
+fig.set_size_inches(8, 5.8)
 plt.savefig('plots/' + plot_name, dpi=100)
 print("created ", 'plots/' + plot_name)
