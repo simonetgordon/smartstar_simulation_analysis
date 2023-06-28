@@ -14,6 +14,33 @@ import os
 from matplotlib import rc
 
 
+def set_tick_params(n_subplots, fontsize, custom_ticks=[], xlim=[], vline=0):
+    for i in range(n_subplots):
+        axs[i].set_xscale('log')  # Set the x-axis scale to logarithmic
+
+        # Add a vertical line at x = vline with customized visual properties
+        if vline > 0:
+            axs[i].axvline(x=vline, color='grey', linestyle='dashed', lw=linewidth-0.5, alpha=0.8)
+
+        # Set the x-axis limits if provided
+        if len(xlim) > 0:
+            axs[i].set_xlim(xlim)  
+        
+        axs[i].tick_params(bottom=True, left=True)  # Set tick parameters for the plot
+        axs[i].minorticks_on()  # Enable minor ticks on the plot
+
+        # Set custom tick locations on the x-axis if provided
+        if len(custom_ticks) > 0:
+            axs[i].set_xticks(custom_ticks)  
+
+        axs[i].tick_params(axis="x", which='minor', length=2, direction="in")  # Set minor tick parameters on the x-axis
+        axs[i].tick_params(axis="x", which='major', labelsize=fontsize, width=1, length=3, direction="in")
+
+        # Set major tick parameters on the y-axis with specified label size and visual properties
+        axs[i].tick_params(axis="y", which='major', labelsize=fontsize)  # Set major tick label size on the y-axis
+        axs[i].tick_params(axis="y", which='minor', length=2)  # Set minor tick parameters on the y-axis
+
+
 def critical_density(ds, n_crit=False):
     # Get the cosmological parameters from the dataset parameters
     hubble_constant = yt.YTQuantity(ds.parameters.get("CosmologyHubbleConstantNow")*100, "km/s/Mpc")
@@ -49,7 +76,7 @@ def set_font(fontsize=12, linewidth=1):
     plt.rcParams['lines.linewidth'] = linewidth
 
 
-def generate_labels(dds, root_dir, sim, s=True):
+def generate_labels(dds, root_dir, sim, s=True, tform=0):
     # generate 2 lists: labels, datasets (DS)
     labels = []
     DS = []
@@ -57,15 +84,25 @@ def generate_labels(dds, root_dir, sim, s=True):
         ds = yt.load(os.path.join(root_dir[i], sim[i], dd))
         add_fields_ds(ds)
         j = i + 1
+        time_precision = 4 # no. characters in time str
         if s: # include seed
-            label = "s" + str(j) + "_" + str(float(ds.current_time.to('Myr')))[:5] + "Myr"
+            label = "s" + str(j) + "_" + str(float(ds.current_time.to('Myr') - tform))[:time_precision] + "Myr"
         else: # include sim 
-            sim = tidy_data_labels(sim)
-            label = sim + "_" + str(float(ds.current_time.to('Myr')))[:5] + "Myr"
+            label = str(tidy_data_labels(sim)[i]) + "_" + str(float(ds.current_time.to('Myr') - tform))[:time_precision] + "Myr"
         DS.append(ds)
         labels.append(label)
 
     return labels, DS
+
+
+def generate_DS(dds, root_dir, sim):
+    # make list of complete ds filepaths
+    DS = []
+    for i, dd in enumerate(dds):
+        ds = yt.load(os.path.join(root_dir[i], sim[i], dd))
+        add_fields_ds(ds)
+        DS.append(ds)
+    return DS
 
 
 def tidy_data_labels(labels):
@@ -83,7 +120,7 @@ def tidy_data_labels(labels):
 if __name__ == "__main__":
 
     ################################## Parameters ##################################
-    rvir_pc = 2167.60571289 # at z = 26.338 at l3
+    rvir_pc_s1 = 79.34 # at 2167.60571289 comoving. This is at z = 26.338 at l3
     M200 = 2.7491550e+05 # at z = 26.338 at l3 (same as Mvir)
     n_subplots = 4
     y = sys.argv[-1] # naming plot
@@ -158,7 +195,6 @@ if __name__ == "__main__":
         axs[0].loglog(rp.x.value, rp[("deposit", "all_mass")].value,
                     color=c2[i], linestyle='solid', label= labels[i] + "_DM", alpha=alpha)
         r200 = rp[("deposit", "all_mass")].value.cumsum().max() + rp[("gas", "mass")].value.cumsum().max()
-        print("r200 mass: ", r200)
 
         axs[1].loglog(rp2.x[rp2.used], rp2[("gas", "temperature")][rp2.used],
                     color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
@@ -183,16 +219,8 @@ if __name__ == "__main__":
 
 
     # set ticks
-    xticks = np.logspace(-2, 5, 8)
-    axs[3].set_xticks(xticks)
-    for i in range(n_subplots):
-        axs[i].tick_params(bottom=True, left=True)
-        axs[i].minorticks_on()
-        axs[i].tick_params(axis="x", which='minor', length=2, direction="in")
-        axs[i].tick_params(axis="x", which='major', labelsize=fontsize, width=1, length=3, direction="in")
-        axs[i].tick_params(axis="y", which='major', labelsize=fontsize)
-        axs[i].tick_params(axis="y", which='minor', length=2)
-        #axs[i].grid(color='grey', linestyle='solid', linewidth=0.5, alpha=0.7)
+    xticks = np.logspace(-2, 4, 8)
+    set_tick_params(n_subplots, fontsize, custom_ticks=xticks, xlim=[2e-3, r_lim_kpc*1e3], vline=rvir_pc_s1)
 
     # make lines for legend
     r_lines = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth),
@@ -200,10 +228,9 @@ if __name__ == "__main__":
 
     # set axis labels
     axs[n_subplots-1].set_xlabel(r"$\rm Radius \, (pc)$", fontdict=None)
-    axs[n_subplots-1].set_xlim(2e-3, r_lim_kpc*1e3)
-    axs[3].set_ylabel(r"$\rm n \, (cm^{-3})$", fontdict=None)
+    axs[3].set_ylabel(r"$\rm \rho \, (g \, cm^{-3})$", fontdict=None)
     for i in range(n_subplots):
-        axs[i].axvline(x=rvir_pc, color='grey', linestyle='dashed', lw=linewidth, alpha=1, label=r"$r_{200/vir}$")
+        axs[i].axvline(x=rvir_pc_s1, color='grey', linestyle='dashed', lw=linewidth, alpha=1, label=r"$r_{200/vir}$")
     axs[2].set_ylabel(r"$\rm t_{ff} \, (Myr)$", fontdict=None)
     #axs[2].set_ylim(200, rp2[("gas", "blackhole_freefall_timescale")][rp2.used].to("Myr").d.max()+100)
     axs[1].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
@@ -211,7 +238,7 @@ if __name__ == "__main__":
     axs[0].axhline(y=M200, color='grey', linestyle='dotted', lw=linewidth, alpha=1, label=r"$M_{200/vir}$")
     axs[0].legend(loc="upper left", fontsize=fontsize-4, ncol=1)  # upper/lower
     axs[0].set_title("Gas properties at time of BH formation", fontdict=None)
-    axs[3].axhline(y=360*critical_density(ds), color='grey', linestyle='dotted', lw=linewidth, alpha=1, label=r"$n_{200}$")
+    #axs[3].axhline(y=360*critical_density(ds), color='grey', linestyle='dotted', lw=linewidth, alpha=1, label=r"$n_{200}$")
 
     # save plot as pdf
     fig = plt.gcf()
