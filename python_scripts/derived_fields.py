@@ -4,9 +4,14 @@ import numpy as np
 G = 6.67e-8 * (yt.units.cm ** 3)/(yt.units.g*yt.units.s**2) # cgs
 M = 270*1.989e+33 * yt.units.g # cgs
 
+
+def _mass_flux(field, data):
+    vel_r = data[("gas", "radial_velocity")]
+    vel_r[vel_r >= 0] = 0 # set postive velocities to 0     
+    return 4*np.pi*data["gas", "density"]*(data["index", "radius"]**2)*np.abs(vel_r)
+
 def _keplerian_frequency_BH(field, data):
     return np.sqrt(G*M / (data[("index", "radius")].to('cm')**3))
-
 
 # add epicyclic frequency kappa / angular frequency omega derived field
 def _omega(field, data):
@@ -223,6 +228,13 @@ def add_fields_ds(ds):
         function=_orbital_velocity,
         sampling_type="local",
         units="cm/s"
+    )
+
+    ds.add_field(
+        ("gas", "mass_flux"),
+        function=_mass_flux,
+        sampling_type="local",
+        units="g/s"
     )
 
 
