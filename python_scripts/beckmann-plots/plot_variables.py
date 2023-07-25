@@ -90,17 +90,18 @@ if __name__ == "__main__":
 
     x = "s1-40msun-"        # simulation type
     y = sys.argv[-1]        # naming plot
-    xlim = 0.803             # Myrs
+    xlim = 1                # Myrs
     time_cutoff = xlim      # Myrs
     i_start = 0             # start index
     include_beckmann_data = False
     alpha = 0.9             # transparency of lines
     num_subplots = 6        # number of subplots
-    smooth_simulations = 2  # number of simulations to smooth (starting from last sim)
-    window = 4              # window size to average over
+    smooth_simulations = 5  # number of simulations to smooth (starting from last sim)
+    window = 10             # window size to average over
     rtol=1e-6   
-    atol=2e-3               # 1e-4 for 1S.m, 
-    title = '1S.b Local Properties Comparison'
+    atol=1e-4               # 1e-4 for 1S.m, 2e-4 for 1B.m
+    title = 'Extra Simulations: Mass-Flux'           # plot title
+    extra_line = True      # plot extra line from data file
 
     ########################################################################################
 
@@ -118,19 +119,18 @@ if __name__ == "__main__":
     fig, axs = plt.subplots(num_subplots, 1, sharex=True)
 
     # identify cell widths for this simulation
-    for i in [4]:
-        if x == "s1-270msun-":
-            dx = [1.229791e-02, 3.074475e-03, 1.537645e-03, 7.692833e-04]
-        elif x == "beck-comp-":
-            dx = [1.229791e-02, 3.074475e-03]
-        elif x == "s1-40msun-":
-            dx = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04]
-        elif x == "s2-270msun-":
-            dx = [8.298311e-03, 2.074568e-03, 1.537645e-03, 7.687095e-04, 3.8435475e-04, 1.296596e-04]
-        elif x == "s2-40msun-":
-            dx = [8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04]
-        elif x == "s2-40msun-2-":
-            dx = [1.3e-03, 5.2e-04, 1.3e-04]
+    if x == "s1-270msun-":
+        dx = [0.04919164, 1.229791e-02, 3.074475e-03, 1.537645e-03, 7.692833e-04]
+    elif x == "beck-comp-":
+        dx = [1.229791e-02, 3.074475e-03]
+    elif x == "s1-40msun-":
+        dx = [0.09839468, 2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04]
+    elif x == "s2-270msun-":
+        dx = [8.298311e-03, 2.074568e-03, 1.537645e-03, 7.687095e-04, 3.8435475e-04, 1.296596e-04]
+    elif x == "s2-40msun-":
+        dx = [8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04]
+    elif x == "s2-40msun-2-":
+        dx = [1.3e-03, 5.2e-04, 1.3e-04]
 
     """""""""""""""""""""
     1) Plot Beckmann data
@@ -182,7 +182,7 @@ if __name__ == "__main__":
     """""""""""""""""
 
     # set line colours
-    c = ['blueviolet', 'turquoise', 'limegreen', 'darkgreen']
+    c = ['indigo', 'mediumslateblue', 'turquoise', 'limegreen', 'darkgreen']
 
     # set BHL properties parameters
     l = tidy_data_labels(bhl_object_labels)
@@ -244,9 +244,9 @@ if __name__ == "__main__":
             
         print("Min residual: ", residual.min())
         if i == 2:
-            alpha2 = 0.1
+            alpha2 = 0.2
         elif i == 1:
-            alpha2 = 0.3
+            alpha2 = 0.4
         else: 
             alpha2 = 0.6
         axs[5].scatter(common_time, residual, s=3, color=c[j], linestyle='solid', marker='o', label=l[i], alpha=alpha2)
@@ -257,6 +257,39 @@ if __name__ == "__main__":
         print("=============================")
 
         j += 1
+
+    # plot line not using common time (hasn't reached ~ 1 Myr yet)
+    if extra_line:
+
+        # Load the CSV file into a DataFrame
+        df = pd.read_csv("data_files/data-1S.m04-no-SN.csv")
+
+        # Extract the columns you're interested in
+        age = df['age'].values/1e6
+        bh_mass = df['BH mass'].values
+        accrate = df['accrate'].values
+        avg_density = df['average density'].values
+        avg_vinfinity = df['average vinfinity'].values
+        avg_cinfinity = df['average cinfinity'].values
+        hl_radius = df['HL radius'].values
+
+        # 1) BH Mass
+        axs[0].plot(age, bh_mass, color=c[j], linestyle='solid', label=l[i]+'-no-SN', alpha=alpha)
+
+        # 2) Accretion Rates
+        axs[1].plot(age, accrate, color=c[j], linestyle='solid', label=l[i], alpha=alpha)
+        axs[1].plot(age, eddington_rate(bh_mass), color=c[j], linestyle='dashed', label=l[i], alpha=alpha)
+
+        # 3) Densities
+        axs[2].plot(age, avg_density, color=c[j], linestyle='solid', label=l[i], alpha=alpha)
+
+        # 4) Velocities
+        axs[3].plot(age, avg_vinfinity/avg_cinfinity, color=c[j], linestyle='solid', label=l[i]+'-Mach', alpha=alpha)
+
+        # 5) HL radius
+        axs[4].plot(age, hl_radius/dx[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
+
+        # 6) Scatter Residual - not possible for this data
 
 
     ############################### Format plots #################################
@@ -296,7 +329,7 @@ if __name__ == "__main__":
     #axs[5].yaxis.offsetText.set_position((0, -0.15))
     offset_text = axs[5].yaxis.get_offset_text()
     offset_text.set_verticalalignment('top')
-    offset_text.set_x(-0.113)
+    offset_text.set_x(-0.121)
     axs[-1].set_xlabel('BH Age (Myr)')
     #axs[0].set_title(str(x) + str(y), fontdict=None)
 
@@ -325,7 +358,11 @@ if __name__ == "__main__":
         #axs[0].set_ylim([0, 80])
         #axs[1].set_ylim([5e-5, 2e-2])
         #axs[2].set_ylim([8e3, 3e8])
-        axs[3].set_ylim([3e-1, 5e1])
+        axs[3].set_ylim([3e-2, 8e1])
+    elif x == "s1-270msun-":
+
+        axs[4].set_ylim([3e-2, 2e2])
+        axs[5].set_ylim([-1.5e-2, 0.9e-2])
 
 
     ############################### Legends ################################
@@ -358,7 +395,7 @@ if __name__ == "__main__":
     accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
 
     # Include legends
-    axs[0].legend(fontsize=fontsize-1, ncol=2, loc="upper left")  # upper/lower
+    axs[0].legend(fontsize=fontsize-2, ncol=1, loc="lower right")  # upper/lower
     axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-1, ncol=2)
     #axs[3].legend(vel_lines, [r"$\rm \nu_{\infty}$", r"\rm $c_{\infty}$"], loc="upper left", fontsize=fontsize-1, ncol=1)
     #axs[4].legend(radius_lines, [r"$\rm r_{HL}$", r"$\rm r_{Bondi}$"], fontsize=fontsize-1, ncol=1)
