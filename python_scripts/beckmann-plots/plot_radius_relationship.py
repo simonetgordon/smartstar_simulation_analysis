@@ -1,11 +1,12 @@
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from scipy.optimize import curve_fit
-from scipy.stats import kendalltau
 import numpy as np
+from scipy import stats
 import sys
 from read_arrays_from_csv import bhl_object_list, bhl_object_labels
 from plot_variables import tidy_data_labels, first_index, interpolate_data, movingaverage, eddington_rate
+from matplotlib.ticker import FixedLocator
 
 
 ##########################################################################################################
@@ -36,10 +37,10 @@ def A_dyn_friction(M_msun, c_s_kmps):
 
 if __name__ == "__main__":
     # set x-axis extent in Myr and simulation set
-    xlim = 0.1 #0.225 for 1S
-    sim = "s2-270msun-"
+    xlim = 0.4 #0.225 for 1S
+    sim = "s1-10.8msun-"
     atol = 5e-4  # 7e-2 for 1B.m, 1e-4 otherwise
-    eddington = 0
+    eddington = True
     accretion = sys.argv[-1] # naming plot with accretion scheme
     c = ['blueviolet', 'turquoise', 'limegreen', 'darkgreen']  # line colours s1
     #c = ['indigo', 'blueviolet', 'violet', 'dodgerblue', 'turquoise', 'limegreen', 'darkgreen'] # line colours s2S
@@ -63,7 +64,7 @@ if __name__ == "__main__":
     # initialise figure
     fig = plt.figure()
     num_subplots = 2
-    fig, axs = plt.subplots(num_subplots, 2, sharex=True)
+    fig, axs = plt.subplots(num_subplots, 2, sharex=False, sharey=True)
 
     # tidy data labels
     l = tidy_data_labels(bhl_object_labels)
@@ -139,14 +140,20 @@ if __name__ == "__main__":
         dx_res_hl = interp_hl
         dx_res_bondi = interp_bondi
 
-        # Perform the logarithmic regression
-        p_hl = np.polyfit(np.log10(accrate), np.log10(dx_res_hl), deg=1)
-        p_bondi = np.polyfit(np.log10(accrate), np.log10(dx_res_bondi), deg=1)
+        # perform linear regression
+        slope_hl, intercept_hl, r_value_hl, p_value_hl, std_err_hl = stats.linregress(np.log10(accrate), np.log10(dx_res_hl))
+        slope_bondi, intercept_bondi, r_value_bondi, p_value_bondi, std_err_bondi = stats.linregress(np.log10(accrate), np.log10(dx_res_bondi))
+        p_hl = [slope_hl, intercept_hl]
+        p_bondi = [slope_bondi, intercept_bondi]
+        print("++++++++ HL linear fit stats +++++++++++")
+        print("r-squared:", r_value_hl ** 2)
+        print("p-value:", p_value_hl)
+        print("std_err:", std_err_hl)
+        print(f"dx_res_hl = {10**intercept_hl:.2e} * (M. ** {slope_hl:.2e})")
 
-        # Print the line fit to the terminal
-        print(f"dx_res_hl = {10**p_hl[1]:.2e} * (M. ** {p_hl[0]:.2e})")
-        line_str_hl = r"$\rm  %.2f\, (\dot{M}/ \dot{M}_{Edd})^{%.3f}$" % (10 ** p_hl[1], p_hl[0])
-        line_str_bondi = r"$\rm  %.2f\, (\dot{M}/ \dot{M}_{Edd})^{%.3f}$" % (10 ** p_bondi[1], p_bondi[0])
+        # make line strings
+        line_str_hl = r"$\rm  %.2f\, (\dot{M}/ \dot{M}_{Edd})^{%.3f}$" % (10 ** intercept_hl, slope_hl)
+        line_str_bondi = r"$\rm  %.2f\, (\dot{M}/ \dot{M}_{Edd})^{%.3f}$" % (10 ** intercept_bondi, slope_bondi)
 
         if i in i_mf:
 
@@ -156,16 +163,16 @@ if __name__ == "__main__":
             lst_res_bondi_mf.append(dx_res_bondi)
 
             # 1) HL radius resolution in cell widths
-            axs[0, 0].scatter(accrate, dx_res_hl, color=c[i], linestyle='solid', label=l[i], alpha=alpha)
-            axs[0, 0].plot(accrate, line_fit(accrate, *p_hl), c[i], linestyle='dashed',
-                        #label=line_str_hl
-                        )
+            axs[0, 0].scatter(dx_res_hl, accrate, color=c[i], linestyle='solid', label=l[i], alpha=alpha)
+            # axs[0, 0].plot(accrate, line_fit(accrate, *p_hl), c[i], linestyle='dashed',
+            #             #label=line_str_hl
+            #             )
 
             # 2) Bondi radius resolution in cell widths
-            axs[1, 0].scatter(accrate, dx_res_bondi, color=c[i], linestyle='solid', label=l[i], alpha=alpha)
-            axs[1, 0].plot(accrate, line_fit(accrate, *p_bondi), c[i], linestyle='dashed',
-                        #label=line_str_bondi
-                        )
+            axs[0, 1].scatter(dx_res_bondi, accrate, color=c[i], linestyle='solid', label=l[i], alpha=alpha)
+            # axs[1, 0].plot(accrate, line_fit(accrate, *p_bondi), c[i], linestyle='dashed',
+            #             #label=line_str_bondi
+            #             )
 
         else:
 
@@ -175,20 +182,20 @@ if __name__ == "__main__":
             lst_res_bondi_bhl.append(dx_res_bondi)
 
             # 1) HL radius resolution in cell widths
-            axs[0, 1].scatter(accrate, dx_res_hl, color=c[i - int(len(bhl_object_list) / 2)],
+            axs[1, 0].scatter(dx_res_hl, accrate, color=c[i - int(len(bhl_object_list) / 2)],
                               linestyle='solid', label=l[i], alpha=alpha)
-            axs[0, 1].plot(accrate, line_fit(accrate, *p_hl), color=c[i - int(len(bhl_object_list) / 2)],
-                           linestyle='dashed', 
-                           #label=line_str_hl
-                           )
+            # axs[0, 1].plot(accrate, line_fit(accrate, *p_hl), color=c[i - int(len(bhl_object_list) / 2)],
+            #                linestyle='dashed', 
+            #                #label=line_str_hl
+            #                )
 
             # 2) Bondi radius resolution in cell widths
-            axs[1, 1].scatter(accrate, dx_res_bondi, color=c[i - int(len(bhl_object_list) / 2)],
+            axs[1, 1].scatter(dx_res_bondi, accrate, color=c[i - int(len(bhl_object_list) / 2)],
                               linestyle='solid', label=l[i], alpha=alpha)
-            axs[1, 1].plot(accrate, line_fit(accrate, *p_bondi), color=c[i - int(len(bhl_object_list) / 2)],
-                           linestyle='dashed', 
-                           #label=line_str_bondi
-                           )
+            # axs[1, 1].plot(accrate, line_fit(accrate, *p_bondi), color=c[i - int(len(bhl_object_list) / 2)],
+            #                linestyle='dashed', 
+            #                #label=line_str_bondi
+            #                )
 
         # update y-axis limits
         min_hl = min(dx_res_hl.min(), min_hl)
@@ -218,26 +225,48 @@ if __name__ == "__main__":
     line_str_pearson_bondi_mf = r"Pearson Coeff = $\rm %.2f$" % (pearson_coeff_bondi_mf)
 
     # calculate Kendall tau and p-value
-    tau, p_value = kendalltau(accrate_total_bhl, res_hl_total_bhl)
+    tau, p_value = stats.kendalltau(accrate_total_bhl, res_hl_total_bhl)
     print("Kendall's tau:", tau)
     print("p-value:", p_value)
+
+    # perform linear regression on aggregate data per accretion scheme and radius resolution
+    slope_hl, intercept_hl, r_value_hl, p_value_hl, std_err_hl = stats.linregress(np.log10(res_hl_total_bhl), np.log10(accrate_total_bhl))
+    slope_bondi, intercept_bondi, r_value_bondi, p_value_bondi, std_err_bondi = stats.linregress(np.log10(res_bondi_total_bhl), np.log10(accrate_total_bhl))
+    line_str_pearson_hl_bhl = r"R-squared = $\rm %.2f$" % (r_value_hl ** 2)
+    line_str_pearson_bondi_bhl = r"R-squared = $\rm %.2f$" % (r_value_bondi ** 2)
+    p_hl_bhl = [slope_hl, intercept_hl]
+    p_bondi_bhl = [slope_bondi, intercept_bondi]
+
+    slope_hl, intercept_hl, r_value_hl, p_value_hl, std_err_hl = stats.linregress(np.log10(res_hl_total_mf), np.log10(accrate_total_mf))
+    slope_bondi, intercept_bondi, r_value_bondi, p_value_bondi, std_err_bondi = stats.linregress(np.log10(res_bondi_total_mf), np.log10(accrate_total_mf))
+    line_str_pearson_hl_mf = r"R-squared = $\rm %.2f$" % (r_value_hl ** 2)
+    line_str_pearson_bondi_mf = r"R-squared = $\rm %.2f$" % (r_value_bondi ** 2)
+    p_hl_mf = [slope_hl, intercept_hl]
+    p_bondi_mf = [slope_bondi, intercept_bondi]
 
     ################################ Format Plot ####################################
 
     # label axes
+    yticks = np.logspace(-3, 3, 7)
     for i in range(num_subplots):
         for j in range(num_subplots):
-            if eddington:
-                axs[i, j].set_xlabel(r"$\rm \dot{M} / \dot{M}_{Edd}$")
-            else:
-                axs[i, j].set_xlabel(r"$\rm \dot{M} \, (M_{\odot}/yr)$")
+
+            axs[1, 0].set_xlabel(r"$R_{\rm Bondi}$ Resolution (cell widths)", fontdict=None)
+            axs[1, 1].set_xlabel(r"$R_{\rm HL}$ Resolution (cell widths)", fontdict=None)
 
             # x-axis ticks
-            #axs[i, j].set_xticks(np.arange(0, time_cutoff+0.05, 0.1))
+            axs[i, j].set_yticks(yticks)
+            # Define minor y-ticks for log scale
+            yticks_minor = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 2, 3, 4, 5, 6, 7, 8, 9, 20, 30, 40, 
+                            50, 60, 70, 80, 90, 200, 300, 400, 500, 600, 700, 800, 900]
+
             axs[i, j].minorticks_on()
+            axs[i, j].yaxis.set_minor_locator(FixedLocator(yticks_minor))
             #axs[i, j].xaxis.set_minor_locator(plt.MultipleLocator(0.02))
             axs[i, j].tick_params(axis="x", which='minor', length=2, direction="in")
             axs[i, j].tick_params(axis="x", which='major', labelsize=fontsize, width=1.5, length=3, direction="in")
+            axs[i, j].tick_params(axis="y", which='minor', length=2, direction="in")
+            axs[i, j].tick_params(axis="y", which='major', labelsize=fontsize, width=1.5, length=3, direction="in")
             axs[i, j].set_yscale('log')
             axs[i, j].set_xscale('log')
 
@@ -245,6 +274,9 @@ if __name__ == "__main__":
 
             # set no cells = 1 line
             axs[i, j].axhline(y=1, color="grey", linestyle='dashdot', lw=linewidth, alpha=alpha)
+
+            # set ylim
+            axs[i, j].set_ylim(8e-5, 3e3)
 
     # # format individual subplots
     # axs[0, 0].set_ylabel(r"$R_{\rm HL}$ Resolution (cell widths)", fontdict=None)
@@ -257,35 +289,60 @@ if __name__ == "__main__":
     # axs[0, 0].legend(fontsize=8.5, ncol=3)
 
     # format individual subplots
-    axs[0, 0].set_ylabel(r"$R_{\rm HL}$ Resolution (cell widths)", fontdict=None)
-    axs[0, 0].set_title(str(sim) + str(accretion)[:2] + "-" + str(xlim) + "Myr", fontdict=None)
-    axs[0, 0].set_ylim(min_hl - min_hl * 0.1, max_hl + max_hl * 0.2)
-    axs[0, 0].legend(fontsize=fontsize - 4, ncol=2, loc="upper left")
-    axs[0, 0].text(0.63, 0.065, line_str_pearson_hl_mf, fontsize=fontsize-4, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[0, 0].transAxes)
-    
-    axs[1, 0].set_ylabel(r"$R_{\rm Bondi}$ Resolution (cell widths)", fontdict=None)
-    axs[1, 0].set_ylim(min_bondi - min_bondi * 0.1, max_bondi + max_bondi * 0.25)
+    if str(accretion)[:2] == "MF":
+        accretion_type = "Mass-Flux"
+    else:
+        accretion_type = "BHL"
+    #axs[0, 0].set_title(str(sim) + str(accretion)[:2] + "-" + str(xlim) + "Myr", fontdict=None)
+    linear_fit_color = "yellow"
+    #axs[0, 0].set_title(str(accretion_type), fontdict=None)
+    #axs[0, 0].legend(fontsize=fontsize - 4, ncol=2, loc="upper left")
+    axs[0, 0].text(0.63, 0.065, line_str_pearson_bondi_mf, fontsize=fontsize-4, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[0, 0].transAxes)
+    axs[0, 1].plot(accrate_total_mf, line_fit(accrate_total_mf, *p_hl_mf), linear_fit_color, linestyle='solid')
+    axs[0, 0].set_xticklabels([])
+
+    # ylabels
+    if eddington:
+        axs[1, 0].set_ylabel(r"$\rm \dot{M} / \dot{M}_{Edd}$")
+        axs[0, 0].set_ylabel(r"$\rm \dot{M} / \dot{M}_{Edd}$")
+    else:
+        axs[1, 0].set_ylabel(r"$\rm \dot{M} (M_\odot/yr) $")
+        axs[0, 0].set_ylabel(r"$\rm \dot{M} (M_\odot/yr) $")
+    yticklabels = [r"$\rm 10^{-3}$", r"$\rm 10^{-2}$", r"$\rm 10^{-1}$", r"$\rm 10^{0}$", r"$\rm 10^{1}$", r"$\rm 10^{2}$", r"$\rm 10^{3}$"]
+    axs[0, 0].set_yticks(yticks)
+    axs[1, 0].set_yticks(yticks)
+    axs[0, 0].set_yticklabels(yticklabels)
+    axs[1, 0].set_yticklabels(yticklabels)
+
     axs[1, 0].text(0.63, 0.065, line_str_pearson_bondi_mf, fontsize=fontsize-4, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[1, 0].transAxes)
+    # plot linear fit
+    axs[1, 1].plot(accrate_total_bhl, line_fit(accrate_total_bhl, *p_hl_bhl), linear_fit_color, linestyle='solid')
     
 
     axs[0, 1].legend(fontsize=fontsize - 4, ncol=2, loc="upper left")
     axs[0, 1].text(0.66, 0.065, line_str_pearson_hl_bhl, fontsize=fontsize-4, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[0, 1].transAxes)
-    axs[0, 1].set_title(str(sim) + str(accretion)[3:6] + "-" + str(xlim) + "Myr", fontdict=None)
+    axs[0, 1].text(1.02, 0.5, 'Mass-Flux', transform=axs[0, 1].transAxes, ha='left', va='center')
+    #axs[0, 1].set_title(str(sim) + str(accretion)[3:6] + "-" + str(xlim) + "Myr", fontdict=None)
+    #axs[0, 1].set_title("BHL", fontdict=None)
     axs[0, 1].tick_params(axis="y", which='minor', length=2, direction="in")
     axs[0, 1].tick_params(axis="y", which='major', width=1, length=4, direction="in")
     axs[0, 1].set_yticklabels([])
+    axs[0, 1].set_xticklabels([])
+    axs[0, 0].plot(accrate_total_mf, line_fit(accrate_total_mf, *p_bondi_mf), linear_fit_color, linestyle='solid')
 
     axs[1, 1].tick_params(axis="y", which='minor', length=2, direction="in")
     axs[1, 1].tick_params(axis="y", which='major', width=1, length=4, direction="in")
     axs[1, 1].set_yticklabels([])
     axs[1, 1].text(0.66, 0.065, line_str_pearson_bondi_bhl, fontsize=fontsize-4, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[1, 1].transAxes)
+    axs[1, 0].plot(accrate_total_bhl, line_fit(accrate_total_bhl, *p_bondi_bhl), linear_fit_color, linestyle='solid')
+    axs[1, 1].text(1.02, 0.5, 'BHL', transform=axs[1, 1].transAxes, ha='left', va='center')
+    axs[1, 1].legend(fontsize=fontsize - 4, ncol=2, loc="upper left")
 
-    # set ylims
-    axs[0, 0].set_ylim(min_hl - min_hl * 0.1, max_hl + max_hl * 0.2)
-    axs[0, 1].set_ylim(min_hl - min_hl * 0.1, max_hl + max_hl * 0.2)
-    axs[1, 0].set_ylim(min_bondi - min_bondi * 0.1, max_bondi + max_bondi * 0.25)
-    axs[1, 1].set_ylim(min_bondi - min_bondi * 0.1, max_bondi + max_bondi * 0.25)
-
+    # set xlims
+    axs[0, 0].set_xlim(min_hl - min_hl * 0.1, max_hl + max_hl * 0.2)
+    axs[1, 0].set_xlim(min_hl - min_hl * 0.1, max_hl + max_hl * 0.2)
+    axs[0, 1].set_xlim(min_bondi - min_bondi * 0.1, max_bondi + max_bondi * 0.25)
+    axs[1, 1].set_xlim(min_bondi - min_bondi * 0.1, max_bondi + max_bondi * 0.25)
 
     # save plot as pdf
     fig = plt.gcf()
