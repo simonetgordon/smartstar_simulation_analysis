@@ -46,7 +46,6 @@ def extract_simulation_name(filepath):
         match = re.search(r'\b(?:\d+[A-Za-z]+\d+|[A-Za-z]+\d+)\b', path_parts[i])
         if match:
             return path_parts[i]
-
     return None
 
 
@@ -177,11 +176,15 @@ def get_data_arrays(root_dir):
 
     return all_data
 
+
 if __name__ == "__main__":
 
     # Set root directory(ies) of simulation output files
-    root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/estd-data-start/"
-    root_dir_2 = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/estd-data-end/"
+    #root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.m16-4dx/"
+    root_dir = "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSm04/"
+    #root_dir_2 = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSm08/"
+    #root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb16/"
+    #root_dir_2 = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/estd-data-end/"
 
     # Extract simulation name
     sim = extract_simulation_name(root_dir)
@@ -203,7 +206,7 @@ if __name__ == "__main__":
         writer = csv.writer(f, delimiter=',')
         for values in zip_longest(*all_data):
             writer.writerow(values)
-    print("saved data to {}".format(write_to))
+    print("Saved data to {}".format(write_to))
     
     # Extract end data from other directory (if it exists) and append to existing csv file
     try:
@@ -215,4 +218,4 @@ if __name__ == "__main__":
                 writer.writerow(values)
         print("appended end data to {}".format(write_to))
     except:
-        print("No end data found for simulation ", sim)
+        print("No end data found for simulation {}, done.".format(sim))
