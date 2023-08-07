@@ -1,7 +1,7 @@
 ##################################  MultiPanel Projections - over time ###################################
 # Uses a combination of AxesGrid and yt.ProjectionPlot to produce a multipanel figure accross time.
 # The size of each panel is fixed in spatial dimension. default 4x6
-# to run: python -i plot_multipanel_time.py 1Smf8_1Sm04
+# to run: python -i plot_multipanel_time.py 1Smf8_1Sm04 / s1_s2_baseline
 ##########################################################################################################
 
 import os
@@ -21,21 +21,26 @@ from plot_multi_projections import tidy_data_labels, first_index, format_sci_not
 from plot_disc_projections import _make_disk_L
 
 # input data - simulations and individual outputs
-root_dir = ["/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/",
-            "/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/"]
-sim = ["1S.RSmf8", "1S.RSm04"]
-dds = [#"DD0128/DD0128", 
+root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+            "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+            "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/",
+            "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/"]
+sim = ["1B.RSm01", "1B.RSb01-2", "2B.RSm01", "2B.RSb01"]
+dds1 = [#"DD0128/DD0128", 
        "DD0130/DD0130", 
-       "DD0131/DD0131",
-       "DD0132/DD0132", 
+       #"DD0131/DD0131",
+       #"DD0132/DD0132", 
        "DD0133/DD0133", 
-       "DD0134/DD0134", 
+       #"DD0134/DD0134", 
        "DD0135/DD0135", 
        #"DD0136/DD0136",
        #"DD0137/DD0137", 
        #DD0138/DD0138",
        #"DD0140/DD0140", 
        ]
+
+dds2 = ["DD0197/DD0197", "DD0200/DD0200", "DD0203/DD0203"]
+
 
 # font settings
 pyplot.rcParams['font.size'] = 14
@@ -50,7 +55,7 @@ fig = plt.figure()
 grid = AxesGrid(
     fig,
     (0.01, 0.01, 0.76, 1.152),
-    nrows_ncols=(len(dds), len(sim)*2),
+    nrows_ncols=(len(dds1*2), len(sim)*2),
     axes_pad=0,
     label_mode="L",
     aspect=False,
@@ -63,7 +68,7 @@ grid = AxesGrid(
 
 # find min and max field values from last simulation - for colorbar
 field = "number_density"
-ds_hr = yt.load(os.path.join(root_dir[1], sim[1], dds[-1]))
+ds_hr = yt.load(os.path.join(root_dir[-1], sim[-1], dds2[-1]))
 min_n = ds_hr.r[("gas", field)].min()*3e5 # bring up to ~ 10^3 order
 max_n = ds_hr.r[("gas", field)].max()*1e-5
 max_n_index = int(np.log10(max_n))
@@ -71,139 +76,165 @@ min_n_index = int(np.log10(min_n))
 
 norths_face = []
 norths_edge = []
-# iterate over datadumps
-for s,_ in enumerate(sim):
-    for i, dd in enumerate(dds):
+
+DS = []
+LABEL = []
+for l in range(len(sim)): # 4
+    for s,_ in enumerate(dds1): # 3
+        if "2B" in sim[l]:
+            dd = dds2[s]
+        else:
+            dd = dds1[s]   
 
         # make dataset and simulation label
-        ds = yt.load(os.path.join(root_dir[s], sim[s], dd))
-        label = tidy_data_labels(sim[s])
+        ds = yt.load(os.path.join(root_dir[l], sim[l], dd))
+        label = tidy_data_labels(sim[l])
 
-        # grab bh properties and make sphere centered on BH
-        ss_pos, ss_mass, ss_age = ss_properties(ds)
-        center = ss_pos
-        r = 2000*yt.units.pc
-        sp = ds.sphere(center, 2 * r)
-    
-        # make disk data container and define angular momentum vector L
-        disc_r_pc = 2.1
-        disc_h_pc = 2.1
-        disk, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
+        # append to list
+        DS.append(ds)
+        LABEL.append(label)
 
-        # Gives a 3d vector and it will return 3 orthogonal vectors, the first one being the original vector
-        # and the 2nd and 3rd being two vectors in the plane orthogonal to the first and orthogonal to each other.
-        # It's very useful for giving you a vector edge-on to the disk.
-        vecs = ortho_find(L)
-        v = 0
-
-        # set projection width in pc
-        width = 1.5 * ds.units.pc
-
-        if s == 0:
-            js = [0, 1]
-        else:
-            js = [2, 3]
-
-        for j in js:
-            # make projection plot
-            if (j == 0) or (j == 2):
-                north = vecs[1]
-                print("north vec face-on: ", north)
-                if north[-1] < 0:
-                    north *= [1,1,-1]
-                norths_face.append(north)
-                p = yt.ProjectionPlot(ds, vecs[v], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
-                                      center=disk.center, width=width, data_source=disk)
-                # p = yt.ProjectionPlot(ds, 'x', ("gas", field), width=width, center=disk.center, data_source=disk, weight_field='density')
+print("DS: ", DS)
+print("LABEL: ", LABEL)
+# iterate over datadumps
+for l in range(len(sim)): # 4
+    for s,_ in enumerate(dds1): # 3
+        for i, dd in enumerate(dds1*2): # 6
+        
+            if "2B" in sim[l]:
+                dd = dds2[s]
             else:
-                north = vecs[0]
-                norths_edge.append(north)
-                print("north vec edge-on: ", north)
-                p = yt.ProjectionPlot(ds, vecs[v+2], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
-                                    center=disk.center, width=2 * disk.radius, data_source=disk)
-                #p = yt.ProjectionPlot(ds, 'x', ("gas", field), width=width, center=disk.center, data_source=disk, weight_field='density')
-            p.set_axes_unit('pc')
-            p.set_font_size(fontsize)
-            # Ensure the colorbar limits match for all plots
-            p.set_cmap(field, 'viridis')
-            p.set_zlim(("gas", field), min_n, max_n)
-            p.hide_colorbar()
+                dd = dds1[s]    
 
-            # Annotations
+            # make dataset and simulation label
+            ds = yt.load(os.path.join(root_dir[l], sim[l], dd))
+            label = tidy_data_labels(sim[l])
 
-            # streamlines
-            #p.annotate_streamlines(("gas", "velocity_y"), ("gas", "velocity_z"), density = 0.7, linewidth=0.6, color="blue")
+            # grab bh properties and make sphere centered on BH
+            ss_pos, ss_mass, ss_age = ss_properties(ds)
+            center = ss_pos
+            r = 2000*yt.units.pc
+            sp = ds.sphere(center, 2 * r)
+        
+            # make disk data container and define angular momentum vector L
+            disc_r_pc = 2.1
+            disc_h_pc = 2.1
+            disk, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
 
-            # this forces the ProjectionPlot to redraw itself on the AxesGrid axes.
-            plot = p.plots[("gas", field)]
-            plot.figure = fig
-            k = 4*i + j # grid index
-            plot.axes = grid[k].axes
+            # Gives a 3d vector and it will return 3 orthogonal vectors, the first one being the original vector
+            # and the 2nd and 3rd being two vectors in the plane orthogonal to the first and orthogonal to each other.
+            # It's very useful for giving you a vector edge-on to the disk.
+            vecs = ortho_find(L)
+            v = 0
 
-            # first column only
-            if (j == 0) or (j == 2):
-                # age, mass and simulation label in first
-                #p.set_font_size(10)
-                p.annotate_text((0.07, 0.86), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), 
-                                coord_system="axis", text_args={"color": "white", "fontsize": 8})
-                #p.set_font_size(fontsize)
-                
-                # make colorbar
-                plot.cax = grid.cbar_axes[k]
-                #grid.cbar_axes[k].set_ymargin(-0.1)
-                #grid.cbar_axes[k].set_anchor((0.6, 0.2))
+            # set projection width in pc
+            width = 1.5 * ds.units.pc
 
-            # mark BH position
-            p.annotate_marker(center, coord_system="data", color="white")
+            if s == 0:
+                js = [0, 1]
+            else:
+                js = [2, 3]
 
-            p.render()
+            for j in js:
+                # make projection plot
+                if (j == 0) or (j == 2):
+                    north = vecs[1]
+                    print("north vec face-on: ", north)
+                    if north[-1] < 0:
+                        north *= [1,1,-1]
+                    norths_face.append(north)
+                    p = yt.ProjectionPlot(ds, vecs[v], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
+                                        center=disk.center, width=width, data_source=disk)
+                    # p = yt.ProjectionPlot(ds, 'x', ("gas", field), width=width, center=disk.center, data_source=disk, weight_field='density')
+                else:
+                    north = vecs[0]
+                    norths_edge.append(north)
+                    print("north vec edge-on: ", north)
+                    p = yt.ProjectionPlot(ds, vecs[v+2], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
+                                        center=disk.center, width=2 * disk.radius, data_source=disk)
+                    #p = yt.ProjectionPlot(ds, 'x', ("gas", field), width=width, center=disk.center, data_source=disk, weight_field='density')
+                p.set_axes_unit('pc')
+                p.set_font_size(fontsize)
+                # Ensure the colorbar limits match for all plots
+                p.set_cmap(field, 'viridis')
+                p.set_zlim(("gas", field), min_n, max_n)
+                p.hide_colorbar()
 
-            # Modify the scalebar, colorbar and axes properties **after** p.render() so that they are not overwritten.
+                # Annotations
 
-            # first row and every second column only
-            if (i == 0) and ((j == 0) or (j == 2)):
-                #p.annotate_title(str(label), font=16)
-                grid[k].axes.set_title(str(label), fontsize=18)
+                # streamlines
+                #p.annotate_streamlines(("gas", "velocity_y"), ("gas", "velocity_z"), density = 0.7, linewidth=0.6, color="blue")
 
-            # ticks + ticklabels
-            grid[k].axes.set_xticks([])
-            grid[k].axes.set_yticks([])
-            grid[k].axes.minorticks_on()
-            xticks = [-0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6]
-            grid[k].axes.xaxis.set_minor_locator(ticker.AutoMinorLocator())
-            grid[k].axes.yaxis.set_minor_locator(ticker.AutoMinorLocator())
-            grid[k].axes.set_xticks(xticks, major=True, crs=plot)
-            grid[k].axes.set_yticks(xticks, major=True, crs=plot)
-            grid[k].axes.set_xticklabels([str(x) for x in xticks], rotation=90)
-            grid[k].axes.set_yticklabels([str(x) for x in xticks])
+                # this forces the ProjectionPlot to redraw itself on the AxesGrid axes.
+                plot = p.plots[("gas", field)]
+                plot.figure = fig
+                k = 4*i + j # grid index
+                plot.axes = grid[k].axes
 
-            if j == 0:
-                grid[k].axes.set_ylabel("{:.2f}".format(ds.current_time.to('Myr')))
+                # first column only
+                if (j == 0) or (j == 2):
+                    # age, mass and simulation label in first
+                    #p.set_font_size(10)
+                    p.annotate_text((0.07, 0.86), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), 
+                                    coord_system="axis", text_args={"color": "white", "fontsize": 8})
+                    #p.set_font_size(fontsize)
+                    
+                    # make colorbar
+                    plot.cax = grid.cbar_axes[k]
+                    #grid.cbar_axes[k].set_ymargin(-0.1)
+                    #grid.cbar_axes[k].set_anchor((0.6, 0.2))
 
-            # bottom row
-            if i == (len(dds)-1):
+                # mark BH position
+                p.annotate_marker(center, coord_system="data", color="white")
 
-                # ylabel
-                grid[k].axes.set_xlabel("(pc)")
+                p.render()
 
-                # colorbar
-                grid.cbar_axes[k].set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)')
-                grid.cbar_axes[k].minorticks_on()
+                # Modify the scalebar, colorbar and axes properties **after** p.render() so that they are not overwritten.
 
-                # make minorticks
-                a1 = np.logspace(min_n_index, max_n_index, np.abs(min_n_index - max_n_index)+1)
-                a2 = np.arange(1, 10, 1)
-                minorticks = np.outer(a1, a2).flatten()
-                atol = 0.9*10**(max_n_index)
-                end_i = first_index(minorticks, float(max_n.d), rtol=0.1, atol=atol)
-                minorticks = minorticks[:end_i]
-                grid.cbar_axes[k].xaxis.set_minor_locator(ticker.AutoMinorLocator())
-                grid.cbar_axes[k].set_yticks(minorticks, minor=True)
-                grid.cbar_axes[k].tick_params(labelsize=fontsize)
+                # first row and every second column only
+                if (i == 0) and ((j == 0) or (j == 2)):
+                    #p.annotate_title(str(label), font=16)
+                    grid[k].axes.set_title(str(label), fontsize=18)
 
-                ax_pos = grid[k].axes.get_position()
-                cb_pos = grid.cbar_axes[k].get_position()
-                #cb_pos = grid.cbar_axes[k].set_position([cb_pos.x0 - 0.1, ax_pos.y0, cb_pos.width, cb_pos.height])
+                # ticks + ticklabels
+                grid[k].axes.set_xticks([])
+                grid[k].axes.set_yticks([])
+                grid[k].axes.minorticks_on()
+                xticks = [-0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6]
+                grid[k].axes.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+                grid[k].axes.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+                grid[k].axes.set_xticks(xticks, major=True, crs=plot)
+                grid[k].axes.set_yticks(xticks, major=True, crs=plot)
+                grid[k].axes.set_xticklabels([str(x) for x in xticks], rotation=90)
+                grid[k].axes.set_yticklabels([str(x) for x in xticks])
+
+                if j == 0:
+                    grid[k].axes.set_ylabel("{:.2f}".format(ds.current_time.to('Myr')))
+
+                # bottom row
+                if i == (len(dds2*2)-1):
+
+                    # ylabel
+                    grid[k].axes.set_xlabel("(pc)")
+
+                    # colorbar
+                    grid.cbar_axes[k].set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)')
+                    grid.cbar_axes[k].minorticks_on()
+
+                    # make minorticks
+                    a1 = np.logspace(min_n_index, max_n_index, np.abs(min_n_index - max_n_index)+1)
+                    a2 = np.arange(1, 10, 1)
+                    minorticks = np.outer(a1, a2).flatten()
+                    atol = 0.9*10**(max_n_index)
+                    end_i = first_index(minorticks, float(max_n.d), rtol=0.1, atol=atol)
+                    minorticks = minorticks[:end_i]
+                    grid.cbar_axes[k].xaxis.set_minor_locator(ticker.AutoMinorLocator())
+                    grid.cbar_axes[k].set_yticks(minorticks, minor=True)
+                    grid.cbar_axes[k].tick_params(labelsize=fontsize)
+
+                    ax_pos = grid[k].axes.get_position()
+                    cb_pos = grid.cbar_axes[k].get_position()
+                    #cb_pos = grid.cbar_axes[k].set_position([cb_pos.x0 - 0.1, ax_pos.y0, cb_pos.width, cb_pos.height])
 
 num = str(sys.argv[-1])
 plot_name = f"multiplot_axesgrid_time_{width.d}pc_{num}.pdf"    
