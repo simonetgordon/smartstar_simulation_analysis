@@ -38,7 +38,8 @@ def configure_plots():
 
 
 def make_projection_plot(ds, width_pc, disk, L, field, vecs, v, north, min_n, max_n, fontsize):
-    p = yt.ProjectionPlot(ds, vecs[v], ("gas", field), weight_field=("gas", "density"), north_vector=north, center=disk.center, width=width_pc, data_source=disk)
+    p = yt.ProjectionPlot(ds, vecs[v], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
+                          center=disk.center, width=width_pc, data_source=disk)
     p.set_axes_unit('pc')
     p.set_font_size(fontsize)
     p.set_cmap(field, 'viridis')
@@ -92,6 +93,45 @@ def configure_projection_plot(p, field, min_n, max_n, fontsize):
     p.set_zlim(("gas", field), min_n, max_n)
     p.hide_colorbar()
     return p
+
+
+def set_ticks_and_labels(grid, k, xticks, plot):
+    # ticks + ticklabels
+    grid[k].axes.set_xticks([])
+    grid[k].axes.set_yticks([])
+    grid[k].axes.minorticks_on()
+    grid[k].axes.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+    grid[k].axes.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+    grid[k].axes.set_xticks(xticks, major=True, crs=plot)
+    grid[k].axes.set_yticks(xticks, major=True, crs=plot)
+    grid[k].axes.set_xticklabels([str(x) for x in xticks], rotation=90)
+    grid[k].axes.set_yticklabels([str(x) for x in xticks])
+
+
+def set_axis_labels_and_colorbar(grid, k, j, i, dds2, DS, ss_age, min_n_index, max_n_index, max_n, fontsize, ticker):
+    # y axis time labels
+    if j == 0:
+        grid[k].axes.set_ylabel("{:.2f} Myr".format((ss_age/1e6)[0]))
+
+    # x axis space labels and colorbar
+    if i == (len(dds2)*2-1) or i == (len(DS)-1):
+        # ylabel
+        grid[k].axes.set_xlabel("(pc)")
+
+        # colorbar
+        grid.cbar_axes[k].set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)')
+        grid.cbar_axes[k].minorticks_on()
+
+        # make minorticks
+        a1 = np.logspace(min_n_index, max_n_index, np.abs(min_n_index - max_n_index)+1)
+        a2 = np.arange(1, 10, 1)
+        minorticks = np.outer(a1, a2).flatten()
+        atol = 0.9*10**(max_n_index)
+        end_i = first_index(minorticks, float(max_n.d), rtol=0.1, atol=atol)
+        minorticks = minorticks[:end_i]
+        grid.cbar_axes[k].xaxis.set_minor_locator(ticker.AutoMinorLocator())
+        grid.cbar_axes[k].set_yticks(minorticks, minor=True)
+        grid.cbar_axes[k].tick_params(labelsize=fontsize)
 
 
 def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min_n_factor=2e5, max_n_factor=0.30):
@@ -154,7 +194,7 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
             plot.axes = grid[k].axes
 
             # age, mass and simulation label in first and third columns
-            if ((i == 0) or (i == 6) or (i == 3) or (i == 9)) and ((j == 0) or (j == 2)):
+            if ((j == 0) or (j == 2)):
                 p.annotate_text((0.07, 0.86), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), 
                     coord_system="axis", text_args={"color": "white", "fontsize": 8})
                 
@@ -163,7 +203,7 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
 
             # simulation label in first row and every second column only
             if ((i == 0) or (i == 6) or (i == 3) or (i == 9)) and ((j == 0) or (j == 2)):
-                p.annotate_text((0.07, 0.07), "{}".format(LABEL[i]), 
+                p.annotate_text((0.07, 0.1), "{}".format(LABEL[i]), 
                     coord_system="axis", text_args={"color": "yellow", "fontsize": 8}, 
                     inset_box_args={
                                     "boxstyle": "square,pad=0.3",
@@ -181,43 +221,14 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
 
             # ... post render customization ...
 
-            # Modify the scalebar, colorbar and axes properties **after** p.render() so that they are not overwritten.
+            # Modify colorbar and axes properties **after** p.render() so that they are not overwritten.
 
             # ticks + ticklabels
-            grid[k].axes.set_xticks([])
-            grid[k].axes.set_yticks([])
-            grid[k].axes.minorticks_on()
-            grid[k].axes.xaxis.set_minor_locator(ticker.AutoMinorLocator())
-            grid[k].axes.yaxis.set_minor_locator(ticker.AutoMinorLocator())
-            grid[k].axes.set_xticks(xticks, major=True, crs=plot)
-            grid[k].axes.set_yticks(xticks, major=True, crs=plot)
-            grid[k].axes.set_xticklabels([str(x) for x in xticks], rotation=90)
-            grid[k].axes.set_yticklabels([str(x) for x in xticks])
+            set_ticks_and_labels(grid, k, xticks, plot)
 
-            # y axis time labels
-            if j == 0:
-                grid[k].axes.set_ylabel("{:.2f} Myr".format((ss_age/1e6)[0]))
-
-            # x axis space labels and colorbar
-            if i == (len(dds2)*2-1) or i == (len(DS)-1):
-
-                # ylabel
-                grid[k].axes.set_xlabel("(pc)")
-
-                # colorbar
-                grid.cbar_axes[k].set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)')
-                grid.cbar_axes[k].minorticks_on()
-
-                # make minorticks
-                a1 = np.logspace(min_n_index, max_n_index, np.abs(min_n_index - max_n_index)+1)
-                a2 = np.arange(1, 10, 1)
-                minorticks = np.outer(a1, a2).flatten()
-                atol = 0.9*10**(max_n_index)
-                end_i = first_index(minorticks, float(max_n.d), rtol=0.1, atol=atol)
-                minorticks = minorticks[:end_i]
-                grid.cbar_axes[k].xaxis.set_minor_locator(ticker.AutoMinorLocator())
-                grid.cbar_axes[k].set_yticks(minorticks, minor=True)
-                grid.cbar_axes[k].tick_params(labelsize=fontsize)
+            # x and y extrenal axis labels and colorbar settngs
+            set_axis_labels_and_colorbar(grid, k, j, i, dds2, DS, ss_age, min_n_index, max_n_index, 
+                                         max_n, fontsize, ticker)
 
     # ... save plot ...
 
@@ -229,6 +240,7 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
 
 
 if __name__ == "__main__":
+
     root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
                 "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
                 "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/",
