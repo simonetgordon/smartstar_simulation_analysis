@@ -134,6 +134,22 @@ def set_axis_labels_and_colorbar(grid, k, j, i, dds2, DS, ss_age, min_n_index, m
         grid.cbar_axes[k].tick_params(labelsize=fontsize)
 
 
+def overlay_quadrants(grid, edgecolor='yellow', linewidth=5):
+    # Get the exact coordinates for the lines
+    right_edge_of_second_column = grid[1].get_xlim()[1]
+    bottom_edge_of_third_row = grid[2 * 4].get_ylim()[0]
+
+    # Draw vertical line
+    for i in range(6):  # Six rows in the grid
+        grid[i * 4 + 1].axvline(x=right_edge_of_second_column, color=edgecolor, linewidth=linewidth)
+
+    # Draw horizontal line
+    for i in range(4):  # Four columns in the grid
+        grid[2 * 4 + i].axhline(y=bottom_edge_of_third_row, color=edgecolor, linewidth=linewidth)
+
+    print("Quadrants overlayed")
+
+
 def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min_n_factor=2e5, max_n_factor=0.30):
 
     # set up figure and axes grid
@@ -229,6 +245,8 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
             # x and y extrenal axis labels and colorbar settngs
             set_axis_labels_and_colorbar(grid, k, j, i, dds2, DS, ss_age, min_n_index, max_n_index, 
                                          max_n, fontsize, ticker)
+            
+    overlay_quadrants(grid)
 
     # ... save plot ...
 
