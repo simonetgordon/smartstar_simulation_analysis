@@ -46,22 +46,6 @@ def create_subplots(num_subplots, xlim, time_cutoff, fontsize, title):
     return fig, axs
 
 
-def extract_colors(cmap_name, n, portion=None):
-    cmap = cm.get_cmap(cmap_name)
-    if portion == "beginning":
-        values = np.linspace(0, 0.3, n)
-    elif portion == "middle":
-        values = np.linspace(0.5, 0.7, n)
-    elif portion == "end":
-        values = np.linspace(0.7, 1, n)
-    elif portion is None:
-        values = np.linspace(0, 1, n)
-    else:
-        raise ValueError("Invalid portion specified. Use 'beginning', 'middle', 'end', or None.")
-    colors = cmap(values)
-    return colors
-
-
 if __name__ == "__main__":
     # Set up plot parameters
     j = 0
@@ -109,8 +93,11 @@ if __name__ == "__main__":
         axs[1].plot(common_time, eddington_rate(mass[i]), color=c[i], linestyle='dashed', label=l[i], alpha=alpha)
         j += 1
 
+    accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
+
     # Include legends and save the plot
     axs[0].legend(fontsize=fontsize-2.2, ncol=2, loc="lower right")
+    axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-2.2, ncol=1)
     fig.subplots_adjust(wspace=0, hspace=0)
     fig.set_size_inches(4.7, 4.7)
     plot_name = 'mass_growth-baselines_resolution' + '.pdf'
