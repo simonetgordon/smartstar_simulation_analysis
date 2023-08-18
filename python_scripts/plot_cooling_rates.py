@@ -17,6 +17,7 @@ from find_disc_attributes import _make_disk_L
 from matplotlib import rc
 import matplotlib.transforms as mtransforms
 from plot_multi_projections import tidy_data_labels
+import matplotlib.cm as cm
 
 # plot and save figure
 def moving_average(a, n=5) :
@@ -36,18 +37,44 @@ def interpolate_data(arr, N=100):
     interp_arr = f(t_interp)
     return interp_arr
 
+
+def extract_colors(cmap_name, n, portion=None, start=None, end=None):
+    cmap = cm.get_cmap(cmap_name)
+
+    if start is not None and end is not None:
+        values = np.linspace(start, end, n)
+    elif portion == "beginning":
+        values = np.linspace(0, 0.3, n)
+    elif portion == "middle":
+        values = np.linspace(0.3, 0.95, n)
+    elif portion == "end":
+        values = np.linspace(0.7, 1, n)
+    elif portion is None:
+        values = np.linspace(0, 1, n)
+    else:
+        raise ValueError("Invalid portion specified. Use 'beginning', 'middle', 'end', or None.")
+
+    colors = cmap(values)
+    return colors
+
 # my data 
 root_dir = ["/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann",
             "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann", 
-            "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann"]
+            "/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann",
+            "/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2",
+            "/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2"]
 sim = [
-    #"1B.RSb01-2", 
     "1B.RSb01-2", 
-    "1B.RSb16"]
+    "1B.RSb16",
+    "1B.m16-4dx",
+    "2B.RSb08/2B.RSb08-2",
+    "2B.m08-4dx"]
 dds = [
-    "DD0138/DD0138", 
-    # "DD0258/DD0258", 
-    "DD0166/DD0166"]
+    "DD0138/DD0138", # 1 Myr
+    "DD0166/DD0166", # 1 Myr
+    "DD0202/DD0202", # 1.000 Myr
+    "DD0252/DD0252", # 0.750 Myr
+    "DD0291/DD0291"] # 0.934 Myr
 labels = []
 DS = []
 
@@ -57,28 +84,28 @@ radius_beck = data_beck['radius'].tolist()
 q_ratio_beck = data_beck['qratio'].tolist()
 
 ## First check there is a local /data area                                                                                                                                                                 
-if os.path.isdir("/data"):
-    #sys.exit("Error: no /data")
+# if os.path.isdir("/data"):
+#     #sys.exit("Error: no /data")
 
-    ## Second, check we have a directory. If not, then create one.                                                                                                                                             
-    UserName=os.getlogin()
-    LocalDir=os.path.join("/data",UserName)
-    if not os.path.isdir(LocalDir):
-        print("Creating Directory "+LocalDir)
-        os.mkdir(LocalDir)
+#     ## Second, check we have a directory. If not, then create one.                                                                                                                                             
+#     UserName=os.getlogin()
+#     LocalDir=os.path.join("/data",UserName)
+#     if not os.path.isdir(LocalDir):
+#         print("Creating Directory "+LocalDir)
+#         os.mkdir(LocalDir)
 
-    ## Third, check if the data is already there, and if not, copy it over.                                                                                                                                    
-    DataDumpFull = sys.argv[1]
-    DataDump = DataDumpFull.split('/')
-    LocalData = os.path.join(LocalDir,DataDump[0])
-    if not os.path.isdir(LocalData):
-        print("Copying data to "+LocalData)
-        shutil.copytree(os.path.join(root_dir,DataDump[0]),LocalData)
-        print("Done copying data")
-    else:
-        print("Found a local copy in "+LocalData)
+#     ## Third, check if the data is already there, and if not, copy it over.                                                                                                                                    
+#     DataDumpFull = sys.argv[1]
+#     DataDump = DataDumpFull.split('/')
+#     LocalData = os.path.join(LocalDir,DataDump[0])
+#     if not os.path.isdir(LocalData):
+#         print("Copying data to "+LocalData)
+#         shutil.copytree(os.path.join(root_dir,DataDump[0]),LocalData)
+#         print("Done copying data")
+#     else:
+#         print("Found a local copy in "+LocalData)
     
-    root_dir = LocalDir
+#     root_dir = LocalDir
 
 # set font properties
 plt.rcParams["font.family"] = "serif"
@@ -90,9 +117,11 @@ plt.rcParams["mathtext.default"] = "regular" # for the same font used in regular
 rc('text', usetex=True)
 
 # colors
-c = [
-    #'blueviolet,'
-    'plum', 'green']
+# c = ['blueviolet','plum', 'green', 'red']
+#n = 2
+c_s1 = extract_colors('viridis', 3, portion="middle")
+c_s2 = extract_colors('magma', 2, portion="middle", start=0.4, end=0.6)
+c = np.concatenate((c_s1, c_s2))
 
 # set up figure
 fig, axs = plt.subplots(1, sharex=True)
@@ -109,9 +138,9 @@ minorticks = np.outer(a1, a2).flatten()
 plt.yticks(minorticks, minor=True)
 
 # plot Beckmann cooling line
-plt.loglog(radius_beck, q_ratio_beck, color="royalblue", label="Beckmann_2018")
+plt.loglog(radius_beck, q_ratio_beck, color="grey", label="Beckmann_2018",linewidth=4)
 
-labels = ['270msun.BHL.1Myr.R01', '270msun.BHL.1Myr.R16']
+labels = ['1B.b01_1Myr', '1B.b16_1Myr', '1B.m16_1Myr', '2B.b08_0.75Myr', '2B.m08_0.93Myr']
 for j, ds in enumerate(dds):
     # Load the data from the local directory
     ds = yt.load(os.path.join(root_dir[j], sim[j], ds))
@@ -140,15 +169,16 @@ for j, ds in enumerate(dds):
     # take absolute value of cooling rate
     cooling_ratio = np.abs(profile[("enzo", "radiative_cooling_rate")][profile.used] / \
                     profile[("enzo", "advective_cooling_rate")][profile.used])
-    x_avg = interpolate_data(moving_average(profile.x[profile.used], n=1))
-    y_avg = interpolate_data(moving_average(cooling_ratio, n=1))
+    n = 3
+    x_avg = interpolate_data(moving_average(profile.x[profile.used], n=n))
+    y_avg = interpolate_data(moving_average(cooling_ratio, n=n))
 
     #plt.loglog(profile.x[profile.used], cooling_ratio)
     plt.loglog(x_avg, y_avg, color=c[j], label=labels[j])
     plt.axhline(y=1, color='grey', linestyle='dashed', linewidth=2, alpha=1)
     plt.xlim(4e-4, 10.2)
     plt.ylim(2e-4, 1.2e4)
-    plt.legend()
+    plt.legend(ncol=2, fontsize=16, frameon=False)
 
     # annotate with simulation data
     # 1) BH Age in text box
@@ -171,7 +201,7 @@ for j, ds in enumerate(dds):
 
 plt.title("Advective/Radiative Cooling Rate Radial Profile", fontsize=20)
 
-plot_name = 'radial-profile-plot-cooling-rate-' + str(sim[0]) + "_" + str(sim[1]) + '-beckmann.pdf'
+plot_name = 'radial-profile-plot-cooling-rate-' + str(sim[0]) + "_" + str(sim[1]) + '+s2.pdf'
 #+ '_' + str(sim[1]) + '_' + str(sim[2]) 
 
 fig.set_size_inches(8, 5.8)
