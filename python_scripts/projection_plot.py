@@ -25,7 +25,7 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
 
     configure_font()
     fig = plt.figure()
-    grid = create_axes_grid(fig, nrows=3, ncols=2, dim=(0.1, 0.1, 0.6, 0.83))
+    grid = create_axes_grid(fig, nrows=3, ncols=2, dim=(0.1, 0.1, 0.53, 0.79), cbar_size="2%")
 
     # get min and max values for colorbar
     min_n, max_n, min_n_index, max_n_index = get_min_max_values(root_dir, sim, dds2, min_n_factor=min_n_factor, max_n_factor=max_n_factor)
@@ -67,7 +67,7 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
         for j in [0,1]:
 
             # set north vector and v
-            north = vecs[0] if (j == 0) else vecs[1]
+            north = vecs[0] if (j == 0) else vecs[2]
             v = 2 if (j == 0) else 0
 
             # make projection plot and configure basic parameters. remake bigger disk for projection
@@ -88,7 +88,7 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
 
             # age, mass and simulation label in first and third columns
             if ((j == 0)):
-                p.annotate_text((0.07, 0.86), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), 
+                p.annotate_text((0.05, 0.9), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), 
                     coord_system="axis", text_args={"color": "white", "fontsize": 8})
                 
                 # make colorbar
@@ -124,7 +124,7 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
 
     # save
     plot_name = 'projection-res-' + str(LABEL[i]) + '-' + str(field) + '-' + 's2' + '.pdf'
-    p.save('plots/' + plot_name)
+    p.save('plots/' + plot_name,)
     print("created plots/" + str(plot_name))
     plt.show()
 
