@@ -100,6 +100,8 @@ def identify_cell_widths(x: str):
         dx = [1.3e-03, 5.2e-04, 1.3e-04]
     elif x == "s1+s2-270msun-":
         dx = [1.229791e-02, 3.074475e-03, 1.537645e-03, 7.692833e-04, 8.298311e-03, 2.074568e-03, 1.537645e-03, 7.687095e-04, 3.8435475e-04, 1.296596e-04]
+    elif x == "s1+s2-40msun-":
+        dx = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04, 8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04]
     else:
         dx = None  # You may want to handle this case differently
     return dx
@@ -124,22 +126,55 @@ def extract_colors(cmap_name, n, portion=None, start=None, end=None):
     colors = cmap(values)
     return colors
 
+def plot_extra_line(data_file:str, label_extra:str, i, j, alpha = 0.6):
+        
+        df = pd.read_csv(data_file)
+
+        # Extract the columns you're interested in
+        age = df['age'].values/1e6
+        bh_mass = df['BH mass'].values
+        accrate = df['accrate'].values
+        avg_density = df['average density'].values
+        avg_vinfinity = df['average vinfinity'].values
+        avg_cinfinity = df['average cinfinity'].values
+        hl_radius = df['HL radius'].values
+
+        # 1) BH Mass
+        axs[0].plot(age, bh_mass, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+
+        # 2) Accretion Rates
+        axs[1].plot(age, accrate, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+        axs[1].plot(age, eddington_rate(bh_mass), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
+
+        # 3) Densities
+        axs[2].plot(age, avg_density, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+
+        # 4) Velocities
+        axs[3].plot(age, avg_vinfinity/avg_cinfinity, color=c[j], linestyle='solid', label=label_extra+'-Mach', alpha=alpha)
+
+        # 5) HL radius
+        axs[4].plot(age, hl_radius/dx[j], color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+
+        # 6) Scatter Residual - not possible for this data
+
+        i += 1
+        j += 1
 
 
 if __name__ == "__main__":
 
     ###################################### Parameters ######################################
 
-    x = "s1+s2-270msun-"       # simulation type
+    x = "s1+s2-40msun-"       # simulation type
     y = sys.argv[-1]        # naming plot
     xlim = 1                # Myrs
     time_cutoff = xlim      # Myrs
     i_start = 0             # start index
     include_beckmann_data = False
-    alpha = 0.9             # transparency of lines
+    alpha = 0.7        # transparency of lines
     num_subplots = 5        # number of subplots
-    smooth_simulations = 7  # number of simulations to smooth (starting from last sim)
-    window = 10             # window size to average over
+    smooth_simulations = 6  # number of simulations to smooth (starting from last sim)
+    window = 16             # window size to average over
     rtol=1e-6   
     atol=1e-4               # 1e-4 for 1S.m, 2e-4 for 1B.m
     title = None          # plot title
@@ -215,8 +250,8 @@ if __name__ == "__main__":
     # set line colours
     # c = ['indigo', 'darkmagenta', 'mediumslateblue', 'turquoise', 'limegreen', 'darkgreen']
     n = int(len(bhl_object_list)/2)+1
-    c_s1 = extract_colors('viridis', n, portion="middle")
-    c_s2 = extract_colors('magma', n, portion="middle", start=0.25, end=0.8)
+    c_s1 = extract_colors('viridis', 4, portion="middle")
+    c_s2 = extract_colors('magma', 4, portion="middle", start=0.25, end=0.8)
     c = np.concatenate((c_s1, c_s2))
 
     # set BHL properties parameters
@@ -285,10 +320,10 @@ if __name__ == "__main__":
         else: 
             alpha2 = 0.6
         #axs[5].scatter(common_time, residual, s=3, color=c[j], linestyle='solid', marker='o', label=l[i], alpha=alpha2)
-        axs[0].axhline(y=1e3, color='grey', linestyle='dotted', linewidth=0.7,alpha=alpha)
+        axs[0].axhline(y=60, color='grey', linestyle='dotted', linewidth=0.7,alpha=alpha)
         axs[4].axhline(y=1, color='grey', linestyle='dotted', linewidth=0.7,alpha=alpha)
         yscale_residual = 'linear'
-        #axs[5].set_ylim([1e-8, 1e-1])
+        axs[3].set_ylim([7e-3, 1.2e2])
 
         print("=============================")
 
@@ -297,115 +332,10 @@ if __name__ == "__main__":
     # plot line not using common time (hasn't reached ~ 1 Myr yet)
     if extra_line:
 
-        # Load the CSV file into a DataFrame
-        # df = pd.read_csv("data_files/data-1S.m04-no-SN.csv")
-        df = pd.read_csv("data_files/data-2B.RSb16.csv")
-        #df = pd.read_csv("data_files/data-2B.m08-4dx.csv")
+        data_file = "data_files/data-2S.RSb01.csv"
+        label_extra = "2S.b01"
 
-        # Extract the columns you're interested in
-        age = df['age'].values/1e6
-        bh_mass = df['BH mass'].values
-        accrate = df['accrate'].values
-        avg_density = df['average density'].values
-        avg_vinfinity = df['average vinfinity'].values
-        avg_cinfinity = df['average cinfinity'].values
-        hl_radius = df['HL radius'].values
-
-        #label_extra='2B.m08'
-        label_extra='2B.b16'
-        alpha = 0.6
-
-        # 1) BH Mass
-        axs[0].plot(age, bh_mass, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-
-        # 2) Accretion Rates
-        axs[1].plot(age, accrate, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-        axs[1].plot(age, eddington_rate(bh_mass), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
-
-        # 3) Densities
-        axs[2].plot(age, avg_density, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-
-        # 4) Velocities
-        axs[3].plot(age, avg_vinfinity/avg_cinfinity, color=c[j], linestyle='solid', label=label_extra+'-Mach', alpha=alpha)
-
-        # 5) HL radius
-        axs[4].plot(age, hl_radius/dx[j], color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-
-        # 6) Scatter Residual - not possible for this data
-
-        i += 1
-        j += 1
-
-        # # Load the CSV file into a DataFrame
-        # # df = pd.read_csv("data_files/data-1S.m04-no-SN.csv")
-        # df = pd.read_csv("data_files/data-2B.m16-4dx-2.csv")
-
-        # # Extract the columns you're interested in
-        # age = df['age'].values/1e6
-        # bh_mass = df['BH mass'].values
-        # accrate = df['accrate'].values
-        # avg_density = df['average density'].values
-        # avg_vinfinity = df['average vinfinity'].values
-        # avg_cinfinity = df['average cinfinity'].values
-        # hl_radius = df['HL radius'].values
-
-        # #label_extra=l[i]+'-4dx'
-        # label_extra='2B.m16'
-        # alpha = 0.6
-
-        # # 1) BH Mass
-        # axs[0].plot(age, bh_mass, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-
-        # # 2) Accretion Rates
-        # axs[1].plot(age, accrate, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-        # axs[1].plot(age, eddington_rate(bh_mass), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
-
-        # # 3) Densities
-        # axs[2].plot(age, avg_density, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-
-        # # 4) Velocities
-        # axs[3].plot(age, avg_vinfinity/avg_cinfinity, color=c[j], linestyle='solid', label=label_extra+'-Mach', alpha=alpha)
-
-        # # 5) HL radius
-        # axs[4].plot(age, hl_radius/dx[i], color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-
-        # # 6) Scatter Residual - not possible for this data
-
-        # i += 1
-        # j += 1
-
-        # # Load the CSV file into a DataFrame
-        # # df = pd.read_csv("data_files/data-1S.m04-no-SN.csv")
-        # df = pd.read_csv("data_files/data-2B.m16-4dx.csv")
-
-        # # Extract the columns you're interested in
-        # age = df['age'].values/1e6
-        # bh_mass = df['BH mass'].values
-        # accrate = df['accrate'].values
-        # avg_density = df['average density'].values
-        # avg_vinfinity = df['average vinfinity'].values
-        # avg_cinfinity = df['average cinfinity'].values
-        # hl_radius = df['HL radius'].values
-
-        # #label_extra=l[i]+'-4dx'
-        # label_extra='2B.m16-4dx'
-        # alpha = 0.6
-
-        # # 1) BH Mass
-        # axs[0].plot(age, bh_mass, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-
-        # # 2) Accretion Rates
-        # axs[1].plot(age, accrate, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-        # axs[1].plot(age, eddington_rate(bh_mass), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
-
-        # # 3) Densities
-        # axs[2].plot(age, avg_density, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-
-        # # 4) Velocities
-        # axs[3].plot(age, avg_vinfinity/avg_cinfinity, color=c[j], linestyle='solid', label=label_extra+'-Mach', alpha=alpha)
-
-        # # 5) HL radius
-        # axs[4].plot(age, hl_radius/dx[i], color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+        plot_extra_line(data_file, label_extra, i, j, alpha=0.6)
 
 
     ############################### Format plots #################################
@@ -481,6 +411,8 @@ if __name__ == "__main__":
     elif x == "s2-270msun-":
         axs[4].set_ylim([2e-3, 9e1])
         #axs[5].set_ylim([-1.5e-2, 0.9e-2])
+    elif x == "s1+s2-40msun-":
+        axs[0].set_ylim([10.1, 1000.1])
 
 
     ############################### Legends ################################
