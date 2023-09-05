@@ -1,7 +1,7 @@
 ########################################  MultiPanel Projections  ########################################
 # Uses a combination of AxesGrid and yt.ProjectionPlot to produce a multipanel figure.
 # Can only produce this figure column by column. The full row x col figure needs to be assembled in ppt.
-# to run: python plot_multi_projections.py [width index k]
+# to run: python plot_multi_projections.py [column index k]
 ##########################################################################################################
 
 import os
@@ -20,9 +20,11 @@ from smartstar_find import ss_properties
 import re # complex str searches
 
 
-def tidy_data_labels(labels):
+def tidy_data_labels(labels, custom_name=None):
     # for lists of labels
-    if len(labels) < 5:
+    if custom_name:
+        return custom_name
+    elif len(labels) < 8:
         data_labels = [i.replace("-2", "") for i in labels]
         data_labels = [i.replace("RS", "") for i in data_labels]
     # for single label
@@ -41,11 +43,41 @@ def format_sci_notation(x):
     b = int(b)
     return r'$\rm {} \times 10^{{{}}}$'.format(a, b)
 
+def find_north_vector(dd, root_dir, orient, disc_r_pc = 2.1, disc_h_pc = 2.1):
+    # find north vector a (near-end) ds
+    ds_final = yt.load(os.path.join(root_dir, dd))
+    ss_pos, ss_mass, ss_age = ss_properties(ds_final)
+    center = ss_pos
+    r = 2000*yt.units.pc
+
+    # make disk data container and define angular momentum vector L
+    disk, L = _make_disk_L(ds_final, ss_pos, disc_r_pc, disc_h_pc)
+    
+    # Gives a 3d vector and it will return 3 orthogonal vectors, the first one being the original vector
+    # and the 2nd and 3rd being two vectors in the plane orthogonal to the first and orthogonal to each other.
+    # It's very useful for giving you a vector edge-on to the disk.
+    vecs = ortho_find(L)
+
+    if orient == "face-on":
+        orient_str = "face_on_"
+        dir = vecs[0]
+        north = vecs[1]
+    else:
+        orient_str = "edge_on_"
+        dir = vecs[2]
+        north = vecs[0]
+    
+    return dir, north, disk, orient_str
+
+
 if __name__ == "__main__":
     # input data - simulations and individual outputs
-    root_dir = "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"
-    sim = ["1B.RSb01-2", "1B.RSb04", "1B.RSb08"]
-    dds = ["DD0148/DD0148", "DD0148/DD0148", "DD0184/DD0184"]
+    root_dir = ["/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+                "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+                "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"]
+    sim = ["1B.RSb01-2", "1B.RSb04", "1B.RSb16"]
+    dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0167/DD0167"]
+    use_north_vector = True
 
     # font settings
     pyplot.rcParams['font.size'] = 14
@@ -74,9 +106,9 @@ if __name__ == "__main__":
 
     # find min and max field values from highest resolution simulation - for colorbar
     field = "number_density"
-    ds_hr = yt.load(os.path.join(root_dir, sim[-1], dds[-1]))
-    min_n = ds_hr.r[("gas", field)].min()*100 # bring up to ~ 10^-1 order
-    max_n = ds_hr.r[("gas", field)].max()
+    ds_hr = yt.load(os.path.join(root_dir[-1], sim[-1], dds[-1]))
+    min_n = ds_hr.r[("gas", field)].min()*1e3 # bring up to ~ 10^-1 order
+    max_n = ds_hr.r[("gas", field)].max()*1e-1
     max_n_index = int(np.log10(max_n))
     min_n_index = int(np.log10(min_n))
 
@@ -84,7 +116,7 @@ if __name__ == "__main__":
     for i, dd in enumerate(dds):
 
         # make dataset and simulation label
-        ds = yt.load(os.path.join(root_dir, sim[i], dd))
+        ds = yt.load(os.path.join(root_dir[i], sim[i], dd))
         label = tidy_data_labels(sim[i])
 
         # grab bh properties and make sphere centered on BH
@@ -98,8 +130,16 @@ if __name__ == "__main__":
         k = int(sys.argv[-1])
         width = widths[k]
 
-        # make projection plot
-        p = yt.ProjectionPlot(ds, "x", ("gas", field), width=width, center=center, data_source=sp, weight_field='density')
+         # make projection plot
+        if use_north_vector:
+            # find north vector
+            orient = "edge-on"
+            dir, north, disk, orient_str = find_north_vector(dd, root_dir, orient)
+            p = yt.ProjectionPlot(ds, dir, ("gas", field), width=width, north_vector=north, center=center, data_source=sp,
+                                  weight_field='density')
+        else:    
+            p = yt.ProjectionPlot(ds, "y", ("gas", field), width=width, center=center, data_source=sp, weight_field='density')
+
         p.set_axes_unit('pc')
         p.set_font_size(fontsize)
 
