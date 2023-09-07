@@ -8,7 +8,7 @@ from plot_variables import *
 ##########################################################################################################
 #                                     Plot mass growth of BHs                                            #
 #
-# to run: python plot_variables.py [csv1] [csv2] [csv3] [output_plotname e.g mass-flux-x4]
+# to run: python plot_mass_growth.py [csv1] [csv2] [csv3] [output_plotname e.g mass-flux-x4]
 # list data files in order of low res -> high res
 ##########################################################################################################
 
@@ -38,24 +38,43 @@ def create_subplots(num_subplots, xlim, time_cutoff, fontsize, title):
         axs[i].set_xlim([0, xlim+0.01]) # for truncated view
 
     axs[0].set_title(title)
-    axs[0].set_ylim([240, ylim_mass+0.01]) # for truncated view
+    axs[0].set_ylim([10.5, ylim_mass+0.01]) # for truncated view 270msun: [240, ylim_mass+0.01]
     axs[0].set_ylabel(r"$\rm M_{BH} \, (M_{\odot})$", fontdict=None)
     axs[1].set_ylabel(r"$\rm \dot{M} \, (M_{\odot}/yr)$", fontdict=None)
+    axs[1].set_ylim([5e-9, 6e-2]) # [2e-9, 8e-4] for truncated view 270msun: [240, ylim_mass+0.01]
     axs[-1].set_xlabel('Black Hole Age (Myr)', fontdict=None)
 
     return fig, axs
 
+def plot_extra_line_mass_growth(j, data_file="data_files/data-2S.RSb01.csv", label_extra='2S.b01', alpha=0.8):
+        # Load the CSV file into a DataFrame
+        df = pd.read_csv(data_file)
+
+        # Extract the columns you're interested in
+        age = df['age'].values/1e6
+        bh_mass = df['BH mass'].values
+        accrate = df['accrate'].values
+
+        # 1) BH Mass
+        axs[0].plot(age, bh_mass, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+
+        # 2) Accretion Rates
+        axs[1].plot(age, accrate, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+        axs[1].plot(age, eddington_rate(bh_mass), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
+
+        return 0
 
 if __name__ == "__main__":
     # Set up plot parameters
     j = 0
-    title = "Baseline Growth"
-    alpha = 1
+    title = "No-SN Growth"
+    alpha = 0.8
     xlim = 1
-    ylim_mass = 4000
+    ylim_mass = 1200 # 4000 for 270msun, 200 for 10.8msun baseline
     time_cutoff = 1
-    smooth_simulations = 4 # number of simulations to smooth
-    window = 20
+    smooth_simulations = 3 # number of simulations to smooth
+    window = 7 # window size for smoothing
+    extra_line = True # true for 10.8msun, false for 270msun
 
     # Text format
     linewidth = 1.5
@@ -69,9 +88,9 @@ if __name__ == "__main__":
     fig, axs = create_subplots(num_subplots, xlim, time_cutoff, fontsize, title)
 
     # Line colours
-    n = 2
-    c_s1 = extract_colors('viridis', n, portion="middle")
-    c_s2 = extract_colors('magma', n, portion="middle")
+    n = 4
+    c_s1 = extract_colors('viridis', n, portion="middle", start=0.33, end=0.92)
+    c_s2 = extract_colors('magma', n, portion="middle", start=0.3, end=0.85)
     c = np.concatenate((c_s1, c_s2))
 
     # Set BHL properties parameters and resample data
@@ -93,13 +112,41 @@ if __name__ == "__main__":
         axs[1].plot(common_time, eddington_rate(mass[i]), color=c[i], linestyle='dashed', label=l[i], alpha=alpha)
         j += 1
 
+    if extra_line:
+        data_file="data_files/data-2S.RSb01.csv"
+        label_extra='2S.b01'
+
+        ## No-SN
+        # data_file = "data_files/data-1S.b04-no-SN.csv"
+        # label_extra='1S.b04-no-SN'
+        alpha2 = 0.6
+
+        plot_extra_line_mass_growth(j, data_file=data_file, label_extra=label_extra, alpha=alpha2)
+        j += 1
+
+        data_file="data_files/data-2S.RSm01-2.csv"
+        label_extra='2S.m01'
+
+        plot_extra_line_mass_growth(j, data_file=data_file, label_extra=label_extra, alpha=alpha2)
+        j += 1
+
+        # plot_extra_line_mass_growth(j, data_file="data_files/data-2S.m01-no-SN.csv", label_extra='2S.m01-no-SN', alpha=alpha2)
+        # j += 1
+
+        # plot_extra_line_mass_growth(j, data_file="data_files/data-2S.b01-no-SN.csv", label_extra='2S.b01-no-SN', alpha=alpha2)
+        # j += 1
+
+        # plot_extra_line_mass_growth(j, data_file="data_files/data-2S.mf4-no-SN.csv", label_extra='2S.mf4-no-SN', alpha=alpha2)
+        # j += 1
+
     accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
 
     # Include legends and save the plot
-    axs[0].legend(fontsize=fontsize-2.2, ncol=2, loc="lower right")
+    axs[0].legend(fontsize=fontsize-4, ncol=1, loc="lower right")
     axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-2.2, ncol=1)
     fig.subplots_adjust(wspace=0, hspace=0)
     fig.set_size_inches(4.7, 4.7)
-    plot_name = 'mass_growth-baselines_resolution' + '.pdf'
+    #plot_name = 'mass_growth-1S+2S-no-SN' + '.pdf'
+    plot_name = sys.argv[-1] + '.pdf'
     fig.savefig('plots/' + plot_name, bbox_inches='tight')
     print("created plots/" + plot_name)
