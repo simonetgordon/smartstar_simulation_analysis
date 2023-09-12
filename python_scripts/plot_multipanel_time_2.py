@@ -12,13 +12,13 @@ from plot_multi_projections import tidy_data_labels, first_index
 from plot_disc_projections import _make_disk_L
 
 
-def load_datasets(root_dir, sim, dds1, dds2, dds3):
+def load_datasets(root_dir, sim, dds1, dds2, dds3=None):
     DS, LABEL = [], []
     for l in range(len(sim)):
         for s, _ in enumerate(dds1):
             if "2B.RSb" in sim[l]:
                 dd = dds3[s]
-            elif "2B.RSm" in sim[l]:
+            elif "2B.RSm" or "no-SN" in sim[l]:
                 dd = dds2[s]
             else:
                 dd = dds1[s]
@@ -29,7 +29,7 @@ def load_datasets(root_dir, sim, dds1, dds2, dds3):
     return DS, LABEL
 
 
-def configure_plots():
+def configure_font():
     pyplot.rcParams['font.size'] = 14
     pyplot.rcParams['font.weight'] = 'light'
     rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
@@ -37,38 +37,41 @@ def configure_plots():
     plt.rcParams["mathtext.default"] = "regular"
 
 
-def make_projection_plot(ds, width_pc, disk, L, field, vecs, v, north, min_n, max_n, fontsize):
-    p = yt.ProjectionPlot(ds, vecs[v], ("gas", field), weight_field=("gas", "density"), north_vector=north, 
-                          center=disk.center, width=width_pc, data_source=disk)
+def make_projection_plot(ds, width_pc, disk, L, field, min_n, max_n, vecs=None, v=None, north=None, dir="z", fontsize=14, cmap="viridis", center=None):
+    #print("vecs: {}, v: {}, north: {}, disk.center: {}, width_pc: {}".format(vecs, v, north, disk.center.d, width_pc))
+    center = center if center is not None else disk.center
+    if vecs:
+        p = yt.ProjectionPlot(ds, vecs[v], ("gas", field), weight_field=("gas", "density"), north_vector=north, center=center, width=width_pc, data_source=disk)
+    else:
+        p = yt.ProjectionPlot(ds, dir, ("gas", field), weight_field=("gas", "density"), center=center, width=width_pc, data_source=disk)
     p.set_axes_unit('pc')
     p.set_font_size(fontsize)
-    p.set_cmap(field, 'viridis')
+    p.set_cmap(field, cmap)
     p.set_zlim(("gas", field), min_n, max_n)
     p.hide_colorbar()
     return p
 
 
-def create_axes_grid(fig, dds1, sim):
+def create_axes_grid(fig, nrows, ncols, dim=(0.01, 0.01, 0.76, 1.152), axes_pad=0, share_all=True, cbar_location="right", cbar_size="2%", cbar_pad="0%"):
     return AxesGrid(
         fig,
-        (0.01, 0.01, 0.76, 1.152),
-        nrows_ncols=(len(dds1 * 2), len(sim)),
-        axes_pad=0,
+        dim,
+        nrows_ncols=(nrows,ncols),
+        axes_pad=axes_pad,
         label_mode="L",
         aspect=False,
-        share_all=True,
-        cbar_location="right",
+        share_all=share_all,
+        cbar_location=cbar_location,
         cbar_mode="single",
-        cbar_size="2%",
-        cbar_pad="0%",
+        cbar_size=cbar_size,
+        cbar_pad=cbar_pad,
     )
 
 
-def get_min_max_values(root_dir, sim, dds2, min_n_factor=2e5, max_n_factor=0.30):
-    field = "number_density"
+def get_min_max_values(root_dir, sim, dds2, field="number_density", min_n_factor=2e5, max_n_factor=0.30):
     ds_hr = yt.load(os.path.join(root_dir[-1], sim[-1], dds2[-1]))
-    min_n = ds_hr.r[("gas", field)].min() * 2e5
-    max_n = ds_hr.r[("gas", field)].max() * 0.30
+    min_n = ds_hr.r[("gas", field)].min() * min_n_factor
+    max_n = ds_hr.r[("gas", field)].max() * max_n_factor
     return min_n, max_n, int(np.log10(min_n)), int(np.log10(max_n))
 
 
@@ -95,7 +98,7 @@ def configure_projection_plot(p, field, min_n, max_n, fontsize):
     return p
 
 
-def set_ticks_and_labels(grid, k, xticks, plot):
+def set_ticks_and_labels(grid, k, xticks, plot, no_xticklabels=True):
     # ticks + ticklabels
     grid[k].axes.set_xticks([])
     grid[k].axes.set_yticks([])
@@ -104,6 +107,10 @@ def set_ticks_and_labels(grid, k, xticks, plot):
     grid[k].axes.yaxis.set_minor_locator(ticker.AutoMinorLocator())
     grid[k].axes.set_xticks(xticks, major=True, crs=plot)
     grid[k].axes.set_yticks(xticks, major=True, crs=plot)
+    if no_xticklabels:
+        grid[k].axes.set_xticklabels([])
+        grid[k].axes.set_yticklabels([])
+        return 0
     grid[k].axes.set_xticklabels([str(x) for x in xticks], rotation=90)
     grid[k].axes.set_yticklabels([str(x) for x in xticks])
 
@@ -134,7 +141,7 @@ def set_axis_labels_and_colorbar(grid, k, j, i, dds2, DS, ss_age, min_n_index, m
         grid.cbar_axes[k].tick_params(labelsize=fontsize)
 
 
-def overlay_quadrants(grid, edgecolor='yellow', linewidth=5):
+def overlay_quadrants(grid, edgecolor='black', linewidth=5):
     # Get the exact coordinates for the lines
     right_edge_of_second_column = grid[1].get_xlim()[1]
     bottom_edge_of_third_row = grid[2 * 4].get_ylim()[0]
@@ -150,15 +157,15 @@ def overlay_quadrants(grid, edgecolor='yellow', linewidth=5):
     print("Quadrants overlayed")
 
 
-def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min_n_factor=2e5, max_n_factor=0.30):
+def main(plot, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min_n_factor=2e5, max_n_factor=0.30):
 
     # set up figure and axes grid
-    configure_plots()
+    configure_font()
     fig = plt.figure()
-    grid = create_axes_grid(fig, dds1, sim)
+    grid = create_axes_grid(fig, nrows=6, ncols=4, dim=(0.01, 0.01, 0.76, 1.152))
 
     # get min and max values for colorbar
-    min_n, max_n, min_n_index, max_n_index = get_min_max_values(root_dir, sim, dds2, min_n_factor, max_n_factor)
+    min_n, max_n, min_n_index, max_n_index = get_min_max_values(root_dir, sim, dds2, min_n_factor=min_n_factor, max_n_factor=max_n_factor)
 
     # load datasets into list DS and labels into list LABEL
     DS, LABEL = load_datasets(root_dir, sim, dds1, dds2, dds3)
@@ -170,12 +177,9 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
         # grab bh properties and make sphere centered on BH
         ss_pos, ss_mass, ss_age = ss_properties(ds)
         center = ss_pos
-        r = 2000*yt.units.pc
-        sp = ds.sphere(center, 2 * r)
 
-        # make disk data container and define angular momentum vector L
-        disc_r_pc = 2.1
-        disc_h_pc = 2.1
+        # make disk data container and define angular momentum vector L and north vector
+        disc_r_pc = disc_h_pc = 0.15
         disk, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
 
         # Gives a 3d vector and it will return 3 orthogonal vectors, the first one being the original vector
@@ -184,21 +188,24 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
         vecs = ortho_find(L)
 
         # s1 is the first 6 simulations (first 2 columns), s2 is the second 6 simulations (last 2 columns)
-        if i < 6:
-            js = [0, 1]
-        else:
-            js = [2, 3]
+        js = [0, 1] if (i < 6) else [2, 3]
 
         # loop over the 2 columns of each seed
         for j in js:
-            # set north vector and v
-            north = vecs[1] if (j == 0) or (j == 2) else vecs[0]
-            v = 0 if (j == 0) or (j == 2) else 1
-            if north[-1] < 0:
-                north *= [1,1,-1]
             
-            # make projection plot and configure basic parameters
-            p = make_projection_plot(ds, width_pc, disk, L, field, vecs, v, north, min_n, max_n, fontsize)
+            # make projection plot and configure basic parameters. remake bigger disk for projection
+            disc_r_pc = disc_h_pc = 2.1
+            disk, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
+            if plot == "baselines_1":
+                # set north vector and v
+                north = vecs[1] if (j == 0) or (j == 2) else vecs[0]
+                v = 0 if (j == 0) or (j == 2) else 1
+                # if north[-1] < 0:
+                #     north *= [1,1,-1]
+                p = make_projection_plot(ds, width_pc, disk, L, field, min_n, max_n, vecs=vecs, v=v, north=north, fontsize=fontsize)
+
+            elif plot == "baselines_2":
+                p = make_projection_plot(ds, width_pc, disk, L, field, min_n, max_n, dir="z", fontsize=fontsize)
             p = configure_projection_plot(p, field, min_n, max_n, fontsize)
 
             # ... pre-render plot customization ...
@@ -228,9 +235,8 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
                                     "edgecolor": "white",
                                     "alpha": 0.5,
                                 })
-
             # mark BH position
-            p.annotate_marker(center, coord_system="data", color="white")
+            p.annotate_marker(center, coord_system="data", color="black", marker="x", plot_args={"s": 10, "alpha": 0.8,'linewidths': 0.1, 'edgecolors': 'black'})
 
             # render the plot
             p.render()
@@ -240,11 +246,15 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
             # Modify colorbar and axes properties **after** p.render() so that they are not overwritten.
 
             # ticks + ticklabels
-            set_ticks_and_labels(grid, k, xticks, plot)
+            set_ticks_and_labels(grid, k, xticks, plot, no_xticklabels=False)
 
             # x and y extrenal axis labels and colorbar settngs
             set_axis_labels_and_colorbar(grid, k, j, i, dds2, DS, ss_age, min_n_index, max_n_index, 
                                          max_n, fontsize, ticker)
+            
+            # set tick labels on bottom row
+            # if ((k == 5) or (k == 11) or (k == 17) or (k == 23)):
+            #     grid[k].axes.set_xticklabels([str(x) for x in xticks], rotation=90)
             
     overlay_quadrants(grid)
 
@@ -259,17 +269,44 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
 
 if __name__ == "__main__":
 
-    root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
-                "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
-                "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/",
-                "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/"]
-    sim = ["1B.RSm01", "1B.RSb01-2", "2B.RSm01", "2B.RSb01"]
-    dds1 = ["DD0130/DD0130", "DD0133/DD0133", "DD0138/DD0138"] 
-    dds2 = ["DD0201/DD0201", "DD0204/DD0204", "DD0209/DD0209"]  # 0.19, 0.49, 1.01 Myr for m01, 
-    dds3 = ["DD0201/DD0201", "DD0203/DD0203", "DD0208/DD0208"]  # 0.201, 0.501, 1.002 Myr for b01
-    fontsize = 14
-    width_pc = 1.5 * yt.units.pc # must change xticks if this changes
-    xticks = [-0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6]
-    min_n_factor=2e5
-    max_n_factor=0.30
-    main(root_dir, sim, dds1, dds2, dds3, "number_density", width_pc, xticks, fontsize, min_n_factor, max_n_factor)
+    plot = "baselines_2" # or baselines_2
+
+    if plot == "baselines_1":
+        # plot 6x4 multipanael of 1B and 2B baselines at 3 times
+        root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+                    "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+                    "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/",
+                    "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/"]
+        sim = ["1B.RSm01", "1B.RSb01-2", "2B.RSm01", "2B.RSb01"]
+        dds1 = ["DD0131/DD0131", "DD0136/DD0136", "DD0138/DD0138"] 
+        dds2 = ["DD0201/DD0201", "DD0206/DD0206", "DD0208/DD0208"]  # 0.29, 079, 1.01 Myr for m01, 
+        dds3 = ["DD0201/DD0201", "DD0206/DD0206", "DD0208/DD0208"]  # 0.201, 0.801, 1.002 Myr for b01
+        fontsize = 14
+        width_pc = 1.5 * yt.units.pc # must change xticks if this changes
+        xticks = [-0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6]
+        min_n_factor=2e5
+        max_n_factor=0.01
+        nrows=6
+        ncols=4
+        dim=(0.01, 0.01, 0.76, 1.152)
+
+    elif plot == "baselines_2":
+        # plot 3x4 multipanel of 1S.m01 and 1S.m01-no-SN baselines at 3 times
+        # to run: python plot_multipanel_time_2.py "1S.m01+1S.m01-no-SN"
+        root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/",
+                    "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/",]
+        sim = ["1S.RSm01","1S.m01-no-SN",]
+        dds2 = ["DD0152/DD0152", "DD0162/DD0162", "DD0202/DD0202"]  # 0.1, 0.2, 0.6 (reaches final mass of 60 msun)
+        dds1 = ["DD0131/DD0131", "DD0132/DD0132", "DD0136/DD0136"]  # 0.29, 079, 1.01 Myr for m01, 
+        fontsize = 14
+        width_pc = 1.5 * yt.units.pc # must change xticks if this changes
+        xticks = [-0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6]
+        min_n_factor=2e5
+        max_n_factor=0.01
+        nrows=3
+        ncols=4
+        dim=(0.01, 0.01, 0.76, 0.70)
+        dds3=None
+
+
+    main(plot,root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, "number_density", width_pc, xticks, fontsize, min_n_factor, max_n_factor)
