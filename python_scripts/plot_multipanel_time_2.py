@@ -18,10 +18,14 @@ def load_datasets(root_dir, sim, dds1, dds2, dds3=None):
         for s, _ in enumerate(dds1):
             if "2B.RSb" in sim[l]:
                 dd = dds3[s]
-            elif "2B.RSm" or "no-SN" in sim[l]:
+            elif ("2B.RSm" in sim[l]) or ("no-SN" in sim[l]):
                 dd = dds2[s]
+                print("dd2")
+                print(root_dir[l], sim[l], dd)
             else:
                 dd = dds1[s]
+                print("dd1")
+                print(root_dir[l], sim[l], dd)
             ds = yt.load(os.path.join(root_dir[l], sim[l], dd))
             label = tidy_data_labels(sim[l])
             DS.append(ds)
@@ -75,16 +79,16 @@ def get_min_max_values(root_dir, sim, dds2, field="number_density", min_n_factor
     return min_n, max_n, int(np.log10(min_n)), int(np.log10(max_n))
 
 
-def map_to_single_value(i, j):
-    if i < 6 and (j == 0 or j == 1):
+def map_to_single_value(i, j, i_lim=6):
+    if i < i_lim and (j == 0 or j == 1):
         k = i * 4 + j
-        print("i < 6: i = {}, j = {}, k = {}".format(i, j, k))
-    elif i >= 6 and (j == 2 or j == 3):
-        i -= 6
+        print("i < 6/3: i = {}, j = {}, k = {}".format(i, j, k))
+    elif i >= i_lim and (j == 2 or j == 3):
+        i -= i_lim
         k = i * 4 + j
-        print("i >= 6: i = {}, j = {}, k = {}".format(i, j, k))
+        print("i >= 6/3: i = {}, j = {}, k = {}".format(i, j, k))
     else:
-        raise ValueError("i must be between 0 and 3, and j must be between 0 and 11")
+        raise ValueError("j must be between 0 and 3, and i must be between 0 and 11")
     return k
 
 
@@ -141,28 +145,28 @@ def set_axis_labels_and_colorbar(grid, k, j, i, dds2, DS, ss_age, min_n_index, m
         grid.cbar_axes[k].tick_params(labelsize=fontsize)
 
 
-def overlay_quadrants(grid, edgecolor='black', linewidth=5):
+def overlay_quadrants(grid, edgecolor='black', linewidth=5, nrows=6, ncols=4, i_lim=6):
     # Get the exact coordinates for the lines
     right_edge_of_second_column = grid[1].get_xlim()[1]
     bottom_edge_of_third_row = grid[2 * 4].get_ylim()[0]
 
     # Draw vertical line
-    for i in range(6):  # Six rows in the grid
-        grid[i * 4 + 1].axvline(x=right_edge_of_second_column, color=edgecolor, linewidth=linewidth)
+    for i in range(nrows):  # Six rows in the grid
+        grid[i * ncols + 1].axvline(x=right_edge_of_second_column, color=edgecolor, linewidth=linewidth)
 
     # Draw horizontal line
-    for i in range(4):  # Four columns in the grid
-        grid[2 * 4 + i].axhline(y=bottom_edge_of_third_row, color=edgecolor, linewidth=linewidth)
+    for i in range(ncols):  # Four columns in the grid
+        grid[2 * ncols + i].axhline(y=bottom_edge_of_third_row, color=edgecolor, linewidth=linewidth)
 
     print("Quadrants overlayed")
 
 
-def main(plot, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min_n_factor=2e5, max_n_factor=0.30):
+def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min_n_factor=2e5, max_n_factor=0.30):
 
     # set up figure and axes grid
     configure_font()
     fig = plt.figure()
-    grid = create_axes_grid(fig, nrows=6, ncols=4, dim=(0.01, 0.01, 0.76, 1.152))
+    grid = create_axes_grid(fig, nrows=nrows, ncols=ncols, dim=dim)
 
     # get min and max values for colorbar
     min_n, max_n, min_n_index, max_n_index = get_min_max_values(root_dir, sim, dds2, min_n_factor=min_n_factor, max_n_factor=max_n_factor)
@@ -188,7 +192,7 @@ def main(plot, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
         vecs = ortho_find(L)
 
         # s1 is the first 6 simulations (first 2 columns), s2 is the second 6 simulations (last 2 columns)
-        js = [0, 1] if (i < 6) else [2, 3]
+        js = [0, 1] if (i < 3) else [2, 3] # changing this 6 -> 3
 
         # loop over the 2 columns of each seed
         for j in js:
@@ -196,7 +200,7 @@ def main(plot, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
             # make projection plot and configure basic parameters. remake bigger disk for projection
             disc_r_pc = disc_h_pc = 2.1
             disk, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
-            if plot == "baselines_1":
+            if sims == "baselines_1":
                 # set north vector and v
                 north = vecs[1] if (j == 0) or (j == 2) else vecs[0]
                 v = 0 if (j == 0) or (j == 2) else 1
@@ -204,8 +208,9 @@ def main(plot, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
                 #     north *= [1,1,-1]
                 p = make_projection_plot(ds, width_pc, disk, L, field, min_n, max_n, vecs=vecs, v=v, north=north, fontsize=fontsize)
 
-            elif plot == "baselines_2":
-                p = make_projection_plot(ds, width_pc, disk, L, field, min_n, max_n, dir="z", fontsize=fontsize)
+            elif sims == "baselines_2":
+                dir = "z" if (j == 0) or (j == 2) else "y"
+                p = make_projection_plot(ds, width_pc, disk, L, field, min_n, max_n, dir=dir, fontsize=fontsize)
             p = configure_projection_plot(p, field, min_n, max_n, fontsize)
 
             # ... pre-render plot customization ...
@@ -213,7 +218,10 @@ def main(plot, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
             # this forces the ProjectionPlot to redraw itself on the AxesGrid axes.
             plot = p.plots[("gas", field)]
             plot.figure = fig
-            k = map_to_single_value(i, j)
+            if sims == "baselines_1":
+                k = map_to_single_value(i, j)
+            elif sims == "baselines_2":
+                k = map_to_single_value(i, j, i_lim=3)
             plot.axes = grid[k].axes
 
             # age, mass and simulation label in first and third columns
@@ -256,7 +264,7 @@ def main(plot, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
             # if ((k == 5) or (k == 11) or (k == 17) or (k == 23)):
             #     grid[k].axes.set_xticklabels([str(x) for x in xticks], rotation=90)
             
-    overlay_quadrants(grid)
+    #overlay_quadrants(grid) # skipping this for now
 
     # ... save plot ...
 
@@ -269,9 +277,9 @@ def main(plot, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
 
 if __name__ == "__main__":
 
-    plot = "baselines_2" # or baselines_2
+    sims = "baselines_2" # or baselines_2
 
-    if plot == "baselines_1":
+    if sims == "baselines_1":
         # plot 6x4 multipanael of 1B and 2B baselines at 3 times
         root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
                     "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
@@ -290,23 +298,23 @@ if __name__ == "__main__":
         ncols=4
         dim=(0.01, 0.01, 0.76, 1.152)
 
-    elif plot == "baselines_2":
+    elif sims == "baselines_2":
         # plot 3x4 multipanel of 1S.m01 and 1S.m01-no-SN baselines at 3 times
         # to run: python plot_multipanel_time_2.py "1S.m01+1S.m01-no-SN"
         root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/",
                     "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/",]
         sim = ["1S.RSm01","1S.m01-no-SN",]
+        dds1 = ["DD0131/DD0131", "DD0132/DD0132", "DD0136/DD0136"]  # 0.1, 0.2, 0.6 (reaches 29 msun, final mass 30msun)
         dds2 = ["DD0152/DD0152", "DD0162/DD0162", "DD0202/DD0202"]  # 0.1, 0.2, 0.6 (reaches final mass of 60 msun)
-        dds1 = ["DD0131/DD0131", "DD0132/DD0132", "DD0136/DD0136"]  # 0.29, 079, 1.01 Myr for m01, 
         fontsize = 14
         width_pc = 1.5 * yt.units.pc # must change xticks if this changes
         xticks = [-0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6]
         min_n_factor=2e5
-        max_n_factor=0.01
+        max_n_factor=0.001
         nrows=3
         ncols=4
-        dim=(0.01, 0.01, 0.76, 0.70)
+        dim=(0.01, 0.01, 0.74, 0.56)
         dds3=None
 
 
-    main(plot,root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, "number_density", width_pc, xticks, fontsize, min_n_factor, max_n_factor)
+    main(sims,root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, "number_density", width_pc, xticks, fontsize, min_n_factor, max_n_factor)
