@@ -127,7 +127,7 @@ def set_axis_labels_and_colorbar(grid, k, j, i, dds2, DS, ss_age, min_n_index, m
     # x axis space labels and colorbar
     if i == (len(dds2)*2-1) or i == (len(DS)-1):
         # ylabel
-        grid[k].axes.set_xlabel("(pc)")
+        #grid[k].axes.set_xlabel("(pc)")
 
         # colorbar
         grid.cbar_axes[k].set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)')
@@ -145,7 +145,7 @@ def set_axis_labels_and_colorbar(grid, k, j, i, dds2, DS, ss_age, min_n_index, m
         grid.cbar_axes[k].tick_params(labelsize=fontsize)
 
 
-def overlay_quadrants(grid, edgecolor='black', linewidth=5, nrows=6, ncols=4, i_lim=6):
+def overlay_quadrants(sims, grid, edgecolor='black', linewidth=5, nrows=6, ncols=4, i_lim=6):
     # Get the exact coordinates for the lines
     right_edge_of_second_column = grid[1].get_xlim()[1]
     bottom_edge_of_third_row = grid[2 * 4].get_ylim()[0]
@@ -155,8 +155,9 @@ def overlay_quadrants(grid, edgecolor='black', linewidth=5, nrows=6, ncols=4, i_
         grid[i * ncols + 1].axvline(x=right_edge_of_second_column, color=edgecolor, linewidth=linewidth)
 
     # Draw horizontal line
-    for i in range(ncols):  # Four columns in the grid
-        grid[2 * ncols + i].axhline(y=bottom_edge_of_third_row, color=edgecolor, linewidth=linewidth)
+    if sims == "baselines_1":
+        for i in range(ncols):  # Four columns in the grid
+            grid[2 * ncols + i].axhline(y=bottom_edge_of_third_row, color=edgecolor, linewidth=linewidth)
 
     print("Quadrants overlayed")
 
@@ -206,11 +207,12 @@ def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
                 v = 0 if (j == 0) or (j == 2) else 1
                 # if north[-1] < 0:
                 #     north *= [1,1,-1]
-                p = make_projection_plot(ds, width_pc, disk, L, field, min_n, max_n, vecs=vecs, v=v, north=north, fontsize=fontsize)
+                p = make_projection_plot(ds, width_pc, disk, L, field, min_n, max_n, vecs=vecs, v=v, north=north, fontsize=fontsize,)
 
             elif sims == "baselines_2":
                 dir = "z" if (j == 0) or (j == 2) else "y"
-                p = make_projection_plot(ds, width_pc, disk, L, field, min_n, max_n, dir=dir, fontsize=fontsize)
+                cmap = "RED_TEMPERATURE" if field == "temperature" else "viridis"
+                p = make_projection_plot(ds, width_pc, disk, L, field, min_n, max_n, dir=dir, fontsize=fontsize, cmap=cmap)
             p = configure_projection_plot(p, field, min_n, max_n, fontsize)
 
             # ... pre-render plot customization ...
@@ -244,7 +246,8 @@ def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
                                     "alpha": 0.5,
                                 })
             # mark BH position
-            p.annotate_marker(center, coord_system="data", color="black", marker="x", plot_args={"s": 10, "alpha": 0.8,'linewidths': 0.1, 'edgecolors': 'black'})
+            m_color = "black" if sims == "baselines_2" else "black"
+            p.annotate_marker(center, coord_system="data", color=m_color, marker="x", plot_args={"s": 15, "alpha": 0.8,'linewidths': 0.2, 'edgecolors': m_color})
 
             # render the plot
             p.render()
@@ -264,7 +267,7 @@ def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
             # if ((k == 5) or (k == 11) or (k == 17) or (k == 23)):
             #     grid[k].axes.set_xticklabels([str(x) for x in xticks], rotation=90)
             
-    #overlay_quadrants(grid) # skipping this for now
+    overlay_quadrants(sims, grid, nrows=nrows, ncols=ncols) # skipping this for now
 
     # ... save plot ...
 
@@ -309,12 +312,13 @@ if __name__ == "__main__":
         fontsize = 14
         width_pc = 1.5 * yt.units.pc # must change xticks if this changes
         xticks = [-0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6]
-        min_n_factor=2e5
-        max_n_factor=0.001
+        min_n_factor=10 # 2e5 for density baseline_1/2
+        max_n_factor=0.01 # 0.001 for density baseline_2 
         nrows=3
         ncols=4
-        dim=(0.01, 0.01, 0.74, 0.56)
+        dim=(0.01, 0.01, 0.73, 0.56)
         dds3=None
+        field = "temperature"
 
 
-    main(sims,root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, "number_density", width_pc, xticks, fontsize, min_n_factor, max_n_factor)
+    main(sims,root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3,field, width_pc, xticks, fontsize, min_n_factor, max_n_factor)
