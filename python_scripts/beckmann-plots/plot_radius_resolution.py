@@ -14,8 +14,8 @@ from plot_variables import tidy_data_labels, first_index, interpolate_data, movi
 
 # set x-axis extent in Myr and simulation set
 xlim = 0.4 #0.225 - 0.4 for 1S, 1 for 1B
-sim = "s1-40msun-"
-atol = 1e-2 # 7e-2 for 1B.m, 1e-4 otherwise
+sim = "s1-10.8msun-"
+atol = 1e-4 # 7e-2 for 1B.m, 1e-4 otherwise
 accretion = sys.argv[-1] # naming plot with accretion scheme
 
 # set y axis limits (optional)
@@ -38,7 +38,7 @@ plt.rcParams['lines.linewidth'] = linewidth
 fig = plt.figure()
 num_subplots = 2
 fig, axs = plt.subplots(num_subplots, 2, sharex=True)
-c = ['blueviolet', 'turquoise', 'limegreen', 'darkgreen'] # line colours
+c = ['indigo', 'blueviolet', 'turquoise', 'limegreen', 'darkgreen'] # line colours
 
 # tidy data labels
 l = tidy_data_labels(bhl_object_labels)
@@ -46,13 +46,13 @@ l = tidy_data_labels(bhl_object_labels)
 # allocate cell widths to be shown based on input
 if sim == "s1-270msun-":
     dx = [1.229791e-02, 3.074475e-03, 1.537645e-03, 7.692833e-04]
-elif sim == "s1-40msun-":
+elif sim == "s1-10.8msun-":
     dx = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04]
 elif sim == "s2-270msun-":
     dx = [8.298311e-03, 2.074568e-03, 1.537645e-03, 7.687095e-04, 3.8435475e-04, 1.296596e-04]
-elif sim == "s2-40msun-":
+elif sim == "s2-10.8msun-":
     dx = [0.00832, 0.00416, 0.002079909, 0.001297054, 0.0005188221, 0.0001297054]
-elif sim == "s2-40msun-2-":
+elif sim == "s2-10.8msun-2-":
     dx = [1.3e-03, 5.2e-04, 1.3e-04]
 
 # parameters
@@ -62,6 +62,7 @@ i_start = 1
 window_size = 10
 i_mf = np.arange(int(len(bhl_object_list)/2))
 i_bhl = np.arange(int(len(bhl_object_list)/2), len(bhl_object_list))
+
 for i, BHL in enumerate(bhl_object_list):
     # convert ages from yrs to Myrs
     BHL.ages = np.array(BHL.ages) / 1e6
@@ -69,12 +70,13 @@ for i, BHL in enumerate(bhl_object_list):
     # find index of age that matches end age of time limit
     i_age = first_index(BHL.ages[i_start:], time_cutoff, rtol=1e-8, atol=atol)
 
-    # calculate age and hl_radius moving averages
+    # calculate age and radius moving averages
     age = movingaverage(BHL.ages[i_start:i_age], window_size)
     hl_radius = movingaverage(BHL.hl_radius[i_start:i_age], window_size)
     bondi_radius = movingaverage(BHL.bondi_radius[i_start:i_age], window_size)
 
     if i in i_mf:
+
         # calculate how many cells it's resolving the hl radius by
         dx_res_hl = hl_radius / dx[i]
         dx_res_bondi = bondi_radius / dx[i]
@@ -85,6 +87,7 @@ for i, BHL in enumerate(bhl_object_list):
         # 2) Bondi radius resolution in cell widths
         axs[1, 0].plot(age, dx_res_bondi, color=c[i], linestyle='solid', label=l[i], alpha=alpha)
     else:
+
         # calculate how many cells it's resolving the hl radius by
         dx_res_hl = hl_radius / dx[i-int(len(bhl_object_list)/2)]
         dx_res_bondi = bondi_radius / dx[i-int(len(bhl_object_list)/2)]

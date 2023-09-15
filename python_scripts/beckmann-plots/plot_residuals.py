@@ -40,7 +40,7 @@ if __name__ == "__main__":
     data_labels = [i.replace("-2", "") for i in bhl_object_labels]
     data_labels = [i.replace("RS", "") for i in data_labels]
 
-    # grac accretion scheme from data labels
+    # grab accretion scheme from data labels
     if "m" in data_labels[1]:
         acc_scheme = "Mass-Flux"
     else:

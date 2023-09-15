@@ -41,12 +41,12 @@ def create_subplots(num_subplots, xlim, time_cutoff, fontsize, title):
     axs[0].set_ylim([10.5, ylim_mass+0.01]) # for truncated view 270msun: [240, ylim_mass+0.01]
     axs[0].set_ylabel(r"$\rm M_{BH} \, (M_{\odot})$", fontdict=None)
     axs[1].set_ylabel(r"$\rm \dot{M} \, (M_{\odot}/yr)$", fontdict=None)
-    axs[1].set_ylim([5e-9, 6e-2]) # [2e-9, 8e-4] for truncated view 270msun: [240, ylim_mass+0.01]
+    axs[1].set_ylim([2e-9, 8e-4]) # [2e-9, 8e-4] for 270msun, [5e-9, 6e-2] for 10.8msun-no-SN, [2e-9, 8e-4] for 10.8msun
     axs[-1].set_xlabel('Black Hole Age (Myr)', fontdict=None)
 
     return fig, axs
 
-def plot_extra_line_mass_growth(j, data_file="data_files/data-2S.RSb01.csv", label_extra='2S.b01', alpha=0.8):
+def plot_extra_line_mass_growth(j, data_file, label_extra, alpha=0.8):
         # Load the CSV file into a DataFrame
         df = pd.read_csv(data_file)
 
@@ -67,14 +67,15 @@ def plot_extra_line_mass_growth(j, data_file="data_files/data-2S.RSb01.csv", lab
 if __name__ == "__main__":
     # Set up plot parameters
     j = 0
-    title = "No-SN Growth"
+    title = "Baseline Growth" #"No-SN Growth"
     alpha = 0.8
     xlim = 1
-    ylim_mass = 1200 # 4000 for 270msun, 200 for 10.8msun baseline
+    ylim_mass = 110 # 4000 for 270msun, 200 for 10.8msun baseline, 1200 for no-sn, 110 for 10.8msun
     time_cutoff = 1
-    smooth_simulations = 3 # number of simulations to smooth
-    window = 7 # window size for smoothing
+    smooth_simulations = 0 # number of simulations to smooth
+    window = 4 # window size for smoothing
     extra_line = True # true for 10.8msun, false for 270msun
+    n = 2 # half number of simulations to plot
 
     # Text format
     linewidth = 1.5
@@ -88,9 +89,8 @@ if __name__ == "__main__":
     fig, axs = create_subplots(num_subplots, xlim, time_cutoff, fontsize, title)
 
     # Line colours
-    n = 4
-    c_s1 = extract_colors('viridis', n, portion="middle", start=0.33, end=0.92)
-    c_s2 = extract_colors('magma', n, portion="middle", start=0.3, end=0.85)
+    c_s1 = extract_colors('viridis', n, portion="middle", start=0.33, end=0.8) # start=0.33, end=0.92 for 10.8msun-no-sn
+    c_s2 = extract_colors('magma', n, portion="middle", start=0.3, end=0.75) # start=0.3, end=0.85 for 10.8msun-no-sn
     c = np.concatenate((c_s1, c_s2))
 
     # Set BHL properties parameters and resample data
@@ -113,19 +113,20 @@ if __name__ == "__main__":
         j += 1
 
     if extra_line:
+        alpha2 = 0.6
+
         data_file="data_files/data-2S.RSb01.csv"
         label_extra='2S.b01'
-
-        ## No-SN
-        # data_file = "data_files/data-1S.b04-no-SN.csv"
-        # label_extra='1S.b04-no-SN'
-        alpha2 = 0.6
 
         plot_extra_line_mass_growth(j, data_file=data_file, label_extra=label_extra, alpha=alpha2)
         j += 1
 
         data_file="data_files/data-2S.RSm01-2.csv"
         label_extra='2S.m01'
+
+        ## No-SN
+        # data_file = "data_files/data-1S.b04-no-SN.csv"
+        # label_extra='1S.b04-no-SN'
 
         plot_extra_line_mass_growth(j, data_file=data_file, label_extra=label_extra, alpha=alpha2)
         j += 1
@@ -142,7 +143,7 @@ if __name__ == "__main__":
     accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
 
     # Include legends and save the plot
-    axs[0].legend(fontsize=fontsize-4, ncol=1, loc="lower right")
+    axs[0].legend(fontsize=fontsize-4, ncol=1, loc="upper right") # "lower right" for no-sn
     axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-2.2, ncol=1)
     fig.subplots_adjust(wspace=0, hspace=0)
     fig.set_size_inches(4.7, 4.7)

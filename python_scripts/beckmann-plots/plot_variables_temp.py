@@ -5,21 +5,20 @@ from read_arrays_from_csv import bhl_object_list, bhl_object_labels
 import numpy as np
 import pandas as pd
 from matplotlib import rc
-import matplotlib.cm as cm
 from scipy.interpolate import interp1d
 from scipy.ndimage import convolve1d
 import matplotlib.ticker as ticker
 import yt
 
 ##########################################################################################################
-#                                     Plot BHL Variables vs time
+#                               Plot BHL Variables (+ temperature) vs time
 #
 # to run: python plot_variables.py [csv1] [csv2] [csv3] [output_plotname e.g mass-flux-x4]
 # list data files in order of low res -> high res
 ##########################################################################################################
 
 
-def resample_data(accretion_rates: list, times: list, common_time: float, smooth_simulations=2, window_size=3):
+def resample_data(accretion_rates, times, common_time, smooth_simulations=2, window_size=3):
     resampled_acc_rates = []
     for i in range(len(accretion_rates)):
         # Create an interpolator for each simulation
@@ -37,18 +36,15 @@ def resample_data(accretion_rates: list, times: list, common_time: float, smooth
     return resampled_acc_rates
 
 
-def tidy_data_labels(labels: str or list):
+def tidy_data_labels(labels):
     # for lists of labels
     if len(labels) < 50:
         data_labels = [i.replace("-2", "") for i in labels]
         data_labels = [i.replace("RS", "") for i in data_labels]
-        data_labels = [i.replace("-gap", "") for i in data_labels]
-        
     # for single label
     else:
         data_labels = labels.replace("-2", "")
         data_labels = data_labels.replace("RS", "")
-        data_labels = data_labels.replace("-gap", "")
     return data_labels
 
 
@@ -73,7 +69,7 @@ def movingaverage(x, N):
     return (cumsum[N:] - cumsum[:-N]) / float(N)
 
 
-def eddington_rate(mparticle_msun: float):
+def eddington_rate(mparticle_msun):
     # eddington rate constants in cgs units
     PI = 3.1415927
     GravConst = 6.6740831e-8
@@ -88,100 +84,23 @@ def eddington_rate(mparticle_msun: float):
     return mdot_edd*yr_s/SolarMass
 
 
-def identify_cell_widths(x: str):
-    if x == "s1-270msun-":
-        dx = [0.04919164, 1.229791e-02, 3.074475e-03, 1.537645e-03, 7.692833e-04]
-    elif x == "beck-comp-":
-        dx = [1.229791e-02, 3.074475e-03]
-    elif x == "s1-40msun-":
-        dx = [0.09839468, 2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04]
-    elif x == "s2-270msun-":
-        dx = [8.298311e-03, 2.074568e-03, 1.537645e-03, 7.687095e-04, 3.8435475e-04, 1.296596e-04]
-    elif x == "s2-40msun-":
-        dx = [8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04]
-    elif x == "s2-40msun-2-":
-        dx = [1.3e-03, 5.2e-04, 1.3e-04]
-    elif x == "s1+s2-270msun-":
-        dx = [1.229791e-02, 3.074475e-03, 1.537645e-03, 7.692833e-04, 8.298311e-03, 2.074568e-03, 1.537645e-03, 7.687095e-04, 3.8435475e-04, 1.296596e-04]
-    elif x == "s1+s2-40msun-":
-        dx = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04, 8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04]
-    else:
-        dx = None  # You may want to handle this case differently
-    return dx
-
-
-def extract_colors(cmap_name, n, portion=None, start=None, end=None):
-    cmap = cm.get_cmap(cmap_name)
-
-    if start is not None and end is not None:
-        values = np.linspace(start, end, n)
-    elif portion == "beginning":
-        values = np.linspace(0, 0.3, n)
-    elif portion == "middle":
-        values = np.linspace(0.3, 0.95, n)
-    elif portion == "end":
-        values = np.linspace(0.7, 1, n)
-    elif portion is None:
-        values = np.linspace(0, 1, n)
-    else:
-        raise ValueError("Invalid portion specified. Use 'beginning', 'middle', 'end', or None.")
-
-    colors = cmap(values)
-    return colors
-
-def plot_extra_line(data_file:str, label_extra:str, i, j, alpha = 0.6):
-        
-        df = pd.read_csv(data_file)
-
-        # Extract the columns you're interested in
-        age = df['age'].values/1e6
-        bh_mass = df['BH mass'].values
-        accrate = df['accrate'].values
-        avg_density = df['average density'].values
-        avg_vinfinity = df['average vinfinity'].values
-        avg_cinfinity = df['average cinfinity'].values
-        hl_radius = df['HL radius'].values
-
-        # 1) BH Mass
-        axs[0].plot(age, bh_mass, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-
-        # 2) Accretion Rates
-        axs[1].plot(age, accrate, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-        axs[1].plot(age, eddington_rate(bh_mass), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
-
-        # 3) Densities
-        axs[2].plot(age, avg_density, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-
-        # 4) Velocities
-        axs[3].plot(age, avg_vinfinity/avg_cinfinity, color=c[j], linestyle='solid', label=label_extra+'-Mach', alpha=alpha)
-
-        # 5) HL radius
-        axs[4].plot(age, hl_radius/dx[j], color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-
-        # 6) Scatter Residual - not possible for this data
-
-        i += 1
-        j += 1
-
-
 if __name__ == "__main__":
 
     ###################################### Parameters ######################################
 
-    x = "s1+s2-270msun-"       # simulation type
+    x = "s1-40msun-"        # simulation type
     y = sys.argv[-1]        # naming plot
-    xlim = 1                # Myrs
+    xlim = 1             # Myrs
     time_cutoff = xlim      # Myrs
     i_start = 0             # start index
     include_beckmann_data = False
-    alpha = 0.7        # transparency of lines
-    num_subplots = 5        # number of subplots
-    smooth_simulations = 7  # number of simulations to smooth (starting from last sim)
-    window = 16             # window size to average over
+    alpha = 0.9             # transparency of lines
+    num_subplots = 6        # number of subplots
+    smooth_simulations = 4  # number of simulations to smooth (starting from last sim)
+    window = 10              # window size to average over
     rtol=1e-6   
-    atol=1e-4               # 1e-4 for 1S.m, 2e-4 for 1B.m
-    title = None          # plot title
-    extra_line = True      # plot extra line from data file
+    atol=2e-4               # 1e-4 for 1S.m, 
+    title = '1S.b Local Properties Comparison'
 
     ########################################################################################
 
@@ -199,7 +118,19 @@ if __name__ == "__main__":
     fig, axs = plt.subplots(num_subplots, 1, sharex=True)
 
     # identify cell widths for this simulation
-    dx = identify_cell_widths(x)
+    for i in [4]:
+        if x == "s1-270msun-":
+            dx = [1.229791e-02, 3.074475e-03, 1.537645e-03, 7.692833e-04]
+        elif x == "beck-comp-":
+            dx = [1.229791e-02, 3.074475e-03]
+        elif x == "s1-40msun-":
+            dx = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04]
+        elif x == "s2-270msun-":
+            dx = [8.298311e-03, 2.074568e-03, 1.537645e-03, 7.687095e-04, 3.8435475e-04, 1.296596e-04]
+        elif x == "s2-40msun-":
+            dx = [8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04]
+        elif x == "s2-40msun-2-":
+            dx = [1.3e-03, 5.2e-04, 1.3e-04]
 
     """""""""""""""""""""
     1) Plot Beckmann data
@@ -251,17 +182,13 @@ if __name__ == "__main__":
     """""""""""""""""
 
     # set line colours
-    # c = ['indigo', 'darkmagenta', 'mediumslateblue', 'turquoise', 'limegreen', 'darkgreen']
-    n = int(len(bhl_object_list)/2)+1
-    c_s1 = extract_colors('viridis', 4, portion="middle")
-    c_s2 = extract_colors('magma', 4, portion="middle", start=0.25, end=0.9)
-    c = np.concatenate((c_s1, c_s2))
+    c = ['blueviolet', 'turquoise', 'limegreen', 'darkgreen']
 
     # set BHL properties parameters
     l = tidy_data_labels(bhl_object_labels)
     j = 0
 
-    # Resampling the time series data
+    # try new resampling method
     times = [BHL.ages/1e6 for BHL in bhl_object_list]
 
     # Find the minimum and maximum times among all simulations
@@ -285,11 +212,13 @@ if __name__ == "__main__":
     #jeans = resample_data([BHL.jeans for BHL in bhl_object_list], times, common_time)
 
     # Print the resampled data
-    # for i in range(len(accretion_rates)):
-    #     print(f"Resampled data for Simulation {i+1}:")
-    #     print("Accretion Rates:", accretion_rates[i])
-    #     print("Time:", common_time)
-    #     print()
+    for i in range(len(accretion_rates)):
+        print(f"Resampled data for Simulation {i+1}:")
+        print("Accretion Rates:", accretion_rates[i])
+        print("Time:", common_time)
+        print()
+
+    # find gas temperature
 
     for i in range(len(mass)):
 
@@ -303,6 +232,9 @@ if __name__ == "__main__":
         # 3) Densities
         axs[2].plot(common_time, density[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
 
+        # 3) Densities
+        axs[2].plot(common_time, density[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
+
         # 4) Velocities
         axs[3].plot(common_time, avg_vinf[i]/avg_cinf[i], color=c[j], linestyle='solid', label=l[i]+'-Mach', alpha=alpha)
         #axs[3].plot(common_time, avg_vinf, color=c[j], linestyle='solid', label=l[i]+'-vinf', alpha=alpha)
@@ -310,7 +242,7 @@ if __name__ == "__main__":
         # 5) HL radius
         axs[4].plot(common_time, hl_radius[i]/dx[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
         #axs[4].plot(common_time, bondi_radius, color=c[j], linestyle='dotted', label=l[i], alpha=alpha)
-        print("average hl radius resolution: ", hl_radius[i].mean()/dx[i])
+        print("average radius resolution: ", hl_radius[i].mean()/dx[i])
 
         # 6) Scatter Residual
         residual = (accretion_rates[i] - accretion_rates[-1])
@@ -322,29 +254,14 @@ if __name__ == "__main__":
             alpha2 = 0.4
         else: 
             alpha2 = 0.6
-        #axs[5].scatter(common_time, residual, s=3, color=c[j], linestyle='solid', marker='o', label=l[i], alpha=alpha2)
-        
+        axs[5].scatter(common_time, residual, s=3, color=c[j], linestyle='solid', marker='o', label=l[i], alpha=alpha2)
+        #axs[5].axhline(y=0, color='grey', linestyle='dashed', label=l[i], alpha=alpha)
         yscale_residual = 'linear'
-        axs[3].set_ylim([7e-3, 1.2e2])
+        #axs[5].set_ylim([1e-8, 1e-1])
 
         print("=============================")
 
         j += 1
-
-    # plot line not using common time (hasn't reached ~ 1 Myr yet)
-    if extra_line:
-
-        # data_file = "data_files/data-2S.RSmf4-2.csv"
-        # label_extra = "2S.mf4"
-        data_file = "data_files/data-2B.RSb16.csv"
-        label_extra = "2B.b16"
-
-        plot_extra_line(data_file, label_extra, i, j, alpha=0.6)
-
-        # data_file = "data_files/data-2S.RSm01-2.csv"
-        # label_extra = "2S.m01"
-
-        # plot_extra_line(data_file, label_extra, i, j, alpha=0.6)
 
 
     ############################### Format plots #################################
@@ -353,7 +270,7 @@ if __name__ == "__main__":
     axs[0].set_title(title)
 
     for i in range(num_subplots):
-        axs[i].set_xticks(np.arange(0.1, time_cutoff+0.1, 0.1))
+        axs[i].set_xticks(np.arange(0, time_cutoff, 0.1))
         axs[i].minorticks_on()
         axs[i].xaxis.set_minor_locator(plt.MultipleLocator(0.02))
         axs[i].tick_params(axis="x", which='minor', length=2, direction="in")
@@ -373,18 +290,18 @@ if __name__ == "__main__":
     #axs[4].set_ylabel(r"$\rm r_{HL} \, (pc)$", fontdict=None)
     axs[4].set_ylabel(r"$\rm r_{HL}/dx $", fontdict=None)
     #axs[5].set_ylabel(r"$\rm r_{jeans} \, (pc)$", fontdict=None)
-    # axs[5].set_ylabel(r"$\rm \Delta \dot{M} \, (M_{\odot}/yr)$", fontdict=None)
-    # axs[5].set_yscale(yscale_residual)
-    # axs[5].yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
-    # axs[5].ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
+    axs[5].set_ylabel(r"$\rm \Delta \dot{M} \, (M_{\odot}/yr)$", fontdict=None)
+    axs[5].set_yscale(yscale_residual)
+    axs[5].yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
+    axs[5].ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
     # Move the "x 10^-4" label below the tick labels
-    #axs[5].yaxis.set_minor_locator(ticker.AutoMinorLocator())
+    axs[5].yaxis.set_minor_locator(ticker.AutoMinorLocator())
     axs[0].set_yscale('log')
     #axs[5].yaxis.get_offset_text().set_y(0.01)
     #axs[5].yaxis.offsetText.set_position((0, -0.15))
-    #offset_text = axs[5].yaxis.get_offset_text()
-    #offset_text.set_verticalalignment('top')
-    #offset_text.set_x(-0.121)
+    offset_text = axs[5].yaxis.get_offset_text()
+    offset_text.set_verticalalignment('top')
+    offset_text.set_x(-0.121)
     axs[-1].set_xlabel('BH Age (Myr)')
     #axs[0].set_title(str(x) + str(y), fontdict=None)
 
@@ -415,25 +332,9 @@ if __name__ == "__main__":
         #axs[2].set_ylim([8e3, 3e8])
         axs[3].set_ylim([3e-2, 8e1])
     elif x == "s1-270msun-":
+
         axs[4].set_ylim([3e-2, 2e2])
         axs[5].set_ylim([-1.5e-2, 0.9e-2])
-    elif x == "s2-270msun-":
-        axs[4].set_ylim([2e-3, 9e1])
-        #axs[5].set_ylim([-1.5e-2, 0.9e-2])
-    elif x == "s1+s2-40msun-":
-        axs[0].set_ylim([10.1, 3000])
-        axs[0].axhline(y=60, color='grey', linestyle='dotted', linewidth=0.7, alpha=alpha)
-        axs[4].axhline(y=1, color='grey', linestyle='dotted', linewidth=0.7,alpha=alpha)
-    elif x == "s1+s2-270msun-":
-        linewidth = 1.5
-        axs[0].set_ylim([250, 3000])
-        axs[0].axhline(y=1000, color='grey', linestyle='dotted', linewidth=linewidth,alpha=alpha)
-        axs[1].set_ylim([3e-6, 6e-2])
-        axs[2].set_ylim([3e5, 8e10])
-        axs[3].set_ylim([6e-1, 110])
-        axs[3].axhline(y=1, color='grey', linestyle='dotted', linewidth=linewidth,alpha=alpha)
-        axs[4].set_ylim([1e-2, 2e2])
-        axs[4].axhline(y=1, color='grey', linestyle='dotted', linewidth=linewidth,alpha=alpha)
 
 
     ############################### Legends ################################
@@ -466,9 +367,8 @@ if __name__ == "__main__":
     accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
 
     # Include legends
-    #axs[0].legend(fontsize=fontsize-3, ncol=2, loc="lower right", handlelength=0.5)  # upper/lower
-    axs[0].legend(fontsize=fontsize-3, ncol=4, loc='upper center', bbox_to_anchor=(0.5, 1.38), handlelength=2) # 1.3 for m01, 
-    axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-4, ncol=1)
+    axs[0].legend(fontsize=fontsize-1, ncol=2, loc="lower right")  # upper/lower
+    axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-1, ncol=2)
     #axs[3].legend(vel_lines, [r"$\rm \nu_{\infty}$", r"\rm $c_{\infty}$"], loc="upper left", fontsize=fontsize-1, ncol=1)
     #axs[4].legend(radius_lines, [r"$\rm r_{HL}$", r"$\rm r_{Bondi}$"], fontsize=fontsize-1, ncol=1)
     #axs[4].legend(dx_lines, dx, fontsize=fontsize-2, ncol=1)
@@ -478,7 +378,7 @@ if __name__ == "__main__":
     # save plot as pdf
     fig = plt.gcf()
     fig.subplots_adjust(wspace=0, hspace=0)
-    fig.set_size_inches(4.8, 8)
+    fig.set_size_inches(5.4, 9)
     plot_name = 'time-' + str(x) + str(y) + '.pdf'
     fig.savefig('plots/'+plot_name, bbox_inches='tight')
     print("created plots/"+plot_name)
