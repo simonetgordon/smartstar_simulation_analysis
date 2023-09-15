@@ -14,7 +14,7 @@ import os
 from matplotlib import rc
 
 
-def set_tick_params(n_subplots, fontsize, custom_ticks=[], xlim=[], vline=0):
+def set_tick_params(axs, n_subplots, fontsize, custom_ticks=[], xlim=[], vline=0, linewidth=2):
     for i in range(n_subplots):
         axs[i].set_xscale('log')  # Set the x-axis scale to logarithmic
 
@@ -33,7 +33,7 @@ def set_tick_params(n_subplots, fontsize, custom_ticks=[], xlim=[], vline=0):
         if len(custom_ticks) > 0:
             axs[i].set_xticks(custom_ticks)  
 
-        axs[i].tick_params(axis="x", which='minor', length=2, direction="in")  # Set minor tick parameters on the x-axis
+        axs[i].tick_params(axis="x", which='minor', length=1, direction="in")  # Set minor tick parameters on the x-axis
         axs[i].tick_params(axis="x", which='major', labelsize=fontsize, width=1, length=3, direction="in")
 
         # Set major tick parameters on the y-axis with specified label size and visual properties
@@ -121,10 +121,12 @@ if __name__ == "__main__":
 
     ################################## Parameters ##################################
     rvir_pc_s1 = 79.34 # at 2167.60571289 comoving. This is at z = 26.338 at l3
+    rvir_pc_s2 = 187.0971 # 3600.0002 comoving. This is at z = 19.115 at l2
     M200 = 2.7491550e+05 # at z = 26.338 at l3 (same as Mvir)
-    n_subplots = 4
+    M200_s2 = 1292000.0 # at z = 19.115 at l2
+    n_subplots = 5
     y = sys.argv[-1] # naming plot
-    fontsize = 12 # for projection annotations
+    fontsize = 10 # for projection annotations
     linewidth = 2
     r_lim_kpc = 10 # kpc
     alpha = 0.9
@@ -173,77 +175,74 @@ if __name__ == "__main__":
         rp2 = yt.create_profile(
             sp,
             "radius",
-            [("gas", "temperature"), ("gas", "mass"), ("gas", "dynamical_time"), ("gas", "baryon_overdensity_sg"),
-            ("gas", "number_density"), ("gas", "blackhole_freefall_timescale"), ("gas", "theta_vel_dynamical_timescale"), ("gas", "density"),
+            [("gas", "temperature"), ("gas", "mass"), ("gas", "dynamical_time"), ("gas", "H2_p0_fraction"),
+            ("gas", "number_density"), ("gas", "blackhole_freefall_timescale"), ("gas", "density"),
             ('enzo', 'Dark_Matter_Density')],
             units={"radius": "pc", ("gas", "mass"): "Msun", ('enzo', 'Dark_Matter_Density'): "g/cm**3"},
             logs={"radius": True, ("gas", "temperature"): True}
         )
 
-        # rp3 = yt.create_profile(
-        #     sp,
-        #     "radius",
-        #     [("all", "particle_mass") ],
-        #      units={"radius": "pc", ("all", "particle_mass"): "Msun"},
-        #     logs={"radius": True},
-        #     weight_field=None
-        # )
+         # create weight_field=density profile for non-cumulative rp
+        rp3 = yt.create_profile(
+            sp,
+            "radius",
+            [("gas", "H2_p0_fraction"), ("gas", "H_p0_fraction"), ("gas", "density")],
+            units={"radius": "pc"},
+            logs={"radius": True},
+            weight_field=('gas', 'density')
+        )
 
-        # plot data
+        # total mass
         axs[0].loglog(rp.x.value, rp[("gas", "mass")].value + rp[("deposit", "all_mass")].value,
-                color=c[i], linestyle='solid', label=labels[i] + "_total", alpha=alpha)
-        axs[0].loglog(rp.x.value, rp[("deposit", "all_mass")].value,
-                    color=c2[i], linestyle='solid', label= labels[i] + "_DM", alpha=alpha)
-        r200 = rp[("deposit", "all_mass")].value.cumsum().max() + rp[("gas", "mass")].value.cumsum().max()
+                color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
 
+        # temperature
         axs[1].loglog(rp2.x[rp2.used], rp2[("gas", "temperature")][rp2.used],
                     color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
 
-        axs[2].loglog(rp2.x[rp2.used], rp2[("gas", "blackhole_freefall_timescale")][rp2.used].to("Myr"),
-                    color=c[i], linestyle='solid', label=r"BH ff time $\propto M$", alpha=alpha)
-        # axs[2].loglog(rp2.x[rp2.used], rp2[("gas", "theta_vel_dynamical_timescale")][rp2.used].to("yr"),
-        #               color=c[j], linestyle='solid', label=r"$2\pi r / v_\theta $", alpha=alpha)
-
-        # Omega_b = 0.0449
-        # axs[3].loglog(rp2.x[rp2.used], rp2[("gas", "baryon_overdensity_sg")][rp2.used],
-        #               color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
-
-        axs[3].loglog(rp2.x[rp2.used], rp2[("gas", "density")][rp2.used] + rp2[("enzo", "Dark_Matter_Density")][rp2.used],
+        # total density
+        axs[2].loglog(rp2.x[rp2.used], rp2[("gas", "density")][rp2.used] + rp2[("enzo", "Dark_Matter_Density")][rp2.used],
                     color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
-        axs[3].loglog(rp2.x[rp2.used], rp2[("enzo", "Dark_Matter_Density")][rp2.used],
-                    color=c2[i], linestyle='solid', label=labels[i], alpha=alpha)
 
-        # t_dyn is larger when using non-mass-weighted densities
-        # axs[2].loglog(rp.x[rp.used], rp[("gas", "dynamical_time")][rp.used].to("yr"),
-        #               color=c[j], linestyle='solid', label=labels[i], alpha=alpha)
+        # dynamical timescale
+        axs[3].loglog(rp2.x[rp2.used], rp2[("gas", "blackhole_freefall_timescale")][rp2.used].to("Myr"),
+                    color=c[i], linestyle='solid', label=r"BH ff time $\propto M$", alpha=alpha)
 
+        # h2 fraction
+        axs[4].loglog(rp3.x[rp3.used], rp3[("gas", "H2_p0_fraction")][rp3.used],
+                    color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
 
     # set ticks
-    xticks = np.logspace(-2, 4, 8)
-    set_tick_params(n_subplots, fontsize, custom_ticks=xticks, xlim=[2e-3, r_lim_kpc*1e3], vline=rvir_pc_s1)
+    xticks = np.logspace(-2, 4, 7)
+    set_tick_params(n_subplots, fontsize, custom_ticks=xticks, xlim=[2e-3, r_lim_kpc*1e3])
 
     # make lines for legend
-    r_lines = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth),
+    lines = [Line2D([0], [0], color=c[0], linestyle='solid', lw=linewidth),
+                Line2D([0], [0], color=c[1], linestyle='solid', lw=linewidth),
+                Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth),
                 Line2D([0], [0], color='grey', linestyle='dotted', lw=linewidth)]
-
+    labels = ['seed1_124.7Myr', 'seed2_195.5Myr', r'$R_{200}$', r'$M_{200}$']
     # set axis labels
-    axs[n_subplots-1].set_xlabel(r"$\rm Radius \, (pc)$", fontdict=None)
-    axs[3].set_ylabel(r"$\rm \rho \, (g \, cm^{-3})$", fontdict=None)
+    axs[-1].set_xlabel(r"$\rm Radius \, (pc)$", fontdict=None)
+    #axs[4].set_ylim([1e-3, 1e0])
+    axs[4].set_ylabel(r"$\rm f_{H_2}$", fontdict=None)
+    axs[2].set_ylabel(r"$\rm \rho \, (g \, cm^{-3})$", fontdict=None)
     for i in range(n_subplots):
-        axs[i].axvline(x=rvir_pc_s1, color='grey', linestyle='dashed', lw=linewidth, alpha=1, label=r"$r_{200/vir}$")
-    axs[2].set_ylabel(r"$\rm t_{ff} \, (Myr)$", fontdict=None)
-    #axs[2].set_ylim(200, rp2[("gas", "blackhole_freefall_timescale")][rp2.used].to("Myr").d.max()+100)
+        axs[i].axvline(x=rvir_pc_s1, color='blue', linestyle='dashed', lw=linewidth-0.5, alpha=0.7, label=r"$R_{200}$")
+        axs[i].axvline(x=rvir_pc_s2, color='red', linestyle='dashed', lw=linewidth-0.5, alpha=0.7, label=r"$R_{200}$")
+    axs[3].set_ylabel(r"$\rm t_{ff} \, (Myr)$", fontdict=None)
     axs[1].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
     axs[0].set_ylabel(r"$\rm M_{encl} \, (M_{\odot})$", fontdict=None)
-    axs[0].axhline(y=M200, color='grey', linestyle='dotted', lw=linewidth, alpha=1, label=r"$M_{200/vir}$")
-    axs[0].legend(loc="upper left", fontsize=fontsize-4, ncol=1)  # upper/lower
-    axs[0].set_title("Gas properties at time of BH formation", fontdict=None)
+    axs[0].axhline(y=M200, color=c[0], linestyle='dotted', lw=linewidth-0.5, alpha=0.8, label=r"$M_{200}$")
+    axs[0].axhline(y=M200_s2, color=c[1], linestyle='dotted', lw=linewidth-0.5, alpha=0.8, label=r"$M_{200}$")
+    axs[0].legend(lines, labels, loc="upper left", fontsize=fontsize-3, ncol=1)  # upper/lower
+    #axs[0].set_title("Halo properties at time of BH formation", fontsize=fontsize, fontdict=None)
     #axs[3].axhline(y=360*critical_density(ds), color='grey', linestyle='dotted', lw=linewidth, alpha=1, label=r"$n_{200}$")
 
     # save plot as pdf
     fig = plt.gcf()
     fig.subplots_adjust(wspace=0, hspace=0)
-    fig.set_size_inches(4.6, 6.2)
+    fig.set_size_inches(3.6, 6.2)
     plot_name = 'radial_profile_ics_halo_{}kpc.pdf'.format(r_lim_kpc)
     fig.savefig('plots/' + plot_name, bbox_inches='tight')
     print("created plots/" + str(plot_name))

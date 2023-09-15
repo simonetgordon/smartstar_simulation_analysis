@@ -48,11 +48,11 @@ def find_smallest_cell_width(ds):
     return dx
 
 
-def main(root_dir, sim, dds, field, k, widths_pccm, fontsize, min_n_factor, max_n_factor, orient="face-on", cmap="viridis"):
+def main(root_dir, sim, dds, field, k, widths_pccm, fontsize, min_n_factor, max_n_factor, orient="face-on", cmap="viridis", seed="s1"):
     configure_font()
     fig = plt.figure()
     grid = create_axes_grid(fig, nrows=3, ncols=1, dim=(0, 0, 0.3, 0.85), 
-                            axes_pad=0.275, share_all=False, cbar_location="right", cbar_size="3%", cbar_pad="0%")
+                            axes_pad=0.275, share_all=False, cbar_location="left", cbar_size="3%", cbar_pad="0%")
 
     min_n, max_n, min_n_index, max_n_index = get_min_max_values(root_dir, sim, dds, field, min_n_factor=min_n_factor, max_n_factor=max_n_factor)
 
@@ -72,18 +72,20 @@ def main(root_dir, sim, dds, field, k, widths_pccm, fontsize, min_n_factor, max_
         width = widths[k]
 
         # make disk data (with width) container and define angular momentum vector L
-        disc_r_pc = disc_h_pc = 100
+        disc_r_pc = disc_h_pc = 0.15
         disk, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
 
         # set north vector and v
         vecs = ortho_find(L)
-        north = vecs[0] if orient=="face-on" else vecs[0]
-        v = 1 if orient=="face-on" else 0
+        north = vecs[1] if orient=="face-on" else vecs[2]
+        v = 0 if orient=="face-on" else 0
         # if north[-1] < 0:
         #     north *= [1,1,-1]
 
         print("min_n: {}, max_n: {}".format(min_n, max_n))
         # make projection plot
+        disc_r_pc = disc_h_pc = 250
+        disk, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
         p = make_projection_plot(ds, width, disk, L, field, vecs, v, north, min_n, max_n, fontsize, cmap)
 
         # find smallest cell width
@@ -98,7 +100,7 @@ def main(root_dir, sim, dds, field, k, widths_pccm, fontsize, min_n_factor, max_
         elif k == 1:
             p.annotate_title("BH Age = {:.2f} Myr".format(ss_age[0] / 1e6))
         elif k == 2:
-            p.annotate_marker(center, coord_system="data", color="black")
+            #p.annotate_marker(center, coord_system="data", color="black")
             p.annotate_title(r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)))
 
         # ... Code related to scalebars, plotting and formatting ...
@@ -131,7 +133,7 @@ def main(root_dir, sim, dds, field, k, widths_pccm, fontsize, min_n_factor, max_
         if (i == 2) and (k != 0): # i=1 -> i=2 temp
             plot.axes.get_yaxis().set_units('pc')
 
-        if k == 2: 
+        if k == 0: 
             if field == "temperature":
                 grid.cbar_axes[i].set_ylabel(r'Temperature \big($\rm K$\big)', fontsize=14)
                 grid.cbar_axes[i].minorticks_on()
@@ -156,7 +158,7 @@ def main(root_dir, sim, dds, field, k, widths_pccm, fontsize, min_n_factor, max_
                 grid.cbar_axes[i].set_yticks(minorticks, minor=True)
                 grid.cbar_axes[i].tick_params(labelsize=14)
 
-    plot_name_prefix = f"multiplot_axesgrid_{widths.d[k]}pccm_{field}"
+    plot_name_prefix = f"multiplot_axesgrid_{widths.d[k]}pccm_{field}_{orient}_{seed}"
     plt.savefig('plots/' + plot_name_prefix + '.pdf', bbox_inches='tight')
     print("created plots/{}.pdf".format(plot_name_prefix))
 
@@ -165,24 +167,28 @@ if __name__ == "__main__":
     # call like: python plot_zoom_in_multipanel.py 0/1/2 [column number]
 
     # Initialisation
-    root_dir = ["/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"] * 3
-    #root_dir = ["/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/"]
-    sim = ["1B.RSb01-2", "1B.RSb04", "1B.RSb16"]# s1
+    #root_dir = ["/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"] * 3
+    root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/",
+                "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/",
+                "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/",]
+    #sim = ["1B.RSb01-2", "1B.RSb04", "1B.RSb16"]# s1
     #sim = ["2B.RSb01", "2B.RSb04", "2B.RSb08"]# s2
-    dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0167/DD0167"] # s1
-    #dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0534/DD0534"] # s2
+    sim = ["2B.RSm01", "2B.RSm04", "2B.m08-4dx"]# s2
+    #dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0167/DD0167"] # s1
+    #dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0534/DD0534"] # s2 BHL at t = 1 Myr
+    dds = ["DD0206/DD0206", "DD0278/DD0278", "DD0277/DD0277"] # s2 MF at t = 0.79 Myr
 
     # column width in pc
     k = int(sys.argv[-1])
-    widths_pccm = [3500, 80, 10]
+    widths_pccm = [6500, 60, 7] # 8500, 80, 10 for s1, 7 for s2
     fontsize = 12
 
     # set field, cmap
-    field = "number_density" # "temperature" or "number_density
-    cmap = "viridis" # "RED TEMPERATURE" or "hot" or "inferno" or "magma" (temp) or "viridis" (density)
+    field = "temperature" # "temperature" or "number_density
+    cmap = "RED TEMPERATURE" # "RED TEMPERATURE" or "hot" or "inferno" or "magma" (temp) or "viridis" (density)
 
     # set to reduce colorbar limits
-    min_n_factor = 1e5 # 50 for temp, 1e3 for density
-    max_n_factor = 0.05 # 0.1 for temp+density
+    min_n_factor = 50 # 50 for temp, 1e3 for density in s1, 4e4 for density,  in s2
+    max_n_factor = 0.03 # 0.1 for temp+density s1, 0.00009 for dens s2
 
-    main(root_dir, sim, dds, field, k, widths_pccm, fontsize, min_n_factor=min_n_factor, max_n_factor=max_n_factor, orient="face-on", cmap=cmap)
+    main(root_dir, sim, dds, field, k, widths_pccm, fontsize, min_n_factor=min_n_factor, max_n_factor=max_n_factor, orient="face-on", cmap=cmap, seed="s2")

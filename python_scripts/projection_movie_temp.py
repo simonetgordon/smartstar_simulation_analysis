@@ -8,8 +8,10 @@ from plot_disc_projections import _make_disk_L
 from plot_multi_projections import tidy_data_labels
 import matplotlib.pyplot as plt
 from matplotlib import rc
+import re # complex str searches
 
-def apply_annotations_and_save(p, title=None, dirname=None):
+
+def apply_annotations_and_save(p, title=None, dirname=None, sim_str=None, center=None, ss_mass=0*yt.units.msun, ss_age=0*yt.units.myr):
     # Set text coords
     a = 0.03
     b = 0.95
@@ -39,6 +41,7 @@ def apply_annotations_and_save(p, title=None, dirname=None):
 
     p.save(dirname)
 
+
 def extract_simulation_name(filepath):
     # Get the last part of the path
     last_part = os.path.basename(filepath)
@@ -58,15 +61,17 @@ def extract_simulation_name(filepath):
 
     return None
 
-def make_projection_map(ds, map_type, field, w_pccm, w_pc, c_min, c_max, dirname):
-    sim_str = tidy_data_labels(extract_simulation_name(ds.fullpath))
+
+def make_projection_map(ds, map_type, field, w_pccm, w_pc, c_min, c_max, dirname, sim_str, region, center, dir="z", north=None):
+
+    ss_pos, ss_mass, ss_age = ss_properties(ds)
     if map_type == "density":
         # H nuclei number density
         p = yt.ProjectionPlot(ds, dir, ("gas", field), width=(w_pc, 'pc'), north_vector=north, center=center, data_source=region,
                             weight_field=("gas", field))
         p.set_cmap(field, 'viridis')
         p.set_zlim(("gas", field), c_min, c_max)
-        apply_annotations_and_save(p, dirname=dirname)
+        apply_annotations_and_save(p, dirname=dirname, sim_str=sim_str, center=center, ss_mass=ss_mass, ss_age=ss_age)
     
     elif map_type == "temperature":
         # Temperature
@@ -94,8 +99,10 @@ def make_projection_map(ds, map_type, field, w_pccm, w_pc, c_min, c_max, dirname
         p.set_axes_unit('pc')
         apply_annotations_and_save(p, dirname=dirname)
 
-def main(root_dir, map="density", w_pccm=200, w_pc=1.5, c_min=None, c_max=None, orient="face-on"):
+
+def main(root_dir, map="density", w_pccm=200, w_pc=1.5, c_min=None, c_max=None, orient="face-on", field="H_nuclei_density", dirname=None):
     sim = os.path.join(root_dir, "smartstar-production-runs.enzo")
+    sim_str = tidy_data_labels(extract_simulation_name(root_dir))
     es = yt.load_simulation(sim, "Enzo", find_outputs=True)
     es.get_time_series()
 
@@ -111,7 +118,7 @@ def main(root_dir, map="density", w_pccm=200, w_pc=1.5, c_min=None, c_max=None, 
         center0 = 0.5 * (left_edge + right_edge)
 
     # Find north vector at (near-end) ds
-    ds_final = yt.load(os.path.join(root_dir, "DD0143/DD0143"))
+    ds_final = yt.load(os.path.join(root_dir, "DD0230/DD0230"))
     ss_pos, ss_mass, ss_age = ss_properties(ds_final)
     center = ss_pos
     r = 2000 * yt.units.pc
@@ -135,7 +142,10 @@ def main(root_dir, map="density", w_pccm=200, w_pc=1.5, c_min=None, c_max=None, 
     
     for ds in es.piter():
         ss_pos, ss_mass, ss_age = ss_properties(ds)
-        center = ss_pos
+        if ss_pos is None:
+            center = center0
+        else:
+            center = ss_pos
 
         if nested_level > 0:
             region = ds.box(center0 - 0.5 * my_width,
@@ -145,10 +155,11 @@ def main(root_dir, map="density", w_pccm=200, w_pc=1.5, c_min=None, c_max=None, 
         dirname = "frames_" + orient + field + "_" + str(sim_str) + "_" + str(w_pc) + "pc/"
         os.makedirs(dirname, exist_ok=True)
 
-        make_projection_map(ds, map, field, w_pccm, w_pc, c_min, c_max, dirname)
+        make_projection_map(ds, map, field, w_pccm, w_pc, c_min, c_max, dirname, sim_str, region=region, center=center, dir=dir, north=None)
 
     print("Saved data to", dirname)
 
 if __name__ == "__main__":
-    root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.RSm04" 
-    main(root_dir, map="density", w_pccm=200, w_pc=1.5, c_min=None, c_max=None, orient="face-on")
+    root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb01"
+    field = "H_nuclei_density"
+    main(root_dir, map="density", w_pccm=200, w_pc=1.5, c_min=None, c_max=None, orient="face-on", field=field)

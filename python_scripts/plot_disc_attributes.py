@@ -1,6 +1,6 @@
 """
 Plots 6x1 radial profile of disc attributes (excluding surface density)
-python -i plot_disc_attributes.py "1Bb01-1Sb01-x3" 
+python -i plot_disc_attributes.py "1B.m+2B.m-x6" 
 """
 import yt
 import sys
@@ -73,18 +73,23 @@ if __name__ == "__main__":
     ## at t = 1 Myr in 1B.b group
     root_dir = ["/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/", 
                 "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
-                "/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/",
+                #"/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/",
+                "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
                 "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/",
-                "/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/",
+                "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/",
+               # "/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/",
                 "/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/"]
                
-    sim = ["1B.RSm01", "1B.RSm04-2", "1B.m16-4dx", \
-           "2B.RSm01", "2B.RSm04", "2B.m08-4dx"]
-    # dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0166/DD0166", \ # 1B.b, 2B.b
-    #        "DD0208/DD0208", "DD0208/DD0208", "DD0368/DD0368"]
+    sim = ["1B.RSb01-2", "1B.RSb04", "1B.RSb16", \
+           "2B.RSb01", "2B.RSb04", "2B.RSb16"]
+    # sim = ["1B.RSm01", "1B.RSm04-2", "1B.m16-4dx", \
+    #        "2B.RSm01", "2B.RSm04", "2B.m08-4dx"]
+    # 1B.b, 2B.b
+    dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0166/DD0166", \
+           "DD0208/DD0208", "DD0208/DD0208", "DD0373/DD0373"] # 2B.m16 at 0.57 Myr
     # 1B.m, 2B.m
-    dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0202/DD0202", \
-           "DD0208/DD0208", "DD0370/DD0370", "DD0291/DD0291"]
+    # dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0202/DD0202", \
+    #        "DD0208/DD0208", "DD0370/DD0370", "DD0291/DD0291"]
 
     ########################################################################################
 
@@ -199,10 +204,10 @@ if __name__ == "__main__":
         profile2 = yt.create_profile(
         data_source=disk,
         bin_fields=[("index", "cylindrical_radius")],
-        fields=[("gas", "H_nuclei_density")],
-        n_bins=n_bins,
+        fields=[("gas", "H_nuclei_density"), ("enzo", "radiative_cooling_rate")],
+        n_bins=n_bins*2,
         units=dict(cylindrical_radius="pc"),
-        logs=dict(cylindrical_radius=False),
+        logs=dict(cylindrical_radius=True),
         weight_field=("gas", "cell_mass"),
         )
 
@@ -235,17 +240,18 @@ if __name__ == "__main__":
         c_s2 = extract_colors('magma', n, portion="middle", start=0.25, end=0.8)
         c = np.concatenate((c_s1, c_s2))
 
-        plot_omega = axs[0].loglog(profile.x[profile.used], profile[("gas", "omega")][profile.used] /
-                    profile[("gas", "omega_k")][profile.used], color=c[k], label=labels[k])
-        plot_density = axs[1].plot(profile.x[profile.used], profile[("gas", "number_density")][profile.used], color=c[k], label=labels[k])
-        plot_temp = axs[2].loglog(profile.x[profile.used], profile[("gas", "temperature")][profile.used], color=c[k], label=labels[k])
-        plot_h = axs[3].loglog(r_h, h, color=c[k], label=labels[k])
-        plot_theta = axs[4].plot(profile.x.value, np.abs(profile[("gas", "tangential_velocity")].value/profile[("gas", "sound_speed")].value), 
+        # plot_omega = axs[0].loglog(profile.x[profile.used], profile[("gas", "omega")][profile.used] /
+        #             profile[("gas", "omega_k")][profile.used], color=c[k], label=labels[k])
+        plot_density = axs[0].plot(profile.x[profile.used], profile[("gas", "number_density")][profile.used], color=c[k], label=labels[k])
+        plot_temp = axs[1].loglog(profile.x[profile.used], profile[("gas", "temperature")][profile.used], color=c[k], label=labels[k])
+        plot_h = axs[2].loglog(r_h, h, color=c[k], label=labels[k])
+        plot_theta = axs[3].plot(profile.x.value, np.abs(profile[("gas", "tangential_velocity")].value/profile[("gas", "sound_speed")].value), 
                                  color=c[k], label=labels[k])
-        plot_vr = axs[5].plot(profile.x[profile.used], profile[("gas", "radial_velocity")][profile.used], color=c[k], label=labels[k])
+        plot_vr = axs[4].plot(profile.x[profile.used], profile[("gas", "radial_velocity")][profile.used], color=c[k], label=labels[k])
         r, vorb = radial_profile(orbital_velocity(ds, disk).to('km/s'), disk, n_bins, cell_width_pc[k])
         #plot_vorb = axs[6].plot(r, vorb, color=c[k])
-        plot_hratio = axs[6].plot(r_h, h/r_h, color=c[k], label=labels[k])
+        plot_hratio = axs[5].plot(r_h, h/r_h, color=c[k], label=labels[k])
+        plot_qrad = axs[6].loglog(profile2.x[profile2.used], profile2[("enzo", "radiative_cooling_rate")][profile2.used], color=c[k], label=labels[k])
 
 
         ##########################################################################################################
@@ -254,24 +260,25 @@ if __name__ == "__main__":
 
         # format plots
         axs[-1].set_xlabel("Radius (pc)", fontdict=None)
-        #axs[6].set_ylabel(r"$\rm \nu_{orbit} \, (km/s)$", fontdict=None)
-        axs[6].set_ylabel(r"$\rm H/r $", fontdict=None)
-        axs[6].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
-        axs[6].set_yscale('log')
-        axs[5].set_ylabel(r"$\rm \nu_r \, (km/s)$", fontdict=None)
-        axs[5].set_yscale('linear')
-        axs[5].set_ylim([-100,6])
-        axs[4].set_ylabel(r"$\rm \nu_{\theta}/c_s$", fontdict=None)
-        axs[4].set_yscale('log')
-        axs[3].set_ylabel(r"$\rm H \, (pc)$", fontdict=None)
-        axs[2].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
-        axs[2].set_ylim([50,2.1e5])
-        axs[1].set_ylabel(r"$\rm n \, (cm^{-3})$", fontdict=None)
-        axs[1].set_yscale('log')
-        axs[0].set_ylabel(r"$\rm \omega / \omega_K $", fontdict=None)
-        axs[0].set_yscale('linear')
-        axs[0].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
-        axs[0].legend(loc="upper left", fontsize=fontsize-1, ncol = 2)
+        axs[6].set_ylabel(r"$\rm Q_{rad} (\rm erg \, s^{-1} \, cm^{-3})$", fontdict=None)
+        axs[5].set_ylabel(r"$\rm H/r $", fontdict=None)
+        axs[5].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
+        axs[5].set_yscale('log')
+        axs[4].set_ylabel(r"$\rm \nu_r \, (km/s)$", fontdict=None)
+        axs[4].set_yscale('linear')
+        axs[4].set_ylim([-120,6])
+        axs[3].set_ylabel(r"$\rm \nu_{\theta}/c_s$", fontdict=None)
+        axs[3].set_yscale('log')
+        axs[2].set_ylabel(r"$\rm H \, (pc)$", fontdict=None)
+        axs[1].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
+        axs[1].set_ylim([50,2.1e5])
+        axs[0].set_ylabel(r"$\rm n \, (cm^{-3})$", fontdict=None)
+        axs[0].set_yscale('log')
+        # axs[0].set_ylabel(r"$\rm \omega / \omega_K $", fontdict=None)
+        # axs[0].set_yscale('linear')
+        # axs[0].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
+        #axs[0].legend(loc="upper left", fontsize=fontsize-1, ncol = 2)
+        axs[0].legend(fontsize=fontsize-2, ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.50), handlelength=1) # 1.3 for m01, 
         #axs[0].set_title("BH Age = " + "{:.2f}".format(ss_age[0]/1e6) + " Myr" + ", " + str(root_dir[index:]))
 
         for i in range(n_subplots):

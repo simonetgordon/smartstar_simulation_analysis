@@ -30,9 +30,9 @@ def apply_annotations_and_save(p, title=None, orient_str=None):
     p.annotate_marker(center, coord_system="data", color="white")
 
     # top left text
-    p.annotate_text((a, b), r"BH Mass: {:.0f} $\rm M_\odot$".format(ss_mass.d), coord_system="axis",
+    p.annotate_text((a, b), r"SS Mass: {:.0f} $\rm M_\odot$".format(ss_mass.d), coord_system="axis",
                         text_args={"color": "white"}) 
-    p.annotate_text((a, b-0.05), "BH Age = {:.2f} Myr".format(ss_age[0] / 1e6), coord_system="axis",
+    p.annotate_text((a, b-0.05), "SS Age = {:.2f} Myr".format(ss_age[0] / 1e6), coord_system="axis",
                         text_args={"color": "white"})
     
     # lower right text
@@ -51,14 +51,17 @@ def apply_annotations_and_save(p, title=None, orient_str=None):
     return ("saved to frames to {}".format(dirname))
             
 
-def extract_simulation_name(filepath):
+def extract_simulation_name(filepath, custom_name=None):
     # Get the last part of the path
     last_part = os.path.basename(filepath)
 
     # Use regular expression to extract the full simulation name
     match = re.search(r'\b(?:\d+[A-Za-z]+\d+|[A-Za-z]+\d+)\b', last_part)
 
-    if match:
+    if custom_name:
+        return custom_name
+
+    elif match:
         return match.group(0)
 
     # If the match is not found, try to extract from the parent directories
@@ -71,6 +74,10 @@ def extract_simulation_name(filepath):
     return None
 
 
+def _metal_fraction(field, data):
+    return (data["enzo", "SN_Colour"] / data["gas", "density"] ).to("dimensionless")
+
+
 ##################################  Parameters ###################################
 
 # 1) set map variable (density or temperature or metallicity or h2)
@@ -80,30 +87,52 @@ map = "density"
 orient = "edge-on"
 
 # 3) set width of box
-w_pccm = 200
 w_pccm = 30
+#w_pccm = 200
+#w_pccm = 1000
 w_pc = 1 # convert to pc for label
 #w_pc = 8 # convert to pc for label
+#w_pc = 50 # convert to pc for label
 
 # 4) set colorbar limits
-c_min = 2e2
-c_max = 3e8
+c_min = 2e2 # 2e2 for 1pc no-fb
+c_max = 3e8 # 3e8 for 1pc no-fb
 
 # 5) data
 #root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb08" 
-root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.m08-4dx"
+#root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSm04"
 #root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.m01-4dx"
-#root_dir = "/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb01"
+#root_dir = "/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSm01"
+#root_dir = "/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSm04"
+#root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.m08-4dx/2B.m16-4dx-2"
+#root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/40msun/replicating-beckmann/1S.RSm04"
+#root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.RSm04"
+#root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.RSmf4"
+#root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.RSb01"
+#root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.m01"
+#root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSbf16"
+#root_dir = "/ceph/cephfs/sgordon/disk14/cirrus-runs-rsync/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSbf16"
+#root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/1S.b04-no-SN"
+#root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/40msun/replicating-beckmann/1S.m01-no-SN"
+root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/1S.m01-no-SN"
+#root_dir = "/ceph/cephfs/sgordon/disk14/cirrus-runs-rsync/seed2/270msun"
+#root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/1S.b04-no-SN"
+#root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSmf16-2/2S.RSmf16-2-gap"
+#root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/thermal-fb/1B.th.bf128"
 enzo_file = "smartstar-production-runs.enzo"
 sim = os.path.join(root_dir, enzo_file)
 
 # 6) use north vector
 use_north_vector = False # from one ds
-use_north_vector_ds = True # for each ds
+use_north_vector_ds = False # for each ds
 
 #################################################################################
 
-sim_str = tidy_data_labels(extract_simulation_name(sim))
+sim_str = tidy_data_labels(extract_simulation_name(sim, 
+                                                   #custom_name="s2.DCBH.bf128-free"
+                                                   ), 
+                           #custom_name="s2.DCBH.bf128-free"
+                           )
 
 if __name__ == "__main__":
     es = yt.load_simulation(sim, "Enzo", find_outputs=True)
@@ -129,13 +158,17 @@ if __name__ == "__main__":
         orient_str = "z"
         north = None
 
-    for ds in es.piter():                                                                                                                                                                               
+    for ds in es.piter():
+
+        ds.add_field(
+            name=("gas", "metal_fraction"),
+            function=_metal_fraction,
+            sampling_type="local",
+            units="dimensionless",
+        )                                                                                                                                                                               
 
         ss_pos, ss_mass, ss_age = ss_properties(ds)
-        if ss_pos is None:
-            center = center0
-        else:
-            center = ss_pos
+        center = center0 if ss_pos is None else ss_pos
 
         # find north vector for each ds
         if use_north_vector_ds:
@@ -145,17 +178,22 @@ if __name__ == "__main__":
             vecs = ortho_find(L)
 
             if orient == "face-on":
-                orient_str = "face_on_continuous"
+                orient_str = "face_on_continuous_"
                 dir = vecs[0]
                 north = vecs[1]
             else:
-                orient_str = "edge_on_continuous"
+                orient_str = "edge_on_continuous_"
                 dir = vecs[2]
                 north = vecs[0]
         else:
-            dir = "z"
-            orient_str = "z"
-            north = None
+            if orient == "face-on":
+                dir = "z"
+                orient_str = "z"
+                north = None
+            else:
+                dir = "y"
+                orient_str = "y"
+                north = None
 
         if nested_level > 0:
             region = ds.box(center0 - 0.5 * my_width,
@@ -166,7 +204,7 @@ if __name__ == "__main__":
             # H nuclei number density
             field = "number_density"
             p1 = yt.ProjectionPlot(ds, dir, ("gas", field), width=(w_pccm, 'pccm'), 
-                                   north_vector=north, 
+                                   #north_vector=north, 
                                    center=center, data_source=region,
                                    weight_field=("gas", field))
             p1.set_cmap(field, 'viridis')
@@ -177,10 +215,12 @@ if __name__ == "__main__":
         elif map == "temperature":
             # Temperature
             field = "temperature"
-            p2 = yt.ProjectionPlot(ds, dir, ("gas", field), width=(w_pccm, 'pccm'), north_vector=north, center=center, data_source=region,
+            p2 = yt.ProjectionPlot(ds, dir, ("gas", field), width=(w_pccm, 'pccm'), 
+                                   #north_vector=north, 
+                                   center=center, data_source=region,
                                    weight_field=("gas", "density"))
             p2.set_cmap(field, "RED TEMPERATURE")
-            p2.set_zlim(("gas", field), 50, 1200)
+            p2.set_zlim(("gas", field), 1e2, 1e4) # 1e2, 2e5 for most
             p2.set_axes_unit('pc')
 
             apply_annotations_and_save(p2, orient_str=orient_str)
@@ -191,10 +231,14 @@ if __name__ == "__main__":
             # add_p2p_fields(ds) 
 
             # Metallicity
+            # field = "metal_fraction"
             field = "SN_Colour"
-            p3 = yt.ProjectionPlot(ds, "x", ("enzo", field), width=(w_pccm, 'pccm'), north_vector=north, center=center, data_source=region,
+            p3 = yt.ProjectionPlot(ds, dir, ("enzo", field), width=(w_pccm, 'pccm'), 
+                                   #north_vector=north, 
+                                   center=center, data_source=region,
                                    weight_field=("gas", "density"))
             p3.set_cmap(field, 'kamae')
+            #p3.set_zlim(("gas", field), 1e-8, 5e-4) # 1e-13, 5e-4 for 8pc, 
             p3.set_axes_unit('pc')
 
             apply_annotations_and_save(p3, orient_str=orient_str)
@@ -202,7 +246,7 @@ if __name__ == "__main__":
         elif map == "h2":
             # H2 fraction
             field = "H2_p0_fraction"
-            p4 = yt.ProjectionPlot(ds, "x", ("gas", field ), north_vector=north, width=(w_pccm,'pccm'), center=center, data_source=region, 
+            p4 = yt.ProjectionPlot(ds, dir, ("gas", field ), north_vector=north, width=(w_pccm,'pccm'), center=center, data_source=region, 
                                    weight_field='cell_mass')
             p4.set_cmap(field, "kelp")
             p4.set_axes_unit('pc')

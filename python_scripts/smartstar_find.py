@@ -8,6 +8,7 @@ import yt
 
 
 def ss_properties(ds):
+    print("ds = ", ds)
     ad = ds.all_data()
     try:
         # find ss properties
@@ -21,8 +22,8 @@ def ss_properties(ds):
         ss_age = time - creation
     except:
         ss_pos = None
-        ss_mass = 0
-        ss_age = 0
+        ss_mass=0*yt.units.msun
+        ss_age = [0*yt.units.Myr]
 
     return ss_pos, ss_mass, ss_age
 

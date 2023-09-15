@@ -128,7 +128,8 @@ fig, axs = plt.subplots(1, sharex=True)
 
 # set x and y labels
 plt.xlabel(r"Radius (pc)", fontsize=20)
-plt.ylabel(r"$\rm Q_{adv} / Q_{rad}$", fontsize=20)
+#plt.ylabel(r"$\rm Q_{adv} / Q_{rad}$", fontsize=20)
+plt.ylabel(r"$\rm Q_{rad} (\rm erg \, s^{-1} \, cm^{-3})$", fontsize=20)
 # set minorticks
 min_n_index = -3
 max_n_index = 1
@@ -138,7 +139,7 @@ minorticks = np.outer(a1, a2).flatten()
 plt.yticks(minorticks, minor=True)
 
 # plot Beckmann cooling line
-plt.loglog(radius_beck, q_ratio_beck, color="grey", label="Beckmann_2018",linewidth=4)
+#plt.loglog(radius_beck, q_ratio_beck, color="grey", label="Beckmann_2018",linewidth=4)
 
 labels = ['1B.b01_1Myr', '1B.b16_1Myr', '1B.m16_1Myr', '2B.b08_0.75Myr', '2B.m08_0.93Myr']
 for j, ds in enumerate(dds):
@@ -167,18 +168,18 @@ for j, ds in enumerate(dds):
     # labels.append(label)
 
     # take absolute value of cooling rate
-    cooling_ratio = np.abs(profile[("enzo", "radiative_cooling_rate")][profile.used] / \
-                    profile[("enzo", "advective_cooling_rate")][profile.used])
-    n = 3
+    cooling_ratio = np.abs(profile[("enzo", "radiative_cooling_rate")][profile.used]) 
+                    # profile[("enzo", "advective_cooling_rate")][profile.used])
+    n = 2
     x_avg = interpolate_data(moving_average(profile.x[profile.used], n=n))
     y_avg = interpolate_data(moving_average(cooling_ratio, n=n))
 
     #plt.loglog(profile.x[profile.used], cooling_ratio)
     plt.loglog(x_avg, y_avg, color=c[j], label=labels[j])
-    plt.axhline(y=1, color='grey', linestyle='dashed', linewidth=2, alpha=1)
+    #plt.axhline(y=1, color='grey', linestyle='dashed', linewidth=2, alpha=1)
     plt.xlim(4e-4, 10.2)
-    plt.ylim(2e-4, 1.2e4)
-    plt.legend(ncol=2, fontsize=16, frameon=False)
+    #plt.ylim(2e-4, 1.2e4)
+    plt.legend(ncol=1, fontsize=16, frameon=False, handlelength=2, handletextpad=0.8, loc='lower right')
 
     # annotate with simulation data
     # 1) BH Age in text box
@@ -199,9 +200,9 @@ for j, ds in enumerate(dds):
     if j == 1:
         plt.fill_between(x_avg, 0, y_avg.max(), where=x_avg <= disc_r, facecolor=cr[0], transform=trans, alpha=0.5)
 
-plt.title("Advective/Radiative Cooling Rate Radial Profile", fontsize=20)
+plt.title("Radiative Cooling Rate Radial Profile", fontsize=20)
 
-plot_name = 'radial-profile-plot-cooling-rate-' + str(sim[0]) + "_" + str(sim[1]) + '+s2.pdf'
+plot_name = 'radial-profile-plot-radiative-cooling-' + str(sim[0]) + "_" + str(sim[1]) + '+s2.pdf'
 #+ '_' + str(sim[1]) + '_' + str(sim[2]) 
 
 fig.set_size_inches(8, 5.8)

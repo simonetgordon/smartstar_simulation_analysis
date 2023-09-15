@@ -74,8 +74,13 @@ def create_axes_grid(fig, nrows, ncols, dim=(0.01, 0.01, 0.76, 1.152), axes_pad=
 
 def get_min_max_values(root_dir, sim, dds2, field="number_density", min_n_factor=2e5, max_n_factor=0.30):
     ds_hr = yt.load(os.path.join(root_dir[-1], sim[-1], dds2[-1]))
-    min_n = ds_hr.r[("gas", field)].min() * min_n_factor
-    max_n = ds_hr.r[("gas", field)].max() * max_n_factor
+
+    if field == "number_density":
+        min_n = ds_hr.r[("gas", field)].min() * min_n_factor
+        max_n = ds_hr.r[("gas", field)].max() * max_n_factor
+    elif field == "temperature":
+        min_n = ds_hr.r[("gas", field)].min() * min_n_factor
+        max_n = ds_hr.r[("gas", field)].max() * max_n_factor
     return min_n, max_n, int(np.log10(min_n)), int(np.log10(max_n))
 
 
@@ -92,11 +97,13 @@ def map_to_single_value(i, j, i_lim=6):
     return k
 
 
-def configure_projection_plot(p, field, min_n, max_n, fontsize):
-    p.set_axes_unit('pc')
-    p.set_font_size(fontsize)
+def configure_projection_plot(p, field, cmap, min_n, max_n, fontsize):
+    #p.set_axes_unit('pc')
+    #p.set_font_size(fontsize)
     # Ensure the colorbar limits match for all plots
-    p.set_cmap(field, 'viridis')
+    print("min_n: {}, max_n: {}".format(min_n, max_n))
+    print("field: {}".format(field))
+    p.set_cmap(field, cmap)
     p.set_zlim(("gas", field), min_n, max_n)
     p.hide_colorbar()
     return p
@@ -162,7 +169,7 @@ def overlay_quadrants(sims, grid, edgecolor='black', linewidth=5, nrows=6, ncols
     print("Quadrants overlayed")
 
 
-def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min_n_factor=2e5, max_n_factor=0.30):
+def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize=14, min_n_factor=2e5, max_n_factor=0.30):
 
     # set up figure and axes grid
     configure_font()
@@ -170,7 +177,7 @@ def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
     grid = create_axes_grid(fig, nrows=nrows, ncols=ncols, dim=dim)
 
     # get min and max values for colorbar
-    min_n, max_n, min_n_index, max_n_index = get_min_max_values(root_dir, sim, dds2, min_n_factor=min_n_factor, max_n_factor=max_n_factor)
+    min_n, max_n, min_n_index, max_n_index = get_min_max_values(root_dir, sim, dds2, field=field, min_n_factor=min_n_factor, max_n_factor=max_n_factor)
 
     # load datasets into list DS and labels into list LABEL
     DS, LABEL = load_datasets(root_dir, sim, dds1, dds2, dds3)
@@ -211,9 +218,9 @@ def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
 
             elif sims == "baselines_2":
                 dir = "z" if (j == 0) or (j == 2) else "y"
-                cmap = "RED_TEMPERATURE" if field == "temperature" else "viridis"
+                cmap = "RED TEMPERATURE" if field == "temperature" else "viridis"
                 p = make_projection_plot(ds, width_pc, disk, L, field, min_n, max_n, dir=dir, fontsize=fontsize, cmap=cmap)
-            p = configure_projection_plot(p, field, min_n, max_n, fontsize)
+            p = configure_projection_plot(p, field, cmap, min_n, max_n, fontsize)
 
             # ... pre-render plot customization ...
 
@@ -312,8 +319,8 @@ if __name__ == "__main__":
         fontsize = 14
         width_pc = 1.5 * yt.units.pc # must change xticks if this changes
         xticks = [-0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6]
-        min_n_factor=10 # 2e5 for density baseline_1/2
-        max_n_factor=0.01 # 0.001 for density baseline_2 
+        min_n_factor=20 # 2e5 for density baseline_1/2
+        max_n_factor=0.5 # 0.001 for density baseline_2 
         nrows=3
         ncols=4
         dim=(0.01, 0.01, 0.73, 0.56)

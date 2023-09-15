@@ -8,22 +8,6 @@ import matplotlib.cm as cm
 import matplotlib.ticker as ticker
 from derived_fields import _mass_flux
 
-def set_tick_params(n_subplots, fontsize, custom_ticks=[], xlim=[], vline=0):
-    for i in range(n_subplots):
-        axs[i].set_xscale('log')
-        if vline > 0:
-            axs[i].axvline(x=vline, color='grey', linestyle='dashed', lw=linewidth-0.5, alpha=0.8) # label=r"$r_{\rm disc}$"
-        if len(xlim) > 0:
-            axs[i].set_xlim(xlim)
-        axs[i].tick_params(bottom=True, left=True)
-        axs[i].minorticks_on()
-        if len(custom_ticks) > 0:
-            axs[i].set_xticks(custom_ticks)
-        axs[i].tick_params(axis="x", which='minor', length=2, direction="in")
-        axs[i].tick_params(axis="x", which='major', labelsize=fontsize, width=1, length=3, direction="in")
-        axs[i].tick_params(axis="y", which='major', labelsize=fontsize)
-        axs[i].tick_params(axis="y", which='minor', length=2)
-
 if __name__ == "__main__":
 
     ############################################# Parameters #############################################
@@ -31,7 +15,7 @@ if __name__ == "__main__":
     r_disc_pc = 0.15 # at 1 Myr
     M200 = 2.7491550e+05    # at z = 26.338 at l3 (same as Mvir)
     n_subplots = 6          # number of subplots
-    y = sys.argv[-1]        # naming plot
+    y = sys.argv[-1]        # naming plots
     fontsize = 12           # for projection annotations
     linewidth = 2
     r_lim_kpc = 0.1         # xlim in kpc
@@ -41,12 +25,15 @@ if __name__ == "__main__":
     plot_title = 'Evolution of 1B.b16 disc properties over 1 Myr'
 
     # input data
-    dds = ["DD0128/DD0128", "DD0136/DD0136", "DD0148/DD0148", "DD0159/DD0159", "DD0161/DD0161", "DD0170/DD0170"]  # 1B.b16
+    #dds = ["DD0128/DD0128", "DD0136/DD0136", "DD0148/DD0148", "DD0159/DD0159", "DD0161/DD0161", "DD0170/DD0170"]  # 1B.b16
     #dds = ["DD0128/DD0128", "DD0129/DD0129", "DD0130/DD0130", "DD0132/DD0132", "DD0134/DD0134", "DD0138/DD0138"] # 1B.b01
-    root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"]*len(dds)
-    sim = ["1B.RSb16"]*len(dds)
+    dds = ["DD0198/DD0198","DD0218/DD0218", "DD0220/DD0220", "DD0234/DD0234", "DD0335/DD0335", "DD0534/DD0534"] # 2B.b08
+    #root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/"]*len(dds)
+    root_dir = ["/ceph/cephfs/sgordon/disk14/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/"]*3 + \
+                ["/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/"]*3
+    sim = ["2B.RSb08"]*len(dds)
 
-    # Get the RGB values for the Plasma colormap ('cool', 'brg', 'rainbow', 'jet', 'turbo' also good)
+    # Get the RGB values for the Plasma colormap ('coolwarm', 'brg', 'rainbow', 'jet', 'turbo' also good)
     c = cm.get_cmap('plasma', len(dds)).colors
     ######################################################################################################
 
@@ -146,16 +133,16 @@ if __name__ == "__main__":
                 color=c[i], linestyle='solid', label= labels[i][7:], alpha=alpha)
 
     # plot annotations
-    set_tick_params(n_subplots, fontsize, custom_ticks=custom_ticks, xlim=xlim, vline=r_disc_pc)
+    set_tick_params(axs, n_subplots, fontsize, custom_ticks=custom_ticks, xlim=xlim, vline=r_disc_pc)
     #axs[0].set_title(plot_title, fontsize=fontsize-2)
     axs[0].legend(loc="lower right", fontsize=fontsize-4, ncol=1)
 
     axs[0].set_ylabel(r"$\rm M_{encl} \, (M_{\odot})$", fontdict=None)
-    axs[0].set_ylim([5e-4, 1e5])
+    axs[0].set_ylim([5e-7, 1e5])
     axs[1].set_ylabel(r"$\rm n \, (cm^{-3})$", fontdict=None)
     axs[1].set_ylim([2e-1, 2e10])
     axs[2].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
-    axs[2].set_ylim([2e1, 1.1e4])
+    axs[2].set_ylim([2e1, 1.1e5])
     #axs[2].set_ylabel(r"$\rm M(r) \, M_\odot$", fontdict=None)
     axs[3].set_ylabel(r"$\rm v_r \, (km/s)$", fontdict=None)
     axs[3].set_yscale("linear")
