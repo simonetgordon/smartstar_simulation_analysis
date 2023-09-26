@@ -10,6 +10,8 @@ from scipy.interpolate import interp1d
 from scipy.ndimage import convolve1d
 import matplotlib.ticker as ticker
 import yt
+import matplotlib.colors as mcolors
+#import seaborn as sns
 
 ##########################################################################################################
 #                                     Plot BHL Variables vs time
@@ -19,7 +21,7 @@ import yt
 ##########################################################################################################
 
 
-def resample_data(accretion_rates: list, times: list, common_time: float, smooth_simulations=2, window_size=3):
+def resample_data(accretion_rates: list, times: list, common_time: float, smooth_simulations=2, window_size=1):
     resampled_acc_rates = []
     for i in range(len(accretion_rates)):
         # Create an interpolator for each simulation
@@ -104,7 +106,8 @@ def identify_cell_widths(x: str):
     elif x == "s1+s2-270msun-":
         dx = [1.229791e-02, 3.074475e-03, 1.537645e-03, 7.692833e-04, 8.298311e-03, 2.074568e-03, 1.537645e-03, 7.687095e-04, 3.8435475e-04, 1.296596e-04]
     elif x == "s1+s2-40msun-":
-        dx = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04, 8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04]
+        #dx = [2.459867e-02, 1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 7.692833e-04, 8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04, 1.3e-04]
+        dx = [1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 7.692833e-04, 8.4e-03, 5.2e-04, 1.3e-04, 1.3e-04]
     else:
         dx = None  # You may want to handle this case differently
     return dx
@@ -129,9 +132,11 @@ def extract_colors(cmap_name, n, portion=None, start=None, end=None):
     colors = cmap(values)
     return colors
 
-def plot_extra_line(data_file:str, label_extra:str, i, j, alpha = 0.6):
+def plot_extra_line(data_file:str, label_extra:str, i, j, alpha = 0.6, window_size=30):
         
         df = pd.read_csv(data_file)
+        group_labels = np.arange(len(df)) // window_size
+        df = df.groupby(group_labels).mean().reset_index(drop=True)
 
         # Extract the columns you're interested in
         age = df['age'].values/1e6
@@ -147,13 +152,15 @@ def plot_extra_line(data_file:str, label_extra:str, i, j, alpha = 0.6):
 
         # 2) Accretion Rates
         axs[1].plot(age, accrate, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-        axs[1].plot(age, eddington_rate(bh_mass), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
+        #axs[1].plot(age, eddington_rate(bh_mass), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
 
         # 3) Densities
         axs[2].plot(age, avg_density, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
 
         # 4) Velocities
-        axs[3].plot(age, avg_vinfinity/avg_cinfinity, color=c[j], linestyle='solid', label=label_extra+'-Mach', alpha=alpha)
+        #axs[3].plot(age, avg_vinfinity/avg_cinfinity, color=c[j], linestyle='solid', label=label_extra+'-Mach', alpha=alpha)
+        axs[3].plot(age, avg_vinfinity, color=c[j], linestyle='solid', label=label_extra+'-vinf', alpha=alpha)
+        axs[3].plot(age, avg_cinfinity, color=c[j], linestyle='dashdot', label=label_extra+'-cinf', alpha=alpha)
 
         # 5) HL radius
         axs[4].plot(age, hl_radius/dx[j], color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
@@ -162,22 +169,23 @@ def plot_extra_line(data_file:str, label_extra:str, i, j, alpha = 0.6):
 
         i += 1
         j += 1
+        return i,j 
 
 
 if __name__ == "__main__":
 
     ###################################### Parameters ######################################
 
-    x = "s1+s2-270msun-"       # simulation type
+    x = "s1+s2-40msun-"       # simulation type
     y = sys.argv[-1]        # naming plot
     xlim = 1                # Myrs
     time_cutoff = xlim      # Myrs
     i_start = 0             # start index
     include_beckmann_data = False
-    alpha = 0.7        # transparency of lines
+    alpha = 0.9        # transparency of lines
     num_subplots = 5        # number of subplots
-    smooth_simulations = 7  # number of simulations to smooth (starting from last sim)
-    window = 16             # window size to average over
+    smooth_simulations = len(bhl_object_list)  # number of simulations to smooth (starting from last sim)
+    window = 30            # window size to average over
     rtol=1e-6   
     atol=1e-4               # 1e-4 for 1S.m, 2e-4 for 1B.m
     title = None          # plot title
@@ -253,9 +261,28 @@ if __name__ == "__main__":
     # set line colours
     # c = ['indigo', 'darkmagenta', 'mediumslateblue', 'turquoise', 'limegreen', 'darkgreen']
     n = int(len(bhl_object_list)/2)+1
-    c_s1 = extract_colors('viridis', 4, portion="middle")
-    c_s2 = extract_colors('magma', 4, portion="middle", start=0.25, end=0.9)
+    c_s1 = extract_colors('magma', 5, portion="middle", start=0.2, end=0.8)
+    c_s2 = extract_colors('viridis', 4, portion="middle", start=0.25, end=0.85)
     c = np.concatenate((c_s1, c_s2))
+
+    # # Extract colors
+    # set1_palette = mcolors.TABLEAU_COLORS
+    # dark2_palette = mcolors.BASE_COLORS
+
+    # set1_colors = list(set1_palette.keys())[0:5]  # First 5 colors from Set1
+    # dark2_colors = list(dark2_palette.keys())[0:4]  # First 4 colors from Dark2
+
+    # c = set1_colors + dark2_colors
+
+    # # Define two colormaps
+    # colors_1 = plt.cm.Reds_r(np.linspace(0, 1, 128))
+    # colors_2 = plt.cm.Blues(np.linspace(0, 1, 128))
+
+    # # Concatenate the two colormaps with black in the middle
+    # colors = np.vstack((colors_1, [0, 0, 0, 1], colors_2))
+    # divergent_cmap = mcolors.LinearSegmentedColormap.from_list("divergent_black", colors)
+
+    
 
     # set BHL properties parameters
     l = tidy_data_labels(bhl_object_labels)
@@ -280,8 +307,8 @@ if __name__ == "__main__":
     density = resample_data([BHL.average_density for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
     avg_vinf = resample_data([BHL.average_vinfinity for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
     avg_cinf = resample_data([BHL.average_cinfinity for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
-    hl_radius = resample_data([BHL.hl_radius for BHL in bhl_object_list], times, common_time)
-    bondi_radius = resample_data([BHL.hl_radius for BHL in bhl_object_list], times, common_time)
+    hl_radius = resample_data([BHL.hl_radius for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
+    bondi_radius = resample_data([BHL.hl_radius for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
     #jeans = resample_data([BHL.jeans for BHL in bhl_object_list], times, common_time)
 
     # Print the resampled data
@@ -298,14 +325,15 @@ if __name__ == "__main__":
 
         # 2) Accretion Rates
         axs[1].plot(common_time, accretion_rates[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
-        axs[1].plot(common_time, eddington_rate(mass[i]), color=c[j], linestyle='dashed', label=l[i], alpha=alpha)
+        #axs[1].plot(common_time, eddington_rate(mass[i]), color=c[j], linestyle='dashed', label=l[i], alpha=alpha)
 
         # 3) Densities
         axs[2].plot(common_time, density[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
 
         # 4) Velocities
-        axs[3].plot(common_time, avg_vinf[i]/avg_cinf[i], color=c[j], linestyle='solid', label=l[i]+'-Mach', alpha=alpha)
-        #axs[3].plot(common_time, avg_vinf, color=c[j], linestyle='solid', label=l[i]+'-vinf', alpha=alpha)
+        #axs[3].plot(common_time, avg_vinf[i]/avg_cinf[i], color=c[j], linestyle='solid', label=l[i]+'-Mach', alpha=alpha)
+        axs[3].plot(common_time, avg_vinf[i], color=c[j], linestyle='solid', label=l[i]+'-vinf', alpha=alpha)
+        axs[3].plot(common_time, avg_cinf[i], color=c[j], linestyle='dashed', label=l[i]+'-cinf', alpha=alpha-0.2)
 
         # 5) HL radius
         axs[4].plot(common_time, hl_radius[i]/dx[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
@@ -325,7 +353,7 @@ if __name__ == "__main__":
         #axs[5].scatter(common_time, residual, s=3, color=c[j], linestyle='solid', marker='o', label=l[i], alpha=alpha2)
         
         yscale_residual = 'linear'
-        axs[3].set_ylim([7e-3, 1.2e2])
+        axs[3].set_ylim([4e-3, 1.2e2])
 
         print("=============================")
 
@@ -334,17 +362,26 @@ if __name__ == "__main__":
     # plot line not using common time (hasn't reached ~ 1 Myr yet)
     if extra_line:
 
-        # data_file = "data_files/data-2S.RSmf4-2.csv"
-        # label_extra = "2S.mf4"
-        data_file = "data_files/data-2B.RSb16.csv"
-        label_extra = "2B.b16"
+        data_file = "data_files/data-2S.RSmf4-2.csv"
+        label_extra = "2S.mf4"
+        # data_file = "data_files/data-2B.RSb16.csv"
+        # label_extra = "2B.b16"
+        # data_file = "data_files/data-2S.RSb01.csv"
+        # label_extra = "2S.b01"
 
-        plot_extra_line(data_file, label_extra, i, j, alpha=0.6)
+        #j -+ 1
 
-        # data_file = "data_files/data-2S.RSm01-2.csv"
-        # label_extra = "2S.m01"
+        i, j = plot_extra_line(data_file, label_extra, i, j, alpha=0.8)
 
-        # plot_extra_line(data_file, label_extra, i, j, alpha=0.6)
+        data_file = "data_files/data-2S.m01-386+.csv"
+        label_extra = "2S.m01"
+
+        i, j = plot_extra_line(data_file, label_extra, i, j, alpha=1)
+        
+        data_file = "data_files/data-2S.m01-no-SN.csv"
+        label_extra = "2S.m01-no-SN"
+
+        i,j = plot_extra_line(data_file, label_extra, i, j, alpha=1)
 
 
     ############################### Format plots #################################
@@ -368,8 +405,8 @@ if __name__ == "__main__":
     axs[0].set_ylabel(r"$\rm M_{BH} \, (M_{\odot})$", fontdict=None)
     axs[1].set_ylabel(r"$\rm \dot{M} \, (M_{\odot}/yr)$", fontdict=None)
     axs[2].set_ylabel(r"$\rm n \, (H \, cm^{-3})$", fontdict=None)
-    #axs[3].set_ylabel(r"$\rm \nu \, (km/s)$", fontdict=None)
-    axs[3].set_ylabel(r"$\rm Mach$", fontdict=None)
+    axs[3].set_ylabel(r"$\rm \nu \, (km/s)$", fontdict=None)
+    #axs[3].set_ylabel(r"$\rm Mach$", fontdict=None)
     #axs[4].set_ylabel(r"$\rm r_{HL} \, (pc)$", fontdict=None)
     axs[4].set_ylabel(r"$\rm r_{HL}/dx $", fontdict=None)
     #axs[5].set_ylabel(r"$\rm r_{jeans} \, (pc)$", fontdict=None)
@@ -422,18 +459,22 @@ if __name__ == "__main__":
         #axs[5].set_ylim([-1.5e-2, 0.9e-2])
     elif x == "s1+s2-40msun-":
         axs[0].set_ylim([10.1, 3000])
-        axs[0].axhline(y=60, color='grey', linestyle='dotted', linewidth=0.7, alpha=alpha)
-        axs[4].axhline(y=1, color='grey', linestyle='dotted', linewidth=0.7,alpha=alpha)
+        axs[1].set_ylim([2e-8, 8e-2])
+        axs[2].set_ylim([18, 7e7])
+        axs[3].set_ylim([1.1e-1, 30])
+        axs[4].set_ylim([9e-3, 2e2])
+        axs[0].axhline(y=60, color='grey', linestyle='dotted', linewidth=linewidth+2, alpha=alpha)
+        axs[4].axhline(y=1, color='grey', linestyle='dotted', linewidth=linewidth+2,alpha=alpha)
     elif x == "s1+s2-270msun-":
         linewidth = 1.5
         axs[0].set_ylim([250, 3000])
-        axs[0].axhline(y=1000, color='grey', linestyle='dotted', linewidth=linewidth,alpha=alpha)
-        axs[1].set_ylim([3e-6, 6e-2])
-        axs[2].set_ylim([3e5, 8e10])
-        axs[3].set_ylim([6e-1, 110])
-        axs[3].axhline(y=1, color='grey', linestyle='dotted', linewidth=linewidth,alpha=alpha)
-        axs[4].set_ylim([1e-2, 2e2])
-        axs[4].axhline(y=1, color='grey', linestyle='dotted', linewidth=linewidth,alpha=alpha)
+        axs[0].axhline(y=1000, color='grey', linestyle='dotted', linewidth=linewidth+2,alpha=1)
+        axs[1].set_ylim([3e-6, 4e-2])
+        axs[2].set_ylim([5e5, 2e11])
+        axs[3].set_ylim([1.1e-1, 130])
+        axs[4].axhline(y=1, color='grey', linestyle='dashdot', linewidth=linewidth+2,alpha=1)
+        axs[4].set_ylim([1e-1, 2e2])
+        #axs[4].axhline(y=1, color='grey', linestyle='dotted', linewidth=linewidth,alpha=alpha)
 
 
     ############################### Legends ################################
@@ -467,8 +508,8 @@ if __name__ == "__main__":
 
     # Include legends
     #axs[0].legend(fontsize=fontsize-3, ncol=2, loc="lower right", handlelength=0.5)  # upper/lower
-    axs[0].legend(fontsize=fontsize-3, ncol=4, loc='upper center', bbox_to_anchor=(0.5, 1.38), handlelength=2) # 1.3 for m01, 
-    axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-4, ncol=1)
+    axs[0].legend(fontsize=fontsize-3, ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.52), handlelength=1) # 1.3 for m01, 
+    #axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-4, ncol=1)
     #axs[3].legend(vel_lines, [r"$\rm \nu_{\infty}$", r"\rm $c_{\infty}$"], loc="upper left", fontsize=fontsize-1, ncol=1)
     #axs[4].legend(radius_lines, [r"$\rm r_{HL}$", r"$\rm r_{Bondi}$"], fontsize=fontsize-1, ncol=1)
     #axs[4].legend(dx_lines, dx, fontsize=fontsize-2, ncol=1)
