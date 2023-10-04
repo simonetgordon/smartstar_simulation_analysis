@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 import re # complex str searches
 
-def apply_annotations_and_save(p, title=None, orient_str=None, w_pc=None, field=None, sim_str=None):
+def apply_annotations_and_save(p, ds, center, ss_mass, ss_age, title=None, orient_str=None, w_pc=None, map=None, sim_str=None, plot_type=None):
     """
     Apply annotations to the projection and save the result.
     """
@@ -42,8 +42,10 @@ def apply_annotations_and_save(p, title=None, orient_str=None, w_pc=None, field=
                     )
     if title:
         p.annotate_title(str(title))
-
-    dirname = "frames_" + orient_str + field + "_" + str(sim_str) + "_" + str(w_pc) + "pc/"
+    
+    # save plot
+    field = extract_field(map)
+    dirname = "frames_" + orient_str + field +  "_" + str(plot_type) + "_" + str(sim_str) + "_" + str(w_pc) + "pc/"
     p.save(dirname)
 
     return ("saved to frames to {}".format(dirname))
@@ -70,6 +72,17 @@ def extract_simulation_name(filepath, custom_name=None):
 
     return None
 
+
+def extract_field(map_tuple):
+    """
+    Extracts the second element from a tuple and returns it.
+    """
+    if not isinstance(map_tuple, tuple) or len(map_tuple) < 2:
+        raise ValueError("Input must be a tuple with at least two elements")
+    
+    return map_tuple[1]
+
+
 def _metal_fraction(field, data):
     """
     Compute the metal fraction from given field and data.
@@ -77,7 +90,7 @@ def _metal_fraction(field, data):
     return (data["enzo", "SN_Colour"] / data["gas", "density"]).to("dimensionless")
 
 def process_data_series(es, map, orient, w_pccm, c_min, c_max, root_dir, use_north_vector=False, use_north_vector_ds=False, cmap="viridis", 
-                        weight_field="density"):
+                        weight_field="density", plot_type="projection"):
     """
     Process the data series.
     """
@@ -138,32 +151,50 @@ def process_data_series(es, map, orient, w_pccm, c_min, c_max, root_dir, use_nor
                 north = vecs[0]
 
         # make projection plot
-        p = yt.ProjectionPlot(ds, dir, map, center=center, data_source=region, 
-                              weight_field=weight_field, width=(w_pccm, 'pc'))
+        if plot_type == "projection":
+            p = yt.ProjectionPlot(ds, dir, map, center=center, data_source=region, 
+                                  weight_field=weight_field, width=(w_pccm, 'pccm'))
+        elif plot_type == "slice":
+            p = yt.SlicePlot(ds, dir, map, center=center, data_source=region, 
+                             width=(w_pccm, 'pccm'), north_vector=north)
         p.set_cmap(map, cmap)
         p.set_zlim(map, c_min, c_max)
-        apply_annotations_and_save(p)
+        apply_annotations_and_save(p, ds, center, ss_mass, ss_age, title=None, orient_str=orient_str, w_pc=w_pccm, 
+                                   map=map, sim_str=extract_simulation_name(root_dir), plot_type=plot_type)
 
-def main(map, orient, w_pccm, c_min, c_max, root_dir):
+def main(map, orient, w_pccm, c_min, c_max, root_dirs, cmap, weight_field, plot_type="projection", use_north_vector_ds=False):
     """
     Main function to execute the program.
     """
     enzo_file = "smartstar-production-runs.enzo"
-    sim = os.path.join(root_dir, enzo_file)
-    sim_str = extract_simulation_name(sim)
-    es = yt.load_simulation(sim, "Enzo", find_outputs=True)
-    es.get_time_series()
-    process_data_series(es, map, orient, w_pccm, c_min, c_max, root_dir)
+    for root_dir in root_dirs:
+        sim = os.path.join(root_dir, enzo_file)
+        sim_str = extract_simulation_name(sim)
+        print("Processing simulation: {}".format(sim_str))
+        es = yt.load_simulation(sim, "Enzo", find_outputs=True)
+        es.get_time_series()
+        process_data_series(es, map, orient, w_pccm, c_min, c_max, root_dir,  use_north_vector_ds=use_north_vector_ds, cmap=cmap, 
+                            weight_field=weight_field, plot_type=plot_type)
 
 
 if __name__ == "__main__":
-    map = ("gas", "density")
+    ##########################################################
+    # Generates a series of projections for a given simulation
+    # Call like: mpirun -np 16 python projection_movie_2.py 
+    ##########################################################
+    map = ("gas", "number_density")
     weight_field = "density"
-    orient = "edge-on"
+    orient = "face-on" # "edge-on" or "face-on"
     w_pccm = 30
     w_pc = 1
     c_min = 2e2
     c_max = 3e8
-    cmap = "viridis"
-    root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/1S.RSm01"
-    main(map, orient, w_pccm, c_min, c_max, root_dir, cmap, weight_field)
+    cmap = "viridis" # e.g. "magma", "viridis", "plasma", "inferno"
+    plot_type = "slice" # "projection" or "slice"
+    root_dirs = [
+        #"/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/1S.m04-no-SN/",
+        "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.m16-4dx/",
+        "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/2B.RSb08-2/",
+        "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb16/"
+        ]
+    main(map, orient, w_pccm, c_min, c_max, root_dirs, cmap, weight_field, plot_type, use_north_vector_ds=True)
