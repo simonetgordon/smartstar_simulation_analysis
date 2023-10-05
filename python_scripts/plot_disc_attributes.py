@@ -1,6 +1,6 @@
 """
 Plots 6x1 radial profile of disc attributes (excluding surface density)
-python -i plot_disc_attributes.py "1B.m+2B.m-x6" 
+python -i plot_disc_attributes.py "1B.m+2B.m-x7" 
 """
 import yt
 import sys
@@ -16,6 +16,7 @@ from matplotlib import rc
 from find_disc_attributes import _make_disk_L
 from plot_multi_projections import tidy_data_labels
 from plot_cooling_rates import extract_colors
+from plot_radial_profile_from_frb import compute_radial_profile, make_frb, ToomreQ, kappa2D
 
 
 def orbital_velocity(ds, disk):
@@ -46,7 +47,7 @@ if __name__ == "__main__":
     i_start = 0             # start index
     include_beckmann_data = False
     alpha = 0.9             # transparency of lines
-    num_subplots = 7        # number of subplots
+    num_subplots = 8        # number of subplots
     smooth_simulations = 4  # number of simulations to smooth (starting from last sim)
     window = 10              # window size to average over
     rtol=1e-6   
@@ -86,7 +87,7 @@ if __name__ == "__main__":
     #        "2B.RSm01", "2B.RSm04", "2B.m08-4dx"]
     # 1B.b, 2B.b
     dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0166/DD0166", \
-           "DD0208/DD0208", "DD0208/DD0208", "DD0373/DD0373"] # 2B.m16 at 0.57 Myr
+           "DD0208/DD0208", "DD0208/DD0208", "DD0750/DD0750"] # 2B.m16 at 0.57 Myr
     # 1B.m, 2B.m
     # dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0202/DD0202", \
     #        "DD0208/DD0208", "DD0370/DD0370", "DD0291/DD0291"]
@@ -159,18 +160,20 @@ if __name__ == "__main__":
     2) Plot my data
     """""""""""""""""
 
+    cell_width_pc = []
     for k, ds in enumerate(DS):
 
         #cell_width_pc = [0.012, 0.003, 0.012]
         #cell_width_pc = [0.00078, 0.00078, 0.012, 0.012] # BHL vs MF
-        cell_width_pc = [0.0124, 0.00309, 0.00077, 0.0083, 0.00207, 0.000518 ] # 1B.b, 2B.b res++
+        #cell_width_pc = [0.0124, 0.00309, 0.00077, 0.0083, 0.00207, 0.000518 ] # 1B.b, 2B.b res++
+        cell_width_pc.append(float(ds.index.get_smallest_dx().in_units('pc')))
 
         # grab bh particle properties
         ss_pos, ss_mass, ss_age = ss_properties(ds)
 
         # make small disk data container to define L
         disc_r_pc = cell_width_pc[k]*10*yt.units.pc
-        disc_h_pc = 0.02*yt.units.pc
+        disc_h_pc = 0.05*yt.units.pc
         disk_small, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
 
         # make larger disc from this L for plotting
@@ -215,13 +218,33 @@ if __name__ == "__main__":
         #                                           Calculate disc height
         ##########################################################################################################
 
-        # querying height (abs(cylindrical_z)) on a cut region of max small disc density/5
+        #querying height (abs(cylindrical_z)) on a cut region of max small disc density/5
         cut = disk_small[('gas', 'number_density')].d.max()/100
         #cut = 1e7
         cr = ds.cut_region(disk, ["obj[('gas', 'number_density')] > {}".format(cut)])
         h_disc = cr[("index", "height")].to('pc')
         r_disc = cr[("index", "radius")].to('pc')
         r_h, h = radial_profile(h_disc, cr, n_bins, cell_width_pc[k])
+
+
+        ##########################################################################################################
+        #                                           Calculate ToomreQ
+        ##########################################################################################################
+
+        # Need to find surface density using FRB and then bin
+        G = yt.units.physical_constants.G
+        npixels = 3040
+        frb_height = 0.05*yt.units.pc
+        frb_width = 10*yt.units.pc
+        frb, _ = make_frb(ds, L, ss_pos, width=frb_width, npixels=npixels, height=frb_height)
+
+        # Get radius and Toomre Q inputs from frb
+        radius = frb['radius'].to('pc')
+        surface_density = frb['density'].to('g/cm**3') * frb_height.to('cm') # cm^-2
+        cs = frb['sound_speed'].to('cm/s')
+        kappa = kappa2D(frb)
+        Q = ToomreQ(cs, kappa, G, surface_density)
+        radii_q, q = compute_radial_profile(radius, Q)
 
         ##########################################################################################################
         #                                           Plot All Disc Attributes
@@ -240,8 +263,8 @@ if __name__ == "__main__":
         c_s2 = extract_colors('magma', n, portion="middle", start=0.25, end=0.8)
         c = np.concatenate((c_s1, c_s2))
 
-        # plot_omega = axs[0].loglog(profile.x[profile.used], profile[("gas", "omega")][profile.used] /
-        #             profile[("gas", "omega_k")][profile.used], color=c[k], label=labels[k])
+        plot_omega = axs[0].loglog(profile.x[profile.used], profile[("gas", "omega")][profile.used] /
+                    profile[("gas", "omega_k")][profile.used], color=c[k], label=labels[k])
         plot_density = axs[0].plot(profile.x[profile.used], profile[("gas", "number_density")][profile.used], color=c[k], label=labels[k])
         plot_temp = axs[1].loglog(profile.x[profile.used], profile[("gas", "temperature")][profile.used], color=c[k], label=labels[k])
         plot_h = axs[2].loglog(r_h, h, color=c[k], label=labels[k])
@@ -249,9 +272,9 @@ if __name__ == "__main__":
                                  color=c[k], label=labels[k])
         plot_vr = axs[4].plot(profile.x[profile.used], profile[("gas", "radial_velocity")][profile.used], color=c[k], label=labels[k])
         r, vorb = radial_profile(orbital_velocity(ds, disk).to('km/s'), disk, n_bins, cell_width_pc[k])
-        #plot_vorb = axs[6].plot(r, vorb, color=c[k])
         plot_hratio = axs[5].plot(r_h, h/r_h, color=c[k], label=labels[k])
         plot_qrad = axs[6].loglog(profile2.x[profile2.used], profile2[("enzo", "radiative_cooling_rate")][profile2.used], color=c[k], label=labels[k])
+        plot_toomreq = axs[7].loglog(radii_q, q, color=c[k], label=labels[k])
 
 
         ##########################################################################################################
@@ -260,6 +283,8 @@ if __name__ == "__main__":
 
         # format plots
         axs[-1].set_xlabel("Radius (pc)", fontdict=None)
+        axs[7].set_ylabel(r"$\rm Toomre \, Q$", fontdict=None)
+        axs[7].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
         axs[6].set_ylabel(r"$\rm Q_{rad} (\rm erg \, s^{-1} \, cm^{-3})$", fontdict=None)
         axs[5].set_ylabel(r"$\rm H/r $", fontdict=None)
         axs[5].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
@@ -278,7 +303,7 @@ if __name__ == "__main__":
         # axs[0].set_yscale('linear')
         # axs[0].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
         #axs[0].legend(loc="upper left", fontsize=fontsize-1, ncol = 2)
-        axs[0].legend(fontsize=fontsize-2, ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.50), handlelength=1) # 1.3 for m01, 
+        axs[0].legend(fontsize=fontsize-2, ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.53), handlelength=1) # 1.3 for m01, 
         #axs[0].set_title("BH Age = " + "{:.2f}".format(ss_age[0]/1e6) + " Myr" + ", " + str(root_dir[index:]))
 
         for i in range(n_subplots):
@@ -291,7 +316,7 @@ if __name__ == "__main__":
 
     # save plot as pdf
     fig.subplots_adjust(wspace=0, hspace=0)
-    fig.set_size_inches(5.4, 10)
+    fig.set_size_inches(5.4, 11)
     plot_name = 'disc_rp_' + str(input) + '.pdf'
     plt.savefig('plots/' + plot_name, bbox_inches='tight')
     print("created plots/" + str(plot_name))
