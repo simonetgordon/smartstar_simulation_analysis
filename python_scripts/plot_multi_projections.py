@@ -21,16 +21,20 @@ import re # complex str searches
 
 
 def tidy_data_labels(labels, custom_name=None):
-    # for lists of labels
     if custom_name:
         return custom_name
-    elif len(labels) < 8:
+    # for lists of labels
+    elif len(labels) < 5:
         data_labels = [i.replace("-2", "") for i in labels]
         data_labels = [i.replace("RS", "") for i in data_labels]
     # for single label
     else:
         data_labels = labels.replace("-2", "")
         data_labels = data_labels.replace("RS", "")
+        data_labels = labels.replace("-4dx", "")
+        if not isinstance(data_labels, str):
+            print("sim_name = ", data_labels)
+            raise TypeError("sim_name is not a string - try add / to end of directory path")
     return data_labels
 
 
