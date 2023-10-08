@@ -148,6 +148,5 @@ if __name__ == "__main__":
     max_n_factor=0.1
     field = "number_density"
     cmap = 'viridis'
-    slice
 
     main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min_n_factor, max_n_factor)
