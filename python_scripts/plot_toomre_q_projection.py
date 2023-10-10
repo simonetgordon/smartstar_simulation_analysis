@@ -11,106 +11,103 @@ from plot_radial_profile_from_frb import compute_radial_profile, make_frb, Toomr
 from matplotlib.colors import LogNorm
 from plot_radial_profile_from_frb import extract_dd_segment, extract_simulation_name
 
-fp = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/270msun/replicating-beckmann/1B.m16-4dx/DD0167/DD0167"
-fp = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/270msun/replicating-beckmann/1B.m16-4dx/DD0204/DD0204"
-fp = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/2B.RSb08-2/DD0250/DD0250"
-ds = yt.load(fp)
+def toomre_from_sliceplot(ds, center, width_pc, north, dir, npixels=2048):
+    """
+    Compute Toomre Q from a slice plot of a dataset.
+    Surface Density = slice plot density * cell height
+    """
+    pixels = 2048
+    dx = ds.index.get_smallest_dx().in_units('cm')
+    p = yt.SlicePlot(ds, dir, ("gas", "density"), center=center, width=(width_pc, "pc"), north_vector=north)
+    slc_frb = p.data_source.to_frb((1.0, "pc"), pixels)
+    slc_dens = slc_frb[("gas", "density")]*dx
+    slc_cs = slc_frb[("gas", "sound_speed")].to('cm/s')
+    slc_kappa = kappa2D(slc_frb)
+    q = ToomreQ(slc_cs, slc_kappa, G, slc_dens)
 
-sim = extract_simulation_name(ds.directory)
-dd = extract_dd_segment(ds.directory)
+    return q
 
+def toomre_from_frb(ds, center, L, frb_height_pc, frb_width_pc, npixels=2048):
+    """
+    Compute Toomre Q from a frb of a dataset.
+    Surface Density = disk frb densities * disk height from plane of particle.
+    """
+    frb_height = frb_height_pc
+    frb_width = frb_width_pc
+    cutting = ds.cutting(L, center)
+    frb = cutting.to_frb(frb_width, npixels, height=frb_height)
 
-# grab bh particle properties
-ss_pos, ss_mass, ss_age = ss_properties(ds)
+    #Get radius and Toomre Q inputs from frb
+    radius = frb['radius'].to('pc')
+    surface_density = frb['density'].to('g/cm**3') * frb_height.to('cm') # cm^-2
+    cs = frb['sound_speed'].to('cm/s')
+    kappa = kappa2D(frb)
+    q = ToomreQ(cs, kappa, G, surface_density)
+    return q, radius
 
-# constants
-G = yt.units.physical_constants.G
+if __name__ == "__main__":
+    file_paths = [ 
+        # "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/270msun/replicating-beckmann/1B.m16-4dx/DD0167/DD0167",
+        # "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/270msun/replicating-beckmann/1B.m16-4dx/DD0204/DD0204",
+        # "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/2B.RSb08-2/DD0250/DD0250",
+        "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/2B.RSb08-2/DD0240/DD0240",
+        "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/2B.RSb08-2/DD0279/DD0279",
+        "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb04/DD0197/DD0197"
+    ]
 
-# make small disk data container to define L
-dx = float(ds.index.get_smallest_dx().in_units('pc'))
-disc_r_pc = dx *10*yt.units.pc
-disc_h_pc = 0.05*yt.units.pc
-print("disk_r_pc = {}, disk_h_pc = {}".format(disc_r_pc, disc_h_pc))
-_, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
-vecs = ortho_find(L)
-north = vecs[1]
-dir = vecs[0]
+    for fp in file_paths:
+        # Load dataset
+        ds = yt.load(fp)
 
-# try density from slice plot x cell height
-center = ss_pos 
-field = "density"
-width_pc = 0.32
-pixels = 2048
-dx = ds.index.get_smallest_dx().in_units('cm')
-p = yt.SlicePlot(ds, dir, ("gas", field), center=center, width=(width_pc, "pc"), north_vector=north)
-slc_frb = p.data_source.to_frb((1.0, "pc"), pixels)
-slc_dens = slc_frb[("gas", "density")]*dx # surface density
-slc_cs = slc_frb[("gas", "sound_speed")].to('cm/s')
-slc_kappa = kappa2D(slc_frb)
-q = ToomreQ(slc_cs, slc_kappa, G, slc_dens)
+        # Extract relevant data from dataset
+        sim = extract_simulation_name(ds.directory)
+        dd = extract_dd_segment(ds.directory)
+        ss_pos, ss_mass, ss_age = ss_properties(ds)
+        
+        # Constants and calculations for disk data container
+        G = yt.units.physical_constants.G
+        dx = float(ds.index.get_smallest_dx().in_units('pc'))
+        disc_r_pc = dx * 100 * yt.units.pc
+        disc_h_pc = 0.01 * yt.units.pc
+        _, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
+        print(r"Finding L from disc_r = {:.2f} pc and disc_h = {:.2f} pc".format(disc_r_pc, disc_h_pc))
+        vecs = ortho_find(L)
 
-# Need to find surface density using FRB and then bin
-# npixels = 3040
-# center = ss_pos
-# frb_height = 0.05*yt.units.pc
-# frb_width = 10*yt.units.pc
-# cutting = ds.cutting(L, center)
-# frb = cutting.to_frb(frb_width, npixels, height=frb_height)
-#frb, _ = make_frb(ds, L, ss_pos, width=frb_width, npixels=npixels, height=frb_height)
+        # Set parameters plot parameters
+        center = ss_pos 
+        field = "density"
+        north = vecs[1]
+        dir = vecs[0]
+        width_pc = 1
+        x_ticklabels = ['-0.5', '-0.25', '0.', '0.25', '0.5']
+        width_pc = 0.3
+        x_ticklabels = ['-0.15', '-0.08', '0.', '0.08', '0.15']
 
-# Get radius and Toomre Q inputs from frb
-# radius = frb['radius'].to('pc')
-# surface_density = frb['density'].to('g/cm**3') * frb_height.to('cm') # cm^-2
-# cs = frb['sound_speed'].to('cm/s')
-# kappa = kappa2D(frb)
-# Q = ToomreQ(cs, kappa, G, surface_density)
+        # Compute Toomre Q from slice plot
+        q = toomre_from_sliceplot(ds, center, width_pc, north, dir, npixels=2048)
+        #q, _ = toomre_from_frb(ds, center, L, disc_h_pc, disc_r_pc, npixels=2048)
 
-# Assuming Q is a 2D array with Toomre Q values at each point in the FRB
-
-# Create a figure and axis object
-fig, ax = plt.subplots()
-
-# Plot the Toomre Q values
-# You can adjust the colormap, color limits, and other parameters as needed
-#cax = ax.imshow(Q, cmap='magma', origin="lower", norm=LogNorm())  # adjust extent as necessary
-#norm = LogNorm(vmin=Q.min(), vmax=Q.max())
-# Convert unyt_quantity to float for the extent
-#min_radius = float(-4.98528013 * yt.units.pc)
-#max_radius = float(4.98528013 * yt.units.pc)
-#ax = ax.imshow(Q, cmap='magma', norm=norm, extent=[np.log10(radius.min()), np.log10(radius.max()), 0, height_value])
-#cax = ax.imshow(Q, cmap='magma', norm=norm, extent=[min_radius, max_radius, min_radius, max_radius])
-#cax = ax.pcolormesh(radius[0], radius[1], Q, cmap='magma', norm=norm, shading='auto')
-cax=ax.imshow(q, cmap='magma', origin="lower", norm=LogNorm())
-
-# Set the scale of the axes to be logarithmic
-# ax.set_xscale('log')
-# ax.set_yscale('log')
-
-# Optionally, add a colorbar and labels
-cbar = fig.colorbar(cax, label='Toomre $Q$', orientation='vertical')  # adjust the label as necessary
-
-# Optionally, set axis limits, #titles, etc.
-ax.set_title('Toomre $Q$ at BH Age = {:.2f} Myr'.format(ss_age[0]/1e6))
-
-# set clim
-cax.set_clim(1, 1e3)
-
-# Set custom ticks
-x_ticks = np.linspace(0, q.shape[1]-1, num=5)  # This creates 6 x ticks evenly spaced across the width of your image
-y_ticks = np.linspace(0, q.shape[0]-1, num=5)  # This creates 6 y ticks evenly spaced across the height of your image
-ax.set_xticks(x_ticks)
-ax.set_yticks(y_ticks)
-
-# Set custom tick labels
-x_ticklabels = ['-0.5', '-0.25', '0.', '0.25', '0.5']  # Replace these with your desired x-axis tick labels
-y_ticklabels = x_ticklabels
-ax.set_xticklabels(x_ticklabels)
-ax.set_yticklabels(y_ticklabels)
-
-# Set axis labels
-ax.set_xlabel('Radius (pc)')
-ax.set_ylabel('Radius (pc)')
-
-# Save the plot
-plt.savefig('plots/proj_toomreq_{}_{}.png'.format(sim, dd), dpi=300, bbox_inches='tight')
-print("Saved to plots/proj_toomreq_{}_{}.png".format(sim, dd))
+        
+        # Create a figure and axis object
+        fig, ax = plt.subplots()
+        cax = ax.imshow(q, cmap='magma', origin="lower", norm=LogNorm())
+        cbar = fig.colorbar(cax, label='Toomre $Q$', orientation='vertical')
+        ax.set_title(f'Toomre $Q$ at BH Age = {ss_age[0]/1e6:.2f} Myr')
+        cax.set_clim(1, 1e3)
+        
+        # Set custom ticks and labels
+        x_ticks = np.linspace(0, q.shape[1]-1, num=5)
+        y_ticks = np.linspace(0, q.shape[0]-1, num=5)
+        ax.set_xticks(x_ticks)
+        ax.set_yticks(y_ticks)
+        y_ticklabels = x_ticklabels
+        ax.set_xticklabels(x_ticklabels)
+        ax.set_yticklabels(y_ticklabels)
+        ax.set_xlabel('Radius (pc)')
+        ax.set_ylabel('Radius (pc)')
+        
+        # Save the plot
+        figname = r'plots/proj_toomreq_{}_{}_{:.2f}pc_from_frb.png'.format(sim, dd, disc_r_pc)
+        plt.savefig(figname, dpi=300, bbox_inches='tight')
+        print(f'Saved plot: {figname}')
+        plt.close(fig)  # Close the figure to free up memory
