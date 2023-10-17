@@ -9,7 +9,8 @@ from plot_variables import *
 #                                     Plot mass growth of BHs                                            #
 #
 # to run: python plot_bar_phases.py [csv1] [csv2] [csv3] [output_plotname e.g mass-flux-x4]
-# python -i plot_bar_phases.py data_files/data-1B.m16-4dx.csv
+# python -i plot_bar_phases.py data_files/data-1B.m16-4dx.csv bar-phases-1B.m16_spectral
+# python -i plot_bar_phases.py data_files/data-2B.RSb08.csv bar-phases-2B.b08
 # list data files in order of low res -> high res
 ##########################################################################################################
 
@@ -79,7 +80,6 @@ def moving_average(data, window_size):
 if __name__ == "__main__":
     # Set up plot parameters
     j = 0
-    title = r"Bar Phases in {\tt{1B.m16}}" 
     alpha = 0.8
     xlim = 1
     ylim_mass = 110 # 4000 for 270msun, 200 for 10.8msun baseline, 1200 for no-sn, 110 for 10.8msun
@@ -99,6 +99,8 @@ if __name__ == "__main__":
     # Set up figure and subplots
     num_subplots = 1
     ylim = [8e-5, 2e-1]
+    l = tidy_data_labels(bhl_object_labels)
+    title = r"Bar Phases in {}".format(l[0]) 
     fig, ax = create_subplots(num_subplots, xlim, ylim, time_cutoff, fontsize, title)
 
     # Line colours
@@ -106,8 +108,7 @@ if __name__ == "__main__":
     c_s2 = extract_colors('magma', n, portion="middle", start=0.3, end=0.85) # start=0.3, end=0.85 for 10.8msun-no-sn
     c = np.concatenate((c_s1, c_s2))[1]
 
-    # Set BHL properties parameters and resample data
-    l = tidy_data_labels(bhl_object_labels)
+    # Set BHL properties parameters and resample data    
     times = [BHL.ages/1e6 for BHL in bhl_object_list]
     min_time = min([min(t) for t in times])
     min_final_time = min([t[-1] for t in times])
@@ -142,25 +143,26 @@ if __name__ == "__main__":
     colors = cmap(np.linspace(0, 0.5, N))
     buffer = 1e-5
 
-    # 4e9+ disc forming 0.18-0.21 
-    ax.fill_between([0.18, 0.6], y_bins[0], y_bins[1]-buffer, color=cmap([0.8]), alpha=0.8, label="Disc") # 'lightgreen'
-    ax.fill_between([0.84, 1.1], y_bins[0], y_bins[1]-buffer, color=cmap([0.8]), alpha=0.8)
+    # 4e9+ disc forming 0.18-0.21 for 1B.m16-4dx
+    ax.fill_between([0.68, 1.1], y_bins[0], y_bins[1]-buffer, color=cmap([0.8]), alpha=0.8, label="Disc") # 'lightgreen'
+    #ax.fill_between([0.84, 1.1], y_bins[0], y_bins[1]-buffer, color=cmap([0.8]), alpha=0.8)
     i += 1
-    # spiral arms 0.33 - 0.38
-    ax.fill_between([0.33, 0.6], y_bins[1], y_bins[2]-buffer*2, color=cmap([0.4]), alpha=0.8, label="Spiral Arms") # color='cornflowerblue'
-    ax.fill_between([0.93, 1.1], y_bins[1], y_bins[2]-buffer*2, color=cmap([0.4]), alpha=0.8)
+    # spiral arms 0.33 - 0.38 for 1B.m16-4dx, 
+    ax.fill_between([0.86, 1.1], y_bins[1], y_bins[2]-buffer*2, color=cmap([0.4]), alpha=0.8, label="Spiral Arms") # color='cornflowerblue'
+    #ax.fill_between([0.93, 1.1], y_bins[1], y_bins[2]-buffer*2, color=cmap([0.4]), alpha=0.8)
     i += 1
-    # bar 0.44-0.59
-    ax.fill_between([0.44, 0.55], y_bins[2], y_bins[3]-buffer*20, color=colors[i], alpha=0.8, label="Bar") # color='purple'
-    ax.fill_between([0.59, 1.1], y_bins[2], y_bins[3]-buffer*20, color=colors[i], alpha=0.8)
-    i += 1
-    i += 1
-    # clumps 0.54-1
-    ax.fill_between([0.53, 1.1], y_bins[3], y_bins[4]-buffer*100, color=colors[i], alpha=0.8, label="Fragmentation") # color='gold'
-    
+    # bar 0.44-0.59 for 1B.m16-4dx
+    ax.fill_between([0.29, 0.51], y_bins[2], y_bins[3]-buffer*20, color=colors[i], alpha=0.8, label="Bar") # color='purple'
+    ax.fill_between([0.64, 0.87], y_bins[2], y_bins[3]-buffer*20, color=colors[i], alpha=0.8)
+    ax.fill_between([0.9, 0.97], y_bins[2], y_bins[3]-buffer*20, color=colors[i], alpha=0.8)
+    ax.fill_between([0.99, 1.1], y_bins[2], y_bins[3]-buffer*20, color=colors[i], alpha=0.8)
+    i += 2
+    # fragmentation 0.54-1 for 1B.m16-4dx, 0.95-1.1 for 2B.b08
+    ax.fill_between([0.95, 1.1], y_bins[3], y_bins[4]-buffer*100, color=colors[i], alpha=0.8, label="Fragmentation") # color='gold'
 
     # Ring 0.94-0.99
-    ax.fill_between([0.94, 0.99], y_bins[4], y_bins[5]-buffer*100, color=cmap([0.0]), alpha=0.8, label="Ring") # color='orange'
+    ax.fill_between([0.75, 0.78], y_bins[4], y_bins[5]-buffer*100, color=cmap([0.0]), alpha=0.8, label="Ring") # color='orange'
+    ax.fill_between([0.94, 0.96], y_bins[4], y_bins[5]-buffer*100, color=cmap([0.0]), alpha=0.8)
 
 
 
