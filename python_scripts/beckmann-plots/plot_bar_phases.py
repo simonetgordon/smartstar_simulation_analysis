@@ -9,7 +9,7 @@ from plot_variables import *
 #                                     Plot mass growth of BHs                                            #
 #
 # to run: python plot_bar_phases.py [csv1] [csv2] [csv3] [output_plotname e.g mass-flux-x4]
-# python -i plot_bar_phases.py data_files/data-1B.m16-4dx.csv bar-phases-1B.m16_spectral
+# python -i plot_bar_phases.py data_files/data-1B.m16-4dx.csv bar-phases-1B.m16
 # python -i plot_bar_phases.py data_files/data-2B.RSb08.csv bar-phases-2B.b08
 # python -i plot_bar_phases.py data_files/data-1S.m04-no-SN.csv bar-phases-1S.m04-no-SN
 # list data files in order of low res -> high res
@@ -99,9 +99,9 @@ if __name__ == "__main__":
 
     # Set up figure and subplots
     num_subplots = 1
-    ylim = [8e-5, 2e-1]
+    ylim = [2e-4, 1.2e-1]
     l = tidy_data_labels(bhl_object_labels)
-    title = r"Bar Phases in {}".format(l[0]) 
+    title = r"Instability Phases in {}".format(l[0]) 
     fig, ax = create_subplots(num_subplots, xlim, ylim, time_cutoff, fontsize, title)
 
     # Line colours
@@ -129,47 +129,41 @@ if __name__ == "__main__":
     min_max_time = np.linspace(min_time, min_final_time, len(accrate_min))
 
     # Plot BH Mass and Accretion Rates
-    #axs[0].plot(common_time, mass[i], color=c, linestyle='solid', label=l[i], alpha=alpha)
     i = 0
-    ax.plot(common_time, accrate_smooth, color='royalblue', linestyle='solid', label=l[i], alpha=1)
-    ax.fill_between(min_max_time, accrate_min, accrate_max, color='cornflowerblue', alpha=0.3) # min-max region
-    #ax.plot(common_time, eddington_rate(mass_smooth), color=c, linestyle='dashed', label=l[i], alpha=alpha)
+    ax.plot(common_time, accrate_smooth, color='royalblue', linestyle='solid', label=l[0], alpha=1)
 
     # Plot phases
-    y_bins = np.logspace(np.log10(ylim[0]), np.log10(ylim[1]), 6)
+    y_bins = np.logspace(np.log10(ylim[0]), np.log10(ylim[1]), 7)
     
     # Extract N evenly spaced colors
     cmap = plt.get_cmap('Pastel1')
-    N = 5
+    N = 6
     colors = cmap(np.linspace(0, 0.5, N))
     buffer = 1e-5
 
-    # 4e9+ disc forming 0.18-0.21 for 1B.m16-4dx, 0.68-1.1 for 2B.b08
-    ax.fill_between([0.38, 1.1], y_bins[0], y_bins[1]-buffer, color=cmap([0.8]), alpha=0.8, label="Disc") # 'lightgreen'
-    #ax.fill_between([0.84, 1.1], y_bins[0], y_bins[1]-buffer, color=cmap([0.8]), alpha=0.8)
+    j = 1
+    # 4e9+ disc forming 0.18-0.21 
+    ax.fill_between([0.18, 0.6], y_bins[j], y_bins[j+1]-buffer, color=cmap([0.8]), alpha=0.8, label="Disc") # 'lightgreen'
+    ax.fill_between([0.84, 1.1], y_bins[j], y_bins[j+1]-buffer, color=cmap([0.8]), alpha=0.8)
     i += 1
-    # spiral arms 0.33 - 0.38 for 1B.m16-4dx, 
-    ax.fill_between([0.86, 1.1], y_bins[1], y_bins[2]-buffer*2, color=cmap([0.4]), alpha=0.8, label="Spiral Arms") # color='cornflowerblue'
-    #ax.fill_between([0.93, 1.1], y_bins[1], y_bins[2]-buffer*2, color=cmap([0.4]), alpha=0.8)
-    i += 1
-    # bar 0.44-0.59 for 1B.m16-4dx, 0.29-0.51, 0.64-0.87, 0.9-0.97, 0.99-1.1 for 2B.b08
-    ax.fill_between([0.37, 0.41], y_bins[2], y_bins[3]-buffer*20, color=colors[i], alpha=0.8, label="Bar") # color='purple'
-    # ax.fill_between([0.64, 0.87], y_bins[2], y_bins[3]-buffer*20, color=colors[i], alpha=0.8)
-    # ax.fill_between([0.9, 0.97], y_bins[2], y_bins[3]-buffer*20, color=colors[i], alpha=0.8)
-    ax.fill_between([0.94, 1.1], y_bins[2], y_bins[3]-buffer*20, color=colors[i], alpha=0.8)
+    # spiral arms 0.33 - 0.38
+    ax.fill_between([0.33, 0.6], y_bins[j+1], y_bins[j+2]-buffer*10, color=cmap([0.4]), alpha=0.8, label="Spiral Arms") # color='cornflowerblue'
+    ax.fill_between([0.93, 1.1], y_bins[j+1], y_bins[j+2]-buffer*10, color=cmap([0.4]), alpha=0.8)
     i += 2
-    # fragmentation 0.54-1 for 1B.m16-4dx, 0.95-1.1 for 2B.b08
-    ax.fill_between([0.46, 1.1], y_bins[3], y_bins[4]-buffer*100, color=colors[i], alpha=0.8, label="Fragmentation") # color='gold'
+    # bar 0.44-0.59
+    ax.fill_between([0.44, 0.55], y_bins[j+2], y_bins[j+3]-buffer*50, color=colors[i], alpha=0.8, label="Bar") # color='purple'
+    ax.fill_between([0.59, 1.1], y_bins[j+2], y_bins[j+3]-buffer*50, color=colors[i], alpha=0.8)
+    i += 1
+    i += 1
+    # clumps 0.54-1
+    ax.fill_between([0.53, 1.1], y_bins[j+3], y_bins[j+4]-buffer*100, color='gold', alpha=0.2, label="Fragmentation") # color='gold'
 
-    # Ring 0.94-0.99
-    # ax.fill_between([0.75, 0.78], y_bins[4], y_bins[5]-buffer*100, color=cmap([0.0]), alpha=0.8, label="Ring") # color='orange'
-    # ax.fill_between([0.94, 0.96], y_bins[4], y_bins[5]-buffer*100, color=cmap([0.0]), alpha=0.8)
-
+    # Plot line
+    ax.fill_between(min_max_time, accrate_min, accrate_max, color='cornflowerblue', alpha=0.3) # min-max region
 
     # Legend
     accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
-    ax.legend(fontsize=fontsize-4, ncol=2, loc="upper left", handlelength=0.7) # "lower right" for no-sn
-    #axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-2.2, ncol=1)
+    ax.legend(fontsize=fontsize-2, ncol=1, loc="upper left", handlelength=0.7) # "lower right" for no-sn
 
     # Save plot
     fig.subplots_adjust(wspace=0, hspace=0)
