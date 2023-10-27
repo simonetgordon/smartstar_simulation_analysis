@@ -99,7 +99,7 @@ for s in range(len(dds)):
 
 #### PLOT ####
 
-fig = plt.figure(figsize=(10, 12))
+fig = plt.figure(figsize=(11, 11))
 
 # IMAGE GRID #
 nrows = 4
@@ -113,7 +113,7 @@ grid_index = 0
 size = 0.16 # subplot dims
 fourier_width = size*1.5
 for row in range(nrows):
-    ax_fourier = fig.add_axes([0.02, 0.8 - row*size, size, size], frame_on=True)
+    ax_fourier = fig.add_axes([0.02, 0.8 - row*size, fourier_width, size], frame_on=True)
 
     # Load dataset and define axis
     ds = DS[row]
@@ -167,20 +167,22 @@ for row in range(nrows):
     ax_fourier.plot(radii, m2_strengths, color=c2, linestyle='dashed', marker='x', label=r'$m=2$', alpha=0.8)
     ax_fourier.axvline(x=bar_radius, color=c3, linestyle='dashed', label='Bar Radius = {:.3f} pc'.format(bar_radius), alpha=1)
     ax_fourier.grid(color='grey', linestyle='dotted', alpha=0.5)
+    #ax_fourier.tick_params(axis='both', which='major', labelsize=your_desired_font_size)
     ax_fourier.set_ylim(0.21, 1.03)
+    ax_fourier.set_xlim(0, 0.2)
     if row == 3:
         ax_fourier.set_xlabel(r'$\rm Radius \, (pc)$', fontsize=14)
     else:
         ax_fourier.set_xticks([])
     ax_fourier.set_ylabel(r'$\rm Amplitude$', fontsize=12)
     if row == 0:
-        ax_fourier.legend(loc='upper center', fontsize=11)
+        ax_fourier.legend(loc='upper center', fontsize=9)
 
     # iterate over columns
     for column in range(ncols):
 
         grid_index = row * ncols + column
-        ax = fig.add_axes([fourier_width + column*size, 0.8 - row*size, size, size])
+        ax = fig.add_axes([0.02 + fourier_width, 0.8 - row*size, size, size])
         #ax = grid[grid_index]
 
         if column == 0:
@@ -244,7 +246,7 @@ for row in range(nrows):
         ax.set_xticklabels([])
         ax.set_yticklabels([])
         if row == 3:
-            ax.set_xticklabels(tick_labels, fontsize=14)
+            #ax.set_xticklabels(tick_labels, fontsize=14)
             ax.set_xlabel("(pc)", fontsize=14)
 
         # Set tick parameters to create 'inner' ticks
@@ -265,7 +267,7 @@ cbar2 = plt.colorbar(im2, cax=cbar_ax2, orientation='horizontal', ticklocation='
 cbar3 = plt.colorbar(im3, cax=cbar_ax3, orientation='horizontal', ticklocation='top')
 
 # Adding titles above colorbars
-fig.text(0.05, 0.95, 'Fourier Modes', ha='center', va='center')
+fig.text(0.1, 0.95, 'Fourier Modes', ha='center', va='center')
 fig.text(0.32, 0.95, r'Number Density ($\rm cm^{-3}$)', ha='center', va='center')
 fig.text(0.485, 0.95, r'Toomre $Q$', ha='center', va='center')
 fig.text(0.64, 0.95, r'Radial Velocity ($\rm km/s$)', ha='center', va='center')  # Adjust this title as necessary
