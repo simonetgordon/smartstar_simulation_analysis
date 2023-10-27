@@ -15,6 +15,8 @@ from matplotlib.offsetbox import AnchoredText
 from plot_radial_profile_from_frb import extract_simulation_name, extract_dd_segment
 import matplotlib.colors as mcolors
 from find_fourier_modes import get_theta_values, find_bar_radius
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+
 
 def find_fourier_modes_and_phase_angles(radii, radius_pc, densities, theta, dV, dr=0.001):
     """
@@ -99,7 +101,7 @@ for s in range(len(dds)):
 
 #### PLOT ####
 
-fig = plt.figure(figsize=(11, 11))
+fig = plt.figure(figsize=(12, 12))
 
 # IMAGE GRID #
 nrows = 4
@@ -163,26 +165,33 @@ for row in range(nrows):
     c1 = (0.843, 0.255, 0.655)
     c2 = (0.4157, 0.7608, 0.4118)
     c3 = (0.227, 0.090, 0.447)
-    ax_fourier.plot(radii, m1_strengths, color=c1, linestyle='solid', marker='.', label=r'$m=1$', alpha=0.8)
-    ax_fourier.plot(radii, m2_strengths, color=c2, linestyle='dashed', marker='x', label=r'$m=2$', alpha=0.8)
-    ax_fourier.axvline(x=bar_radius, color=c3, linestyle='dashed', label='Bar Radius = {:.3f} pc'.format(bar_radius), alpha=1)
+    if row == 0:
+        ax_fourier.plot(radii, m1_strengths, color=c1, linestyle='solid', marker=None, label=r'$m=1$', alpha=0.8)
+        ax_fourier.plot(radii, m2_strengths, color=c2, linestyle='dashed', marker=None, label=r'$m=2$', alpha=0.8)
+        ax_fourier.axvline(x=bar_radius, color=c3, linestyle='dashed', alpha=1)
+        ax_fourier.legend(loc='upper right', fontsize=11)
+    else:
+        ax_fourier.plot(radii, m1_strengths, color=c1, linestyle='solid', marker=None, alpha=0.8)
+        ax_fourier.plot(radii, m2_strengths, color=c2, linestyle='dashed', marker=None, alpha=0.8)
+        ax_fourier.axvline(x=bar_radius, color=c3, linestyle='dashed', label='Bar Radius = {:.3f} pc'.format(bar_radius), alpha=1)
+        ax_fourier.legend(loc='upper right', fontsize=11)
+    
     ax_fourier.grid(color='grey', linestyle='dotted', alpha=0.5)
-    #ax_fourier.tick_params(axis='both', which='major', labelsize=your_desired_font_size)
+    #ax_fourier.tick_params(axis='both', which='major', labelsize=12)
     ax_fourier.set_ylim(0.21, 1.03)
-    ax_fourier.set_xlim(0, 0.2)
+    ax_fourier.set_xlim(0, 0.17)
     if row == 3:
-        ax_fourier.set_xlabel(r'$\rm Radius \, (pc)$', fontsize=14)
+        ax_fourier.set_xlabel(r'$\rm Radius \, (pc)$', fontsize=12)
     else:
         ax_fourier.set_xticks([])
     ax_fourier.set_ylabel(r'$\rm Amplitude$', fontsize=12)
-    if row == 0:
-        ax_fourier.legend(loc='upper center', fontsize=9)
+        
 
     # iterate over columns
     for column in range(ncols):
 
         grid_index = row * ncols + column
-        ax = fig.add_axes([0.02 + fourier_width, 0.8 - row*size, size, size])
+        ax = fig.add_axes([fourier_width + column*size, 0.8 - row*size, size, size])
         #ax = grid[grid_index]
 
         if column == 0:
@@ -223,31 +232,35 @@ for row in range(nrows):
             at.txt._text.set_fontsize(12)
             at.patch.set(boxstyle="square,pad=0.05", facecolor="black", linewidth=3, edgecolor="white", alpha=0.5)
             ax.add_artist(at)
-
+        
         if column == 0:
-            # Add BH mass annotation to first column
-            at = AnchoredText(r"BH Mass: {:.0f} M$_\odot$".format(ss_mass.d), loc='lower center', frameon=False, bbox_transform=ax.transAxes)
+            # Add BH Age annotation to second column
+            at = AnchoredText(r"BH Age: {:.2f} Myr".format((ss_age[0]/1e6)), loc='lower center', frameon=False, bbox_transform=ax.transAxes)
             at.txt._text.set_color("white")
             at.txt._text.set_fontsize(12)
             ax.add_artist(at)
 
-            # Add BH age annotation to leftmost y-labels
-            #ax.set_ylabel("{:.2f} Myr".format((ss_age[0]/1e6)), fontsize=14)
-
         if column == 1:
-            # Add BH Age annotation to second column
-            at = AnchoredText(r"BH Age: {:.2f} Myr".format((ss_age[0]/1e6)), loc='lower right', frameon=False, bbox_transform=ax.transAxes)
+            # Add BH mass annotation to first column
+            at = AnchoredText(r"BH Mass: {:.0f} M$_\odot$".format(ss_mass.d), loc='lower center', frameon=False, bbox_transform=ax.transAxes)
             at.txt._text.set_color("black")
             at.txt._text.set_fontsize(12)
             ax.add_artist(at)
+
+        if column == 2:
+            size_in_data_units = 327  # Adjust this value based on your data in pixel units
+            label = "0.05 pc"
+            location=4 # lower right
+            bar = AnchoredSizeBar(ax.transData, size_in_data_units, label, location, pad=0.1, color='black', frameon=False)
+            ax.add_artist(bar)
 
         # Set ticks and ticklabels
         ticks = np.linspace(-width_pc/2, width_pc/2, num=5)
         ax.set_xticklabels([])
         ax.set_yticklabels([])
         if row == 3:
-            #ax.set_xticklabels(tick_labels, fontsize=14)
-            ax.set_xlabel("(pc)", fontsize=14)
+            ax.set_xticklabels(tick_labels)
+            ax.set_xlabel("(pc)")
 
         # Set tick parameters to create 'inner' ticks
         ax.tick_params(axis='both', direction='in', top=True, right=True, length=2, width=1, colors='black', grid_color='black', grid_alpha=0.5)
@@ -269,8 +282,8 @@ cbar3 = plt.colorbar(im3, cax=cbar_ax3, orientation='horizontal', ticklocation='
 # Adding titles above colorbars
 fig.text(0.1, 0.95, 'Fourier Modes', ha='center', va='center')
 fig.text(0.32, 0.95, r'Number Density ($\rm cm^{-3}$)', ha='center', va='center')
-fig.text(0.485, 0.95, r'Toomre $Q$', ha='center', va='center')
-fig.text(0.64, 0.95, r'Radial Velocity ($\rm km/s$)', ha='center', va='center')  # Adjust this title as necessary
+fig.text(0.49, 0.95, r'Toomre $Q$', ha='center', va='center')
+fig.text(0.65, 0.95, r'Radial Velocity ($\rm km/s$)', ha='center', va='center')  # Adjust this title as necessary
 
 # save
 plot_name = 'sliceplot-timeseries-' + str(sim_label) + '-' + str(width_pc) + 'pc-fourier_modes-toomreq-radial_vel_r=' + str(disc_r_pc) + 'pc.pdf'
