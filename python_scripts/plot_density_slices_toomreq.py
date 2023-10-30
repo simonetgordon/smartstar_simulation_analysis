@@ -97,16 +97,17 @@ dds = ["DD0178/DD0178", "DD0189/DD0189", "DD0199/DD0199", "DD0225/DD0225"]  # 0.
 
 dds_list = [["DD0178/DD0178", "DD0189/DD0189", "DD0199/DD0199", "DD0225/DD0225"],
             ["DD0176/DD0176", "DD0187/DD0187", "DD0198/DD0198", "DD0224/DD0224"],
-            ["DD0179/DD0179", "DD0186/DD0186", "DD0200DD0200", "DD0228/DD0228"],
+            ["DD0179/DD0179", "DD0186/DD0186", "DD0200/DD0200", "DD0228/DD0228"],
             ["DD0177/DD0177", "DD0188/DD0188", "DD0197/DD0197", "DD0226/DD0226"],
             ]
 
 for dd_set, dds in enumerate(dds_list):
+    print("Plotting dd set " + str(dd_set))
     DS = []
     for s in range(len(dds)):
         ds = yt.load(os.path.join(root_dir[0], sim[0], dds[s]))
         DS.append(ds)
-    for disc_r_pc in [0.005, 0.01, 0.02, 0.1, 0.2, 0.5]:
+    for disc_r_pc in [0.1]:
 
         #### PLOT ####
 
@@ -136,8 +137,8 @@ for dd_set, dds in enumerate(dds_list):
             # Grab bh properties and define center, width and resolution of sliceplots
             ss_pos, ss_mass, ss_age = ss_properties(ds, velocity=False)
             center = ss_pos
-            width_pc = 0.32
-            tick_labels = ['', '-0.08', '0.0', '0.08', '']
+            width_pc = 0.2
+            tick_labels = ['', '-0.05', '0.0', '0.05', '']
             npixels = 2048
             dx = ds.index.get_smallest_dx().in_units('cm')
 
@@ -147,7 +148,7 @@ for dd_set, dds in enumerate(dds_list):
             vecs = ortho_find(L)
             dir = vecs[0]
             north = vecs[1]
-            disc_r_pc_big = disc_h_pc_big = 1.0
+            disc_r_pc_big = disc_h_pc_big = 0.6
             disk = ds.disk(center, L, disc_r_pc_big, disc_h_pc_big)
 
             # fourier modes
@@ -177,7 +178,7 @@ for dd_set, dds in enumerate(dds_list):
             if row == 0:
                 ax_fourier.plot(radii, m1_strengths, color=c1, linestyle='solid', marker=None, label=r'$m=1$', alpha=0.8)
                 ax_fourier.plot(radii, m2_strengths, color=c2, linestyle='solid', marker=None, label=r'$m=2$', alpha=0.8)
-                ax_fourier.axvline(x=bar_radius, color=c3, linestyle='dashed', alpha=1)
+                ax_fourier.axvline(x=bar_radius, color=c3, linestyle='dashed', label=r'$R_{{\rm bar}}$ = {:.3f} pc'.format(bar_radius), alpha=1)
                 ax_fourier.legend(loc='upper right', fontsize=11)
             else:
                 ax_fourier.plot(radii, m1_strengths, color=c1, linestyle='solid', marker=None, alpha=0.8)
@@ -194,7 +195,7 @@ for dd_set, dds in enumerate(dds_list):
             f_yticks = [0.4, 0.6, 0.8, 1.0]
             ax_fourier.set_ylim(0.23, 1.03)
             ax_fourier.set_yticks(f_yticks)
-            ax_fourier.set_xlim(0, 0.14)
+            ax_fourier.set_xlim(0, 0.11)
             if row == 3:
                 ax_fourier.set_xlabel(r'$\rm Radius \, (pc)$', fontsize=12)
             else:
@@ -233,10 +234,10 @@ for dd_set, dds in enumerate(dds_list):
                     im2.set_clim(min_n, max_n)
                 elif column == 2:
                     # cylindrical_radial_velocity (add this part)
-                    cmap = cmyt.kelp  # divergine, 'coolwarm, 'rainbow'
+                    cmap = cmyt.kelp  # diverging, 'coolwarm, 'rainbow'
                     cmap = "magma"
-                    min_v = -13       
-                    max_v = 4    
+                    min_v = -14       
+                    max_v = 7   
                     velocity = field_from_sliceplot("velocity_cylindrical_radius", ds, disk, center, width_pc, north, dir, npixels=npixels).to("km/s")
                     im3 = ax.imshow(velocity, cmap=cmap, origin="lower")
                     im3.set_clim(min_v, max_v)
@@ -264,10 +265,10 @@ for dd_set, dds in enumerate(dds_list):
                     ax.add_artist(at)
 
                 if column == 2:
-                    size_in_data_units = 327  # Adjust this value based on your data in pixel units
-                    label = "0.05 pc"
+                    size_in_data_units = 205  # Adjust this value based on your data in pixel units
+                    label = "0.02 pc"
                     location=4 # lower right
-                    scale_color = 'black' if row == 2 or row == 0 else 'white'
+                    scale_color = 'black'
                     bar = AnchoredSizeBar(ax.transData, size_in_data_units, label, location, pad=pad, color=scale_color, frameon=False)
                     ax.add_artist(bar)
 
@@ -289,9 +290,9 @@ for dd_set, dds in enumerate(dds_list):
                 ax.tick_params(axis='x', which='both', direction='inout', bottom=True, top=True, length=2, width=1, colors='black')
 
         # Adjust colorbars' positions and add a new one
-        cbar_ax1 = fig.add_axes([0.30, 0.95, size-0.015, 0.01])
-        cbar_ax2 = fig.add_axes([0.44, 0.95, size-0.015, 0.01])
-        cbar_ax3 = fig.add_axes([0.57, 0.95, size-0.015, 0.01])
+        cbar_ax1 = fig.add_axes([0.301, 0.95, size-0.015, 0.01])
+        cbar_ax2 = fig.add_axes([0.432, 0.95, size-0.015, 0.01])
+        cbar_ax3 = fig.add_axes([0.563, 0.95, size-0.015, 0.01])
 
         cbar1 = plt.colorbar(im1, cax=cbar_ax1, orientation='horizontal', ticklocation='top')
         cbar2 = plt.colorbar(im2, cax=cbar_ax2, orientation='horizontal', ticklocation='top')
