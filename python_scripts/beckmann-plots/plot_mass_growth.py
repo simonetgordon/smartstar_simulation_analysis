@@ -67,15 +67,15 @@ def plot_extra_line_mass_growth(j, data_file, label_extra, alpha=0.8):
 if __name__ == "__main__":
     # Set up plot parameters
     j = 0
-    title = "Baseline Growth" #"No-SN Growth"
+    title = r"$\rm 10.8 \, M_\odot$ Baseline Growth" #"No-SN Growth"
     alpha = 0.8
     xlim = 1
     ylim_mass = 110 # 4000 for 270msun, 200 for 10.8msun baseline, 1200 for no-sn, 110 for 10.8msun
     time_cutoff = 1
-    smooth_simulations = 0 # number of simulations to smooth
+    smooth_simulations = 8 # number of simulations to smooth
     window = 4 # window size for smoothing
     extra_line = True # true for 10.8msun, false for 270msun
-    n = 2 # half number of simulations to plot
+    n = 4 # half number of simulations to plot
 
     # Text format
     linewidth = 1.5
@@ -89,8 +89,8 @@ if __name__ == "__main__":
     fig, axs = create_subplots(num_subplots, xlim, time_cutoff, fontsize, title)
 
     # Line colours
-    c_s1 = extract_colors('viridis', n, portion="middle", start=0.33, end=0.8) # start=0.33, end=0.92 for 10.8msun-no-sn
-    c_s2 = extract_colors('magma', n, portion="middle", start=0.3, end=0.75) # start=0.3, end=0.85 for 10.8msun-no-sn
+    c_s1 = extract_colors('viridis', n, portion="middle", start=0.35, end=0.92) # start=0.33, end=0.92 for 10.8msun-no-sn
+    c_s2 = extract_colors('magma', n, portion="middle", start=0.3, end=0.85) # start=0.3, end=0.85 for 10.8msun-no-sn
     c = np.concatenate((c_s1, c_s2))
 
     # Set BHL properties parameters and resample data
@@ -121,7 +121,7 @@ if __name__ == "__main__":
         plot_extra_line_mass_growth(j, data_file=data_file, label_extra=label_extra, alpha=alpha2)
         j += 1
 
-        data_file="data_files/data-2S.RSm01-2.csv"
+        data_file="data_files/data-2S.m01-386+.csv"
         label_extra='2S.m01'
 
         ## No-SN
@@ -131,11 +131,17 @@ if __name__ == "__main__":
         plot_extra_line_mass_growth(j, data_file=data_file, label_extra=label_extra, alpha=alpha2)
         j += 1
 
-        # plot_extra_line_mass_growth(j, data_file="data_files/data-2S.m01-no-SN.csv", label_extra='2S.m01-no-SN', alpha=alpha2)
-        # j += 1
+        plot_extra_line_mass_growth(j, data_file="data_files/data-1S.b01-no-SN.csv", label_extra='1S.b01-no-SN', alpha=alpha2)
+        j += 1
 
-        # plot_extra_line_mass_growth(j, data_file="data_files/data-2S.b01-no-SN.csv", label_extra='2S.b01-no-SN', alpha=alpha2)
-        # j += 1
+        plot_extra_line_mass_growth(j, data_file="data_files/data-1S.m01-no-SN.csv", label_extra='1S.m01-no-SN', alpha=alpha2)
+        j += 1
+
+        plot_extra_line_mass_growth(j, data_file="data_files/data-2S.b01-no-SN.csv", label_extra='2S.b01-no-SN', alpha=alpha2)
+        j += 1
+
+        plot_extra_line_mass_growth(j, data_file="data_files/data-2S.m01-no-SN.csv", label_extra='2S.m01-no-SN', alpha=alpha2)
+        j += 1
 
         # plot_extra_line_mass_growth(j, data_file="data_files/data-2S.mf4-no-SN.csv", label_extra='2S.mf4-no-SN', alpha=alpha2)
         # j += 1
@@ -143,7 +149,7 @@ if __name__ == "__main__":
     accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
 
     # Include legends and save the plot
-    axs[0].legend(fontsize=fontsize-4, ncol=1, loc="upper right") # "lower right" for no-sn
+    axs[0].legend(fontsize=fontsize-6, ncol=2, loc="lower right", handlelength=0.7) # "lower right" for no-sn
     axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-2.2, ncol=1)
     fig.subplots_adjust(wspace=0, hspace=0)
     fig.set_size_inches(4.7, 4.7)

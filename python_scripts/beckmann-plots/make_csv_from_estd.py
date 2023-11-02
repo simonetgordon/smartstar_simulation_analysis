@@ -179,8 +179,10 @@ def get_data_arrays(root_dir):
 
 if __name__ == "__main__":
 
+    # to run: python make_csv_from_estd.py
+
     # Set root directory(ies) of simulation output files
-    root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.m08-4dx/2B.m16-4dx-2/"
+    #root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.m08-4dx/2B.m16-4dx-2/"
     #root_dir = "/disk14/sgordon/cirrus-runs-rsync/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSb01/"
     #root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSm01-2/"
     #root_dir_2 = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSbf4/estd-297+/"
@@ -198,15 +200,16 @@ if __name__ == "__main__":
     #root_dir_2 = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSb01/2S.b01-234+/"
     #root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/40msun/replicating-beckmann/1S.m04-no-SN/"
     #root_dir_2 = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/1S.m04-no-SN/"
-    # root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/1S.b04-no-SN/"
-    # root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/1S.m01-no-SN/"
+    #root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/1S.b04-no-SN/1S.b04-no-SN-2/"
+    #root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/1S.m01-no-SN/"
     #root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.mf4-no-SN/"
     # root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSmf8-2/"
-    # root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSmf8-2/"
     # root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSmf4-2/"
-    root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSm01-2/"
-    #root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSb01/estd-early/"
-    #root_dir_2 = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSb01/2S.b01-234+/"
+    # root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSm01-2/2S.m01-386+/"
+    # root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSb01/estd-early/"
+    # root_dir_2 = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSb01/2S.b01-234+/"
+    #root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.m01-no-SN/"
+    root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.b01-no-SN/"
 
     # Extract simulation name
     sim = extract_simulation_name(root_dir)

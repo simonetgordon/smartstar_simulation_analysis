@@ -45,12 +45,14 @@ def tidy_data_labels(labels: str or list):
         data_labels = [i.replace("-2", "") for i in labels]
         data_labels = [i.replace("RS", "") for i in data_labels]
         data_labels = [i.replace("-gap", "") for i in data_labels]
+        data_labels = [i.replace("-4dx", "") for i in data_labels]
         
     # for single label
     else:
         data_labels = labels.replace("-2", "")
         data_labels = data_labels.replace("RS", "")
         data_labels = data_labels.replace("-gap", "")
+        data_labels = data_labels.replace("-4dx", "")
     return data_labels
 
 
@@ -107,7 +109,8 @@ def identify_cell_widths(x: str):
         dx = [1.229791e-02, 3.074475e-03, 1.537645e-03, 7.692833e-04, 8.298311e-03, 2.074568e-03, 1.537645e-03, 7.687095e-04, 3.8435475e-04, 1.296596e-04]
     elif x == "s1+s2-40msun-":
         #dx = [2.459867e-02, 1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 7.692833e-04, 8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04, 1.3e-04]
-        dx = [1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 7.692833e-04, 8.4e-03, 5.2e-04, 1.3e-04, 1.3e-04]
+        dx = [1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 7.692833e-04, 8.4e-03, 5.2e-04, 1.3e-04, 1.3e-04] # for 1Sm/2Sm
+        dx = [1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 8.4e-03, 5.2e-04, 1.3e-04, 1.3e-04, 7.692833e-04,]
     else:
         dx = None  # You may want to handle this case differently
     return dx
@@ -376,6 +379,9 @@ if __name__ == "__main__":
         data_file = "data_files/data-2S.m01-386+.csv"
         label_extra = "2S.m01"
 
+        # data_file = "data_files/data-2S.b01-no-SN.csv"
+        # label_extra = "2S.b01-no-SN"
+
         i, j = plot_extra_line(data_file, label_extra, i, j, alpha=1)
         
         data_file = "data_files/data-2S.m01-no-SN.csv"
@@ -459,10 +465,10 @@ if __name__ == "__main__":
         #axs[5].set_ylim([-1.5e-2, 0.9e-2])
     elif x == "s1+s2-40msun-":
         axs[0].set_ylim([10.1, 3000])
-        axs[1].set_ylim([2e-8, 8e-2])
-        axs[2].set_ylim([18, 7e7])
+        axs[1].set_ylim([3e-9, 8e-2])
+        axs[2].set_ylim([18, 2e10])
         axs[3].set_ylim([1.1e-1, 30])
-        axs[4].set_ylim([9e-3, 2e2])
+        axs[4].set_ylim([5e-3, 2e2])
         axs[0].axhline(y=60, color='grey', linestyle='dotted', linewidth=linewidth+2, alpha=alpha)
         axs[4].axhline(y=1, color='grey', linestyle='dotted', linewidth=linewidth+2,alpha=alpha)
     elif x == "s1+s2-270msun-":

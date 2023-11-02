@@ -142,21 +142,35 @@ if __name__ == "__main__":
     buffer = 1e-5
 
     j = 1
-    # 4e9+ disc forming 0.18-0.21 
-    ax.fill_between([0.18, 0.6], y_bins[j], y_bins[j+1]-buffer, color=cmap([0.8]), alpha=0.8, label="Disc") # 'lightgreen'
-    ax.fill_between([0.84, 1.1], y_bins[j], y_bins[j+1]-buffer, color=cmap([0.8]), alpha=0.8)
+    #4e9+ disc forming
+    ax.fill_between([0.18, 0.52], y_bins[j], y_bins[j+1]-buffer*5, color=cmap([0.8]), alpha=0.8, label="Disc") # 
+    ax.fill_between([0.68, 1.1], y_bins[j], y_bins[j+1]-buffer*5, color=cmap([0.8]), alpha=0.8)
     i += 1
-    # spiral arms 0.33 - 0.38
-    ax.fill_between([0.33, 0.6], y_bins[j+1], y_bins[j+2]-buffer*10, color=cmap([0.4]), alpha=0.8, label="Spiral Arms") # color='cornflowerblue'
-    ax.fill_between([0.93, 1.1], y_bins[j+1], y_bins[j+2]-buffer*10, color=cmap([0.4]), alpha=0.8)
+    # spiral arms
+    # ax.fill_between([0.21, 0.6], y_bins[j+1], y_bins[j+2]-buffer*10, color=cmap([0.4]), alpha=0.8, label="Spiral Arms") # color='cornflowerblue'
+    # ax.fill_between([0.86, 1.1], y_bins[j+1], y_bins[j+2]-buffer*10, color=cmap([0.4]), alpha=0.8)
+    ax.fill_between([0.32, 0.57], y_bins[j+1], y_bins[j+2]-buffer*14, color=cmap([0.4]), alpha=0.8, label="Spiral Arms")
+    ax.fill_between([0.61, 0.63], y_bins[j+1], y_bins[j+2]-buffer*14, color=cmap([0.4]), alpha=0.8) # dual bars amongst higher modes
+    ax.fill_between([0.67, 0.7], y_bins[j+1], y_bins[j+2]-buffer*14, color=cmap([0.4]), alpha=0.8) # ring
+    ax.fill_between([0.71, 0.8], y_bins[j+1], y_bins[j+2]-buffer*14, color=cmap([0.4]), alpha=0.8) # m2 mode elevation moving outwards
+    ax.fill_between([0.84, 0.87], y_bins[j+1], y_bins[j+2]-buffer*14, color=cmap([0.4]), alpha=0.8) # strong ring-like feature as elevated m2 mode 0,03 pc
+    ax.fill_between([0.94, 1.02], y_bins[j+1], y_bins[j+2]-buffer*14, color=cmap([0.4]), alpha=0.8) # 0.55 - 0.68 pc ring like feature showing in elevated m2 over m1 for a growing portion of the disk as multiple rings move out.
     i += 2
-    # bar 0.44-0.59
-    ax.fill_between([0.44, 0.55], y_bins[j+2], y_bins[j+3]-buffer*50, color=colors[i], alpha=0.8, label="Bar") # color='purple'
-    ax.fill_between([0.59, 1.1], y_bins[j+2], y_bins[j+3]-buffer*50, color=colors[i], alpha=0.8)
+    # bar 
+    # ax.fill_between([0.29, 0.51], y_bins[j+2], y_bins[j+3]-buffer*50, color=colors[i], alpha=0.8)
+    # ax.fill_between([0.64, 0.87], y_bins[j+2], y_bins[j+3]-buffer*50, color=colors[i], alpha=0.8) # color='purple'
+    # ax.fill_between([0.9, 0.97], y_bins[j+2], y_bins[j+3]-buffer*50, color=colors[i], alpha=0.8)
+    # ax.fill_between([0.99, 1.1], y_bins[j+2], y_bins[j+3]-buffer*50, color=colors[i], alpha=0.8, label="Bar")
+    # 0.88-94 strength, 0.018 pc - the bar radius isn't consistently at 0.018 pc, but there is a more or less constant peak in m2 at 0.018 pc with radius_bar being marked at or beyond r > radius_bar. 
+    # Also verified visually by the focusing of the density along a plane of consistent orientation. 
+    ax.fill_between([0.42, 0.55], y_bins[j+2], y_bins[j+3]-buffer*40, color=colors[i], alpha=0.8, label="Bar")
+    ax.fill_between([0.66, 0.69], y_bins[j+2], y_bins[j+3]-buffer*40, color=colors[i], alpha=0.8) # 0.90 strength, 0.01 pc
+    ax.fill_between([0.77, 0.8], y_bins[j+2], y_bins[j+3]-buffer*40, color=colors[i], alpha=0.8) # 0.90 strength, 0.01 pc
     i += 1
     i += 1
-    # clumps 0.54-1
-    ax.fill_between([0.53, 1.1], y_bins[j+3], y_bins[j+4]-buffer*100, color='gold', alpha=0.2, label="Fragmentation") # color='gold'
+    # clumps
+    #ax.fill_between([0.95, 1.1], y_bins[j+3], y_bins[j+4]-buffer*100, color='gold', alpha=0.2, label="Fragmentation") # color='gold'
+    ax.fill_between([0.53, 1.1], y_bins[j+3], y_bins[j+4]-buffer*10, color='gold', alpha=0.2, label="Fragmentation") # color='gold'
 
     # Plot line
     ax.fill_between(min_max_time, accrate_min, accrate_max, color='cornflowerblue', alpha=0.3) # min-max region
