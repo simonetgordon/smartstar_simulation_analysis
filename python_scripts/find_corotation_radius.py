@@ -11,11 +11,54 @@ import numpy as np
 import yt
 from multiprocessing import Pool
 from mpi4py import MPI
-import pandas as pd
 import ast
+#import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import numpy as np
+
+def find_corotation_radius(radii, radius_pc, velocity_cylindrical_theta, omega_pattern):
+    """
+    Find the corotation radius where the angular speed Ω(r) equals the pattern speed Ω_pattern.
+    
+    Input:
+        radii: 1D array of radii for the disk (annuli)
+        radius_pc: 2D array of radii values for each cell in the disk
+        velocity_cylindrical_theta: 2D array of circular velocities for each cell in the disk
+        omega_pattern: pattern speed
+    
+    Output:
+        corotation_radius: The radius at which Ω(r) ≈ Ω_pattern
+    """
+    # Calculate the angular speed Ω(r) for each cell in units 1/s
+    angular_speeds = velocity_cylindrical_theta / radius_pc.to("cm")
+
+    # Initialize variables to store the minimum difference and corresponding corotation radius
+    min_diff = np.inf
+    corotation_radius = None
+
+    # Iterate over the array of annuli to find where Ω(r) - Ω_pattern is minimized
+    for r in radii:
+        # Define mask for cells at this radius
+        mask = np.isclose(radius_pc, r, atol=0.5) # Adjust atol as per your discretization
+
+        # Calculate the mean angular speed at this radius
+        mean_angular_speed = np.mean(angular_speeds[mask])
+
+        # Calculate the difference between Ω(r) and Ω_pattern
+        diff = np.abs(mean_angular_speed - omega_pattern)
+
+        # Update the minimum difference and corotation radius if this is the smallest difference so far
+        if diff < min_diff:
+            min_diff = diff
+            corotation_radius = r
+
+    return corotation_radius
 
 
 def process_ds(ds, disc_r_pc, find_cylindrical_velocity=False):
+    disc_r_pc = 0.1 # pc
+    find_cylindrical_velocity = True
     # identify simulation name and label
     sim_label = tidy_data_labels(extract_simulation_name(ds.directory))
     print("Processing " + str(sim_label) + " " + str(extract_dd_segment(ds.directory)))
@@ -26,7 +69,6 @@ def process_ds(ds, disc_r_pc, find_cylindrical_velocity=False):
     center = ss_pos
     width_pc = 0.2
     npixels = 2048
-    dx = ds.index.get_smallest_dx().in_units('cm')
 
     # Obtain angular momentum vector from small disk and define larger disk for plotting
     disc_h_pc = disc_r_pc
@@ -39,181 +81,112 @@ def process_ds(ds, disc_r_pc, find_cylindrical_velocity=False):
 
     # Obtain density and radius values for each cell in the disk
     density, radius_pc = field_from_sliceplot("density", ds, disk, center, width_pc, north, dir, npixels=npixels, radius=True)
+    dx = ds.index.get_smallest_dx().in_units('pc')
     surface_density = density * dx # g/cm^2
-    
+
     # List of radii to define annular regions with thickness dr
     dr = 0.001 # pc
-    r_min = np.min(radius_pc).value
-    r_max = np.max(radius_pc).value
-    radii = np.arange(r_min, r_max + dr, dr) 
+    dx = ds.index.get_smallest_dx().in_units('pc').d
+    dx = 0.0008
+    r_max_pc = 0.14 # pc 
+    r_min = dx
+    r_max = r_max_pc
+    radii = np.arange(r_min, r_max + dr, dr)  # 141 annuli (fixed at this number)
 
     # Compute theta values of each annulus
     dV = dx**3
     theta = get_theta_values(surface_density)
-
-    # Compute cylindrical velocity component
+    cylindrical_velocity_theta = field_from_sliceplot("velocity_cylindrical_theta", ds, disk, center, width_pc, north, dir, npixels=npixels, radius=False)[0]
 
     # Compute Fourier modes and phase angles in degrees (not radians), and store them
-    m1_strengths, m2_strengths, phi_1_values, phi_2_values = find_fourier_modes_and_phase_angles(radii, radius_pc, density, theta, dV, dr)
-
+    _, _, _, phi_2_values, angular_speeds = find_fourier_modes_and_phase_angles(radii, radius_pc, density, theta, dV, dr, cylindrical_velocity_theta)
+        
     if find_cylindrical_velocity:
-        # Compute cylindrical velocity component
-        cylindrical_velocity_theta = field_from_sliceplot("velocity_cylindrical_theta", ds, disk, center, width_pc, north, dir, npixels=npixels)
-
-        return phi_2_values, ss_age/1e6, radii, cylindrical_velocity_theta
+        return phi_2_values, ss_age/1e6, radii, angular_speeds
 
     return phi_2_values, ss_age/1e6, radii
 
 
 if __name__ == "__main__":
-    root_dir = [#"/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/",
-        #"/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/"
-        "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/270msun/replicating-beckmann/"
-        ]
-    sim = [#"2B.RSm04", 
-        #"2B.m08-4dx"
-        "1B.m16-4dx"
-        #"2B.RSb08-2"
-        ] 
+    import pandas as pd
+    # Set paths and parameters
+    root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/270msun/replicating-beckmann/"
+    sim = "1B.m16-4dx"
+    dds = [f"DD0{i:03d}/DD0{i:03d}" for i in range(190, 200)]
+    disc_r_pc = 0.1  # pc
 
-    dds = ["DD0167/DD0167", "DD0178/DD0178", "DD0189/DD0189", "DD0231/DD0231"]  # 0.39, 0.50, 0.6, 1 Myr for 1B.m16,
-    dds = ["DD0178/DD0178", "DD0189/DD0189", "DD0199/DD0199", "DD0225/DD0225"]  # 0.50, 0.60, 0.69, 0.94 Myr for 1B.m16,
-    #dds3 = ["DD0228/DD0228", "DD0268/DD0268", "DD0280/DD0280"]  # 0.3, 0.69, 0.79 Myr for 2B.m08-4dx, 
-    #dds = ["DD0219/DD0219", "DD0227/DD0227", "DD0236/DD0236", "DD0279/DD0279"]  # 0.2, 0.69, 1 Myr for 2B.b08,
+    # MPI initialization
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size() 
 
-    # 1B.m16
-    dds_list = [["DD0178/DD0178", "DD0188/DD0188", "DD0199/DD0199", "DD0226/DD0226"],
-                #["DD0178/DD0178", "DD0189/DD0189", "DD0199/DD0199", "DD0225/DD0225"],
-                # ["DD0179/DD0179", "DD0186/DD0186", "DD0200/DD0200", "DD0228/DD0228"],
-                # ["DD0177/DD0177", "DD0188/DD0188", "DD0197/DD0197", "DD0226/DD0226"],
-                ]
-    # 1B.m16 for bar corotation radius
-    dds = [f"DD0{i:03d}/DD0{i:03d}" for i in range(190, 220)] # 0.6 - 0.9 Myr
+    # Load datasets (this can be optimized if datasets are large)
+    DS = []
+    for s in range(len(dds)):
+        ds = yt.load(os.path.join(root_dir[0], sim[0], dds[s]))
+        DS.append(ds)
 
-    #2B.b08
-    # dds_list = [#["DD0219/DD0219", "DD0227/DD0227", "DD0236/DD0236", "DD0276/DD0276"],
-    #             #["DD0218/DD0218", "DD0226/DD0226", "DD0235/DD0235", "DD0278/DD0278"],
-    #             #["DD0220/DD0220", "DD0228/DD0228", "DD0237/DD0237", "DD0279/DD0279"],
-    #             #["DD0217/DD0217", "DD0225/DD0225", "DD0234/DD0234", "DD0270/DD0270"],
-    #             ["DD0219/DD0219", "DD0246/DD0246", "DD0270/DD0270", "DD0279/DD0279"], # 0.29, 0.50, 0.70, 1 Myr
-    #             ]
+    # Set disc radius from which to calculate L
+    disc_r_pc = 0.1 # pc
+    phi_2_values = [] # degrees
+    ages = []
+    radii = [] # pc
+    angular_speeds = [] # 1/s
+    for i in range(rank, len(dds), size):
+        ds = yt.load(os.path.join(root_dir, sim, dds[i]))
+        phi_2_value, current_age, radiuses, angular_speed = process_ds(ds, disc_r_pc, find_cylindrical_velocity=True)
+        phi_2_values.append(phi_2_value)
+        ages.append(current_age)
+        radii.append(radiuses)
+        angular_speeds.append(angular_speed) 
 
-    filename = "phi2_veltheta_over_time.csv"
-    if not os.path.exists(filename):
-        print(f"Filling in {filename}...")
-        # Load datasets
-        DS = []
-        for s in range(len(dds)):
-            ds = yt.load(os.path.join(root_dir[0], sim[0], dds[s]))
-            DS.append(ds)
+    # Gather results at root
+    all_phi_2_values = comm.gather(phi_2_values, root=0)
+    all_ages = comm.gather(ages, root=0)
+    all_angular_speeds = comm.gather(angular_speeds, root=0)
+    all_radii = comm.gather(radii, root=0)
 
-        # Set disc radius from which to calculate L
-        disc_r_pc = 0.1 # pc
+    # Only the root process will output the results
+    if rank == 0:
 
-        # MPI initialization
-        comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-        size = comm.Get_size()
+        # Define all variables after MPI gather
+        phi_2_values_list = [np.array(phi) for phi in all_phi_2_values] # list of arrays
+        ages_list = np.array([age[0] for age in all_ages]) # list of floats
+        angular_speed_means = [[np.mean(annulus) for annulus in dataset] for dataset in angular_speeds]
 
-        # Distribute datasets among ranks and process them (find the phi2 value array for each dataset)
-        phi_2_values = []
-        ages = []
-        radii = []
-        velocity_cylindrical_theta = []
-        for i in range(rank, len(DS), size): # starting from 'rank', up to total number of datasets with a step of core number
-            ds = DS[i]
-            phi_2_value, current_age, radiuses, velocity_theta = process_ds(ds, disc_r_pc, find_cylindrical_velocity=True)
-            phi_2_values.append(phi_2_value)
-            ages.append(current_age)
-            radii.append(radiuses)
-            velocity_cylindrical_theta.append(velocity_theta)
+        #  Compute the difference between phi2 values at each snapshot
+        delta_phi = np.array([phi_2_values_list[i] - phi_2_values_list[i+1] for i in range(len(phi_2_values_list)-1)])
+        delta_t = np.array(np.diff(ages_list))
+        pattern_speeds = delta_phi / delta_t[:, np.newaxis] # deg/Myr
 
-        # Gather results at root
-        all_phi_2_values = comm.gather(phi_2_values, root=0)
-        all_times = comm.gather(ages, root=0)
-        all_velocity_cylindrical_theta = comm.gather(velocity_cylindrical_theta, root=0)
+        # plot bar pattern and disc angular speed vs radius
+        fig, ax = plt.subplots(figsize=(8, 5))
+        n = len(angular_speed_means)
+        # Choose a colormap
+        cmap = plt.cm.rainbow
+        # Create color list
+        colors = [cmap(i) for i in np.linspace(0, 1, n)]
+        scalars = np.linspace(all_ages[0][0], all_ages[-1][0], n)
+        norm = plt.Normalize(min(scalars), max(scalars))
+        # Create a ScalarMappable and set array to the normalized values
+        sm = cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
 
-        # Only the root process will output the results
-        if rank == 0:
-            # Flatten lists
-            flat_phi_2_values = [item for sublist in all_phi_2_values for item in sublist]
-            flat_times = [item[0] for sublist in all_times for item in sublist] # assuming the time arrays always have one element
-            flat_velocity_cylindrical_theta = [item for sublist in all_velocity_cylindrical_theta for item in sublist]
-
-            # Pair times with corresponding phi_2_values and sort
-            paired_data = sorted(zip(flat_times, flat_phi_2_values, flat_velocity_cylindrical_theta), key=lambda x: x[0])
-
-            # Write sorted results to file
-            with open(filename, 'w') as f:
-                f.write("Times\t Phi2_Values\t  Velocity_Cylindrical_Theta\n")
-                for time, phi_2_value,velocity_cylindrical_theta in paired_data:
-                    f.write(f"{time}\t{phi_2_value}\t{velocity_cylindrical_theta}\n")
-
-            print(f"Data written to {filename}")
-
-    print(f"Reading data from {filename}")
-    df = pd.read_csv(filename, sep="\t")
-
-    # Extract the columns into variables
-    ages = np.array([float(age) for age in df["Times"].tolist()])
-    # Convert the string representation of lists to actual lists
-    phi2_values_list = df['Phi2_Values'].apply(ast.literal_eval).tolist()
-
-    # Convert the lists to numpy arrays
-    phi2_values_array = [np.array(sublist) for sublist in phi2_values_list]
-
-    # Compute pattern speed
-    def compute_difference(arr1, arr2):
-        if len(arr1) > len(arr2):
-            arr2 = np.pad(arr2, (0, len(arr1) - len(arr2)))
-        elif len(arr1) < len(arr2):
-            arr1 = np.pad(arr1, (0, len(arr2) - len(arr1)))
-        return arr2 - arr1
-
-    delta_phi = [compute_difference(phi2_values_array[i], phi2_values_array[i+1]) for i in range(len(phi2_values_array)-1)] # Difference along snapshots
-    delta_t = np.diff(ages)
-    pattern_speeds = delta_phi / delta_t
-
-    # Use the mean or median pattern speed across all radii and time intervals, or choose an appropriate radii range
-    shapes = [arr.shape for arr in pattern_speeds]
-    unique_shapes = set(shapes)
-    print(unique_shapes)
-
-    # Find the maximum length
-    max_length = max(shapes, key=lambda x: x[0])[0]
-
-    # Pad the arrays in pattern_speeds
-    padded_pattern_speeds = np.array([np.pad(arr, (0, max_length - len(arr))) if len(arr) < max_length else arr for arr in pattern_speeds])
-
-    # find linear speeds
-    # List of radii to define annular regions with thickness dr
-    dr = 0.001 # pc
-    dx = 0.00077
-    r_min = dx
-    r_max = 0.14
-    radii = np.arange(r_min, r_max + 6*dr, dr) 
-    radii_array = np.tile(radii, (29, 1))
-    linear_speeds = padded_pattern_speeds*radii_array*np.pi*3.086e16/(180*1e6) # km/s
-
-    # Now compute the mean in a certain time interval
-    start_time = 0.7
-    end_time = 0.8
-
-    def mean_pattern_speed_within_interval(start, end, ages, pattern_speeds):
-        # Filter the data
-        
-        if len(pattern_speeds) != len(ages):
-            # This will truncate or extend the padded_pattern_speeds list to match the length of ages
-            pattern_speeds = pattern_speeds[:len(ages)]
-
-        indices_within_range = np.where((ages >= start_time) & (ages <= end_time))[0]
-        filtered_pattern_speeds = pattern_speeds[indices_within_range]
-
-        # Compute the mean
-        mean_pattern_speed = np.mean(filtered_pattern_speeds)
-        return mean_pattern_speed
-    
-    mean_pattern_speed = mean_pattern_speed_within_interval(start_time, end_time, ages, padded_pattern_speeds)
-    mean_linear_speed = mean_pattern_speed_within_interval(start_time, end_time, ages, linear_speeds)
-    print(f"Mean pattern speed between time {start_time} and {end_time} Myr: {mean_pattern_speed}")
-    print(f"Mean linear speed between time {start_time} and {end_time} Myr: {mean_linear_speed}")
+        # Plot angular speed and pattern speed vs radius
+        for j in range(len(angular_speed_means)):
+            plt.plot(all_radii[j], angular_speed_means[j], label=f"{all_ages[j][0]:.2f} Myr", linestyle="-", color=colors[j])
+        conversion_factor = np.pi / (180 * 3.154e13)
+        pattern_speeds_radians_per_sec = pattern_speeds * conversion_factor
+        for i in range(len(pattern_speeds)):
+            plt.plot(all_radii[i+1], abs(pattern_speeds_radians_per_sec)[i], linestyle="--", color=colors[i])
+        handles, labels = ax.get_legend_handles_labels()
+        # Assuming you want to include only the first two
+        legend_handle_1 = handles[0]
+        legend_handle_2 = handles[-1]
+        plt.legend(handles=[legend_handle_1, legend_handle_2], labels=[labels[0], labels[-1]])
+        plt.yscale("log")    
+        plt.xlabel("Radius (pc)")
+        plt.ylabel("Speed (rad/s)")
+        plt.title("Mean Angular Speed and Mean Pattern Speed vs Radius")
+        plt.savefig(f"corotation_radius/angular_and_pattern_speed_vs_radius_{all_ages[0][0]:.2f}_{all_ages[-1][0]:.2f}.png", bbox_inches="tight") 
+        plt.close()
