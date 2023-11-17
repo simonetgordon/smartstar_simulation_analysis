@@ -1,21 +1,20 @@
 import yt
 import cmyt
 import os
-from matplotlib import ticker
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+from yt.utilities.math_utils import ortho_find
+from matplotlib.lines import Line2D
+from matplotlib.colors import LogNorm
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+from matplotlib.offsetbox import AnchoredText
+from plot_radial_profile_from_frb import extract_simulation_name, extract_dd_segment
+from find_fourier_modes import find_bar_radius, calculate_theta_array
 from smartstar_find import ss_properties
 from plot_disc_projections import _make_disk_L
 from plot_multi_projections import tidy_data_labels
-from yt.utilities.math_utils import ortho_find
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.colors import LogNorm
 from plot_toomre_q_projection import toomre_from_sliceplot, field_from_sliceplot
-from mpl_toolkits.axes_grid1 import ImageGrid
-from matplotlib.offsetbox import AnchoredText
-from plot_radial_profile_from_frb import extract_simulation_name, extract_dd_segment
-import matplotlib.colors as mcolors
-from find_fourier_modes import find_bar_radius, calculate_theta_array
-from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 
 def find_fourier_modes_and_phase_angles(radii, radius_pc, densities, theta, dV, dr=0.001, cylindrical_theta_velocity=None, phi2_only=False):
@@ -134,7 +133,7 @@ def find_pattern_speed_rad_per_sec(ds, root_dir, sim, phi_2_values, ss_age, widt
     pattern_speeds = delta_phi / delta_t
 
     # Convert from deg/Myr to rad/s
-    conversion_factor = np.pi / (180 * 3.154e13) # from deg/Myr to rad/s
+    conversion_factor = np.pi / (180 * 3.154e7) # from deg/yr to rad/s
     pattern_speeds_radians_per_sec = pattern_speeds * conversion_factor
 
     return pattern_speeds_radians_per_sec
@@ -148,7 +147,7 @@ def main(root_dir, sim, dds_list):
         for s in range(len(dds)):
             ds = yt.load(os.path.join(root_dir[0], sim[0], dds[s]))
             DS.append(ds)
-        for disc_r_pc in [0.05, 0.1]:
+        for disc_r_pc in [0.1]:
 
             #### PLOT ####
 
@@ -168,8 +167,8 @@ def main(root_dir, sim, dds_list):
             for row in range(nrows):
                 
                 # Define angular speeds and fourier mode plot axes
-                ax_speed = fig.add_axes([0.02, 0.8 - row*size, fourier_width, size-0.01], frame_on=True)
-                ax_fourier = fig.add_axes([0.25, 0.8 - row*size, fourier_width, size-0.01], frame_on=True)
+                ax_fourier = fig.add_axes([0.02, 0.8 - row*size, fourier_width, size-0.01], frame_on=True)
+                ax_speed = fig.add_axes([0.25, 0.8 - row*size, fourier_width, size-0.01], frame_on=True)
 
                 # Load dataset and define axis
                 ds = DS[row]
@@ -181,7 +180,7 @@ def main(root_dir, sim, dds_list):
                 # Grab bh properties and define center, width and resolution of sliceplots
                 ss_pos, ss_mass, ss_age = ss_properties(ds, velocity=False)
                 center = ss_pos
-                width_pc = 0.2
+                width_pc = 1
                 tick_labels = ['', '-0.05', '0.0', '0.05', '']
                 npixels = 2048
                 theta = calculate_theta_array((npixels, npixels))
@@ -194,17 +193,16 @@ def main(root_dir, sim, dds_list):
                 vecs = ortho_find(L)
                 dir = vecs[0]
                 north = vecs[1]
-                disc_r_pc_big = disc_h_pc_big = 0.6 # pc
+                disc_r_pc_big = disc_h_pc_big = 0.8 # pc
                 disk = ds.disk(center, L, disc_r_pc_big, disc_h_pc_big)
 
                 # Obtain density and radius values for each cell in the disk
                 density, radius_pc = field_from_sliceplot("density", ds, disk, center, width_pc, north, dir, npixels=npixels, radius=True)
-                surface_density = density * dx # g/cm^2
                 
                 # List of radii to define annular regions with thickness dr
                 dr = 0.001 # pc
-                r_min = 0.0008
-                r_max = 0.2
+                r_min = 0.004
+                r_max = 0.4
                 radii = np.arange(r_min, r_max + dr, dr) # 73
 
                 # Compute bar strength and phase angle variability across discrete annular regions
@@ -213,61 +211,35 @@ def main(root_dir, sim, dds_list):
                 #m1_strengths, m2_strengths, phi_1_values, phi_2_values = find_fourier_modes_and_phase_angles(radii, radius_pc, density, theta, dV, dr)
                 m1_strengths, m2_strengths, _, phi_2_values, angular_speeds = find_fourier_modes_and_phase_angles(radii, radius_pc, density, theta, dV, dr, cylindrical_velocity_theta)
 
-                ## COROTATION SPEED ##
-
-                # find mean angular speed per annulus and plot
-                angular_speed_means = [np.mean(annulus) for annulus in angular_speeds] # rad/sec
-                sec_to_yr = 3.154e7*yt.units.s*yt.units.year # seconds in a year
-                angular_speed_means_per_yr = [speed * sec_to_yr for speed in angular_speed_means] # rad/yr
-                ax_speed.plot(radii, angular_speed_means_per_yr, color='teal', label="Disc Angular Speed", linestyle='solid', marker='x')
-
-                # find pattern speed and plot
-                pattern_speeds_rad_per_sec = find_pattern_speed_rad_per_sec(ds, root_dir, sim, phi_2_values, ss_age, width_pc, disc_h_pc, disc_r_pc, disc_r_pc_big, disc_h_pc_big, npixels, radii, theta, dV)
-                lim_ps = 15 # limit the number of pattern speed points plotted
-                pattern_speeds_rad_per_yr = [speed * sec_to_yr for speed in pattern_speeds_rad_per_sec]
-                ps = np.abs(pattern_speeds_rad_per_yr)[2:lim_ps]
-                ax_speed.plot(radii[2:lim_ps+6], np.abs(pattern_speeds_rad_per_yr)[2:lim_ps+6], label="Pattern Speed", linestyle="dotted", color='darkred', marker='x')
-                ax_speed.axhline(y=np.mean(ps), color='darkred', linestyle="--", alpha=0.5)
-
-                # set axes limits and labels
-                ax_speed.set_xscale('log')
-                ax_speed.set_yscale('log')
-                if row == 4:
-                    ax_speed.set_xlabel('Radius (pc)')
-                else:
-                    ax_speed.set_xlabel('')
-                    ax_speed.set_xticklabels([])
-                    ax_speed.tick_params(direction='in')
-                ax_speed.set_title('Corotation Radius') if row == 0 else ax_speed.set_title('')
-                ax_speed.set_ylabel('Speed (rad/yr)')
-
 
                 ## FOURIER MODES ##
 
                 # Find radius of the bar feature
-                var_deg = 2 # degrees
+                var_deg = 7.9 # degrees - 2 deg is too low, tiny bar
                 bar_radius, i = find_bar_radius(phi_2_values, radii, var_deg=var_deg)
-                bar_strength = m2_strengths[i]
 
                 # Plot bar strength and phase angle variability across discrete annular regions
                 c1 = (0.843, 0.255, 0.655)    # m1
                 c2 = (0.4157, 0.7608, 0.4118) # m2
                 c3 = (0.6078, 0.3725, 0.8275) # bar
+                c3 = 'orange'
                 if row == 0:
                     ax_fourier.plot(radii, m1_strengths, color=c1, linestyle='solid', marker=None, label=r'$m=1$', alpha=0.8)
                     ax_fourier.plot(radii, m2_strengths, color=c2, linestyle='solid', marker=None, label=r'$m=2$', alpha=0.8)
                     ax_fourier.axvline(x=bar_radius, color=c3, linestyle='dashed', label=r'$R_{{\rm bar}}$ = {:.3f} pc'.format(bar_radius), alpha=1)
-                    ax_fourier.legend(loc='upper right', fontsize=11)
+                    ax_fourier.legend(loc='upper right', fontsize=11, handlelength=1)
                 else:
                     ax_fourier.plot(radii, m1_strengths, color=c1, linestyle='solid', marker=None, alpha=0.8)
                     ax_fourier.plot(radii, m2_strengths, color=c2, linestyle='solid', marker=None, alpha=0.8)
-                    ax_fourier.axvline(x=bar_radius, color=c3, linestyle='dashed', label=r'$R_{{\rm bar}}$ = {:.3f} pc'.format(bar_radius), alpha=1)
-                    ax_fourier.legend(loc='upper right', fontsize=11)
+                    ax_fourier.axvline(x=bar_radius, color=c3, linestyle='dashed', label=r'$R_{{\rm bar}}$ = {:.3f} pc'.format(bar_radius), alpha=1) 
+                    ax_fourier.legend(loc='upper right', fontsize=11, handlelength=1) if row == 2 else None
                 
                 if row == 3:
-                    ax_fourier.tick_params(axis='x', direction='out', length=2, width=1, colors='black', grid_color='black', grid_alpha=0.5)
+                    ax_fourier.tick_params(axis='x', direction='out', which='major')
+                    ax_fourier.tick_params(axis='x', direction='out', which='minor')
                 else:
-                    ax_fourier.tick_params(axis='x', direction='in', length=2, width=1, colors='black', grid_color='black', grid_alpha=0.5)
+                    ax_fourier.tick_params(axis='x', direction='in', which='major')
+                    ax_fourier.tick_params(axis='x', direction='in', which='minor')
                 
                 # Set axes limits and ticks
                 f_yticks = [0.4, 0.6, 0.8, 1.0]
@@ -277,18 +249,66 @@ def main(root_dir, sim, dds_list):
                 if row == 3:
                     ax_fourier.set_xlabel(r'$\rm Radius \, (pc)$', fontsize=12)
                 else:
-                    ax_fourier.set_xlabel([])
+                    ax_fourier.set_xlabel('')
                     ax_fourier.set_xticklabels([])
                 
                 ax_fourier.set_ylabel(r'$\rm Amplitude$', fontsize=12)
+                ax_fourier.set_title('Fourier Modes') if row == 0 else None
                 ax_fourier.grid(color='grey', linestyle='dotted', alpha=0.5)
-                    
-                # iterate over columns
-                for column in range(ncols):
 
+
+                ## COROTATION SPEED ##
+
+                # find mean angular speed per annulus and plot
+                angular_speed_means = [np.mean(annulus) for annulus in angular_speeds] # rad/sec
+                sec_to_yr = 3.154e7*yt.units.s*yt.units.year # seconds in a year
+                angular_speed_means_per_yr = [speed * sec_to_yr for speed in angular_speed_means] # rad/yr
+                label1 = r'Disc Angular Rotation' if row == 0 else None
+                ax_speed.plot(radii, angular_speed_means_per_yr, color='teal', label=label1, linestyle='solid', marker=None)
+
+                # find pattern speed and plot
+                pattern_speeds_rad_per_sec = find_pattern_speed_rad_per_sec(ds, root_dir, sim, phi_2_values, ss_age, width_pc, disc_h_pc, disc_r_pc, disc_r_pc_big, disc_h_pc_big, npixels, radii, theta, dV)
+                lim_ps = (np.abs(radii - bar_radius)).argmin() # limit the number of pattern speed points plotted to almost within the bar radius
+                pattern_speeds_rad_per_yr = [speed2 * sec_to_yr for speed2 in pattern_speeds_rad_per_sec]
+                ps = np.abs(pattern_speeds_rad_per_yr)[0:lim_ps]
+                label2 = r'$m = 2$ Pattern Speed' if row == 0 else None
+                ax_speed.plot(radii[0:lim_ps+5], np.abs(pattern_speeds_rad_per_yr)[0:lim_ps+5], label=label2, linestyle=None, color='darkred', marker='x', linewidth=0.6)
+                mean_ps = np.mean(ps)
+                label3 = r'Mean Bar Pattern Speed' if row == 0 else None
+                ax_speed.axhline(y=mean_ps, label=label3, color='darkred', linestyle="-", alpha=0.5)
+
+                # find corotation radius and plot
+                corotation_radius = radii[(np.abs(angular_speed_means_per_yr - mean_ps)).argmin()]
+                ax_speed.axvline(x=corotation_radius, label=r'$R_{{\rm co-rot}}$ = {:.3f} pc'.format(corotation_radius), color='goldenrod', linestyle="--", alpha=0.7)
+
+                # Add legend to first row
+                ax_speed.legend(fontsize=10, loc='upper right', handlelength=1.4)
+
+                # set axes limits and labels
+                ax_speed.set_xscale('log')
+                ax_speed.set_yscale('log')
+                ax_speed.grid(color='grey', linestyle='dotted', alpha=0.5)
+                ax_speed.set_ylim(7e-7, 8e-4)
+                if row == 3:
+                    ax_speed.set_xlabel('Radius (pc)')
+                else:
+                    ax_speed.set_xlabel('')
+                    ax_speed.set_xticklabels([])
+                    ax_speed.tick_params(axis='x', which='major', direction='in')
+                    ax_speed.tick_params(axis='x', which='minor', direction='in')
+                ax_speed.set_title('Co-rotation Radius') if row == 0 else ax_speed.set_title('')
+                ax_speed.set_ylabel('Speed (rad/yr)')
+                    
+
+                ## SLICEPLOTS ##
+
+                for column in range(ncols):
+                    # Reset width_pc for the sliceplots
+                    width_pc = 0.2
+
+                    # Define axis for sliceplot
                     grid_index = row * ncols + column
-                    ax = fig.add_axes([fourier_width*2 + 0.09 + column*(size-0.01), 0.8 - row*size, size-0.01, size-0.01])
-                    #ax = fig.add_axes([0.4 + column*(size-0.01), 0.8 - row*size, size-0.01, size-0.01], frame_on=True)
+                    ax = fig.add_axes([fourier_width*2.85 + column*(size-0.01), 0.8 - row*size, size-0.01, size-0.01])
 
                     if column == 0:
                         # density
@@ -315,7 +335,7 @@ def main(root_dir, sim, dds_list):
                         # cylindrical_radial_velocity (add this part)
                         cmap = cmyt.kelp  # diverging, 'coolwarm, 'rainbow'
                         cmap = "coolwarm" # magma
-                        min_v = -14       
+                        min_v = -10     
                         max_v = 10   
                         velocity = field_from_sliceplot("velocity_cylindrical_radius", ds, disk, center, width_pc, north, dir, npixels=npixels).to("km/s")
                         im3 = ax.imshow(velocity, cmap=cmap, origin="lower")
@@ -369,6 +389,7 @@ def main(root_dir, sim, dds_list):
                     ax.tick_params(axis='x', which='both', direction='inout', bottom=True, top=True, length=2, width=1, colors='black')
 
             # Adjust colorbars' positions and add a new one
+            fourier_width *= 1.06
             cbar_ax1 = fig.add_axes([0.301+fourier_width, 0.95, size-0.015, 0.01])
             cbar_ax2 = fig.add_axes([0.432+fourier_width, 0.95, size-0.015, 0.01])
             cbar_ax3 = fig.add_axes([0.563+fourier_width, 0.95, size-0.015, 0.01])
@@ -379,13 +400,13 @@ def main(root_dir, sim, dds_list):
 
             # Adding titles above colorbars
             title_height = 0.94
-            fig.text(0.125, title_height, r'Fourier Modes', ha='center', va='center')
-            fig.text(0.365, title_height, r'Number Density ($\rm cm^{-3}$)', ha='center', va='center')
-            fig.text(0.493, title_height, r'Toomre $Q$', ha='center', va='center')
-            fig.text(0.625, title_height, r'Radial Velocity ($\rm km/s$)', ha='center', va='center')  # Adjust this title as necessary
+            #fig.text(0.125, title_height, r'Fourier Modes', ha='center', va='center')
+            fig.text(0.365+fourier_width, title_height, r'Number Density ($\rm cm^{-3}$)', ha='center', va='center')
+            fig.text(0.493+fourier_width, title_height, r'Toomre $Q$', ha='center', va='center')
+            fig.text(0.625+fourier_width, title_height, r'Radial Velocity ($\rm km/s$)', ha='center', va='center')  # Adjust this title as necessary
 
             # save
-            plot_name = f'sliceplot-timeseries-{sim_label}-{width_pc}pc-fourier_modes-toomreq-radial_vel_r={disc_r_pc}pc_ageset_low_toomre_{var_deg}deg_dr={dr}.pdf'
+            plot_name = f'sliceplot-timeseries-{sim_label}-{width_pc}pc-fourier_modes-toomreq-radial_vel_r={disc_r_pc}pc_ageset_low_toomre_{var_deg}deg_dr={dr}_rmin={r_min}.pdf'
             plt.savefig('plots/' + plot_name, bbox_inches='tight')
             print("created plots/" + str(plot_name))
             plt.close()
