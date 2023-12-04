@@ -13,7 +13,8 @@ from plot_disc_projections import _make_disk_L
 
 
 def load_datasets(root_dir, sim, dds1, dds2, dds3=None):
-    DS, LABEL = [], []
+    DS = []
+    LABEL = []
     for l in range(len(sim)):
         for s, _ in enumerate(dds1):
             if "2B.RSb" in sim[l]:
@@ -85,6 +86,7 @@ def get_min_max_values(root_dir, sim, dds2, field="number_density", min_n_factor
 
 
 def map_to_single_value(i, j, i_lim=6):
+    i_lim = 6
     if i < i_lim and (j == 0 or j == 1):
         k = i * 4 + j
         print("i < 6/3: i = {}, j = {}, k = {}".format(i, j, k))
@@ -93,8 +95,25 @@ def map_to_single_value(i, j, i_lim=6):
         k = i * 4 + j
         print("i >= 6/3: i = {}, j = {}, k = {}".format(i, j, k))
     else:
-        raise ValueError("j must be between 0 and 3, and i must be between 0 and 11")
+        raise ValueError(f"j ={j} must be between 0 and 3, and i={i} must be between 0 and 11")
     return k
+
+# def map_to_single_value(i, j, num_rows_per_set=6, num_columns=4):
+#     if 0 <= i < 12 and 0 <= j < 4:
+#         # Adjust 'i' for the second set of rows
+#         if i >= num_rows_per_set:
+#             i -= num_rows_per_set
+#             # Offset for the second half of the grid
+#             offset = num_columns * num_rows_per_set
+#         else:
+#             offset = 0
+
+#         # Column-major order mapping
+#         k = j * num_rows_per_set + i + offset
+#         print("i = {}, j = {}, k = {}".format(i, j, k))
+#         return k
+#     else:
+#         raise ValueError(f"j ={j} must be between 0 and 3, and i={i} must be between 0 and 11")
 
 
 def configure_projection_plot(p, field, cmap, min_n, max_n, fontsize):
@@ -129,14 +148,18 @@ def set_ticks_and_labels(grid, k, xticks, plot, no_xticklabels=True):
 def set_axis_labels_and_colorbar(grid, k, j, i, dds2, DS, ss_age, min_n_index, max_n_index, max_n, fontsize, ticker):
     # y axis time labels
     if j == 0:
-        grid[k].axes.set_ylabel("{:.2f} Myr".format((ss_age/1e6)[0]))
+        grid[k].axes.set_ylabel("(pc)")
+    # if (i == 5) or (i == 11):
+    #     grid[k].axes.set_ylabel("(pc)")
 
     # x axis space labels and colorbar
-    if i == (len(dds2)*2-1) or i == (len(DS)-1):
+    if (i == 5) or (i == 11): # i == (len(dds2)*2-1) or i == (len(DS)-1)
+        print("setting xlabel and colorbar")
         # ylabel
-        #grid[k].axes.set_xlabel("(pc)")
+        grid[k].axes.set_xlabel("(pc)")
 
         # colorbar
+        k = i
         grid.cbar_axes[k].set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)')
         grid.cbar_axes[k].minorticks_on()
 
@@ -200,7 +223,7 @@ def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
         vecs = ortho_find(L)
 
         # s1 is the first 6 simulations (first 2 columns), s2 is the second 6 simulations (last 2 columns)
-        js = [0, 1] if (i < 3) else [2, 3] # changing this 6 -> 3
+        js = [0, 1] if (i < 6) else [2, 3] # changing this 6 -> 3
 
         # loop over the 2 columns of each seed
         for j in js:
@@ -208,6 +231,7 @@ def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
             # make projection plot and configure basic parameters. remake bigger disk for projection
             disc_r_pc = disc_h_pc = 2.1
             disk, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
+            cmap = "RED TEMPERATURE" if field == "temperature" else "viridis"
             if sims == "baselines_1":
                 # set north vector and v
                 north = vecs[1] if (j == 0) or (j == 2) else vecs[0]
@@ -218,7 +242,6 @@ def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
 
             elif sims == "baselines_2":
                 dir = "z" if (j == 0) or (j == 2) else "y"
-                cmap = "RED TEMPERATURE" if field == "temperature" else "viridis"
                 p = make_projection_plot(ds, width_pc, disk, L, field, min_n, max_n, dir=dir, fontsize=fontsize, cmap=cmap)
             p = configure_projection_plot(p, field, cmap, min_n, max_n, fontsize)
 
@@ -234,12 +257,16 @@ def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
             plot.axes = grid[k].axes
 
             # age, mass and simulation label in first and third columns
-            if ((j == 0) or (j == 2)):
+            if ((j == 1) or (j == 3)):
                 p.annotate_text((0.07, 0.86), r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), 
                     coord_system="axis", text_args={"color": "white", "fontsize": 8})
                 
                 # make colorbar
                 plot.cax = grid.cbar_axes[k]
+            
+            if ((j == 0) or (j == 2)):
+                p.annotate_text((0.07, 0.86), "{:.2f} Myr".format((ss_age/1e6)[0]), 
+                    coord_system="axis", text_args={"color": "white", "fontsize": 8})
 
             # simulation label in first row and every second column only
             if ((i == 0) or (i == 6) or (i == 3) or (i == 9)) and ((j == 0) or (j == 2)):
@@ -256,6 +283,7 @@ def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
             m_color = "black" if sims == "baselines_2" else "black"
             p.annotate_marker(center, coord_system="data", color=m_color, marker="x", plot_args={"s": 15, "alpha": 0.8,'linewidths': 0.2, 'edgecolors': m_color})
 
+            plot.cax = grid.cbar_axes[i]
             # render the plot
             p.render()
 
@@ -280,21 +308,22 @@ def main(sims, root_dir, nrows, ncols, dim, sim, dds1, dds2, dds3, field, width_
 
     # Save plot
     num = str(sys.argv[-1])
-    plot_name = f"multiplot_axesgrid_time_{width_pc.d}pc_{num}.pdf"
+    plot_name = f"multiplot_axesgrid_time_{width_pc.d}pc_{num}_{max_n_factor}_factor.pdf"
     plt.savefig('plots/' + plot_name, bbox_inches='tight')
     print("created plots/", plot_name)
 
 
 if __name__ == "__main__":
 
-    sims = "baselines_2" # or baselines_2
+    sims = "baselines_1" # or baselines_2
 
     if sims == "baselines_1":
         # plot 6x4 multipanael of 1B and 2B baselines at 3 times
-        root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
-                    "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
-                    "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/",
-                    "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/"]
+        # to run: python -i plot_multipanel_time_2.py "1B-2B-baselines-time-fix"
+        root_dir = ["/Backup00/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+                    "/Backup00/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+                    "/Backup00/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/",
+                    "/Backup00/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/"]
         sim = ["1B.RSm01", "1B.RSb01-2", "2B.RSm01", "2B.RSb01"]
         dds1 = ["DD0131/DD0131", "DD0136/DD0136", "DD0138/DD0138"] 
         dds2 = ["DD0201/DD0201", "DD0206/DD0206", "DD0208/DD0208"]  # 0.29, 079, 1.01 Myr for m01, 
@@ -303,10 +332,11 @@ if __name__ == "__main__":
         width_pc = 1.5 * yt.units.pc # must change xticks if this changes
         xticks = [-0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6]
         min_n_factor=2e5
-        max_n_factor=0.01
+        max_n_factor=0.2
         nrows=6
         ncols=4
         dim=(0.01, 0.01, 0.76, 1.152)
+        field = "number_density"
 
     elif sims == "baselines_2":
         # plot 3x4 multipanel of 1S.m01 and 1S.m01-no-SN baselines at 3 times
