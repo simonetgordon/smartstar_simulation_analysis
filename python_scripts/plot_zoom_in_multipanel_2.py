@@ -12,6 +12,7 @@ from plot_multipanel_time_2 import create_axes_grid, get_min_max_values, configu
 from plot_multi_projections import tidy_data_labels
 from plot_disc_projections import _make_disk_L
 from plot_zoom_in_multipanel import format_sci_notation
+from derived_fields import add_fields_ds
 
 
 def field_from_projection_plot(field, ds, center, width_pc, north, dir, npixels=2048):
@@ -23,6 +24,7 @@ def field_from_projection_plot(field, ds, center, width_pc, north, dir, npixels=
     frb = p.frb[field]/dx
     return frb
 
+
 # Make data array
 root_dir = "/Backup00/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/"
 sim_names = ["1B.RSb01-2", "1B.RSb04", "1B.RSb16"]  # Simulation names
@@ -33,6 +35,8 @@ min_temp = 20
 max_temp = 2000
 min_density = 2e4
 max_density = 1e10
+min_cooling = 5e-1
+max_cooling = 1e2
 npixels = 800
 
 # Prepare the list for full simulation paths
@@ -54,7 +58,7 @@ nrows = 3
 ncols = 4
 gap = 0.038
 plt.rcParams['text.usetex'] = True # use LaTeX for all text
-fontsize = 12
+fontsize = 14
  
 # Define the size of each subplot
 total_gap_width = (ncols - 1) * gap
@@ -67,6 +71,7 @@ for row in range(nrows):
     # Load the dataset and label
     ds = DS[row]
     label = labels[row]
+    add_fields_ds(ds)
 
     # find smallest cell width
     dx = ds.index.get_smallest_dx().in_units('pc')
@@ -75,7 +80,7 @@ for row in range(nrows):
 
     # find L 
     disc_r_pc = disc_h_pc = 0.5
-    _, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
+    disk_big, L = _make_disk_L(ds, ss_pos, disc_r_pc, disc_h_pc)
 
     # set north vector and v
     orient = "face-on"
@@ -83,14 +88,14 @@ for row in range(nrows):
     north = vecs[1] if orient=="face-on" else vecs[2]
     dir = vecs[0] if orient=="face-on" else vecs[1]
     
-    for col in range(ncols): 
-        # Calculate the position of the bottom left corner of each subplot
+    for col in range(ncols):         # Calculate the position of the bottom left corner of each subplot
         left = col * (im_width + gap)
         bottom = 1 - (row + 1) * size  # Subtract from 1 because the y-axis starts from the top
 
         # Create an axis for each subplot
-        ax = fig.add_axes([left+0.05, bottom, im_width, size-0.01], frame_on=True)
-        ax = fig.add_axes([left+0.1, bottom, im_width, size-0.01], frame_on=True) if col == 2 or col == 3 else print("temperature cols")
+        ax_x_gap_dict = {0: 0.03, 1: 0.025, 2: 0.09, 3: 0.15}
+        ax_x_gap = ax_x_gap_dict.get(col, 0.05)  # Default to 0.05 if col is not in the dictionary
+        ax = fig.add_axes([left+ax_x_gap, bottom, im_width, size-0.01], frame_on=True)
 
         # col 1
         if col == 0:
@@ -98,6 +103,7 @@ for row in range(nrows):
             cmap = "RED TEMPERATURE"
             width = 3*yt.units.pc
             height = width/2
+            print("width: {}, height1: {}".format(width, height))
             disk = ds.disk(center, L, width, height)
             # line integral of the temperature field along the line of sight, weighted by density
             temp= yt.off_axis_projection(disk, center, dir, width, npixels, ("gas", "temperature"), weight=("gas", "density")) 
@@ -113,43 +119,46 @@ for row in range(nrows):
         elif col == 1:
             field = "temperature" 
             cmap = "RED TEMPERATURE"
-            width = 0.35*yt.units.pc
-            height = width/2
+            width = 0.30*yt.units.pc
+            height = disk_big[("index","dx")].to('pc').max()
+            print("width: {}, height2: {}".format(width, height))
             disk = ds.disk(center, L, width, height)
-            # line integral of the temperature field along the line of sight, weighted by density
             temp= yt.off_axis_projection(disk, center, dir, width, npixels, ("gas", field), weight=("gas", "density")) 
             im2 = ax.imshow(temp, cmap=cmap, origin="lower", norm=LogNorm())
             im2.set_clim(min_temp, max_temp)
 
             # BH age label
-            im2.axes.set_title("BH Age = {:.2f} Myr".format(ss_age[0] / 1e6))
+            im2.axes.set_title("Min T = {:.0f}".format(temp.min()))
 
         # col 3
         elif col == 2:
             field = "number_density" 
             cmap = "viridis"
-            width = 0.35*yt.units.pc
-            height = width/2
+            width = 0.30*yt.units.pc
+            height = disk_big[("index","dx")].to('pc').max()
+            print("width: {}, height3: {}".format(width, height))
             disk = ds.disk(center, L, width, height)
-            # line integral of the temperature field along the line of sight, weighted by density
             dens = yt.off_axis_projection(disk, center, dir, width, npixels, ("gas", field), weight=("gas", "density")) 
             im3 = ax.imshow(dens, cmap=cmap, origin="lower", norm=LogNorm())
             im3.set_clim(min_density, max_density)
 
             # BH mass and BH position label
             im3.axes.set_title(r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)))
-            ax.scatter(center[0], center[1], color='black', marker="x", s=15, alpha=0.8, linewidths=0.2)
+            #im3.axes.scatter(center[0], center[1], color='black', marker="x", s=15, alpha=0.8, linewidths=0.2)
 
         # col 4
         elif col == 3:
-            field = "cooling_time" # change to cooling length resolution
+            field = "cooling_length_resolution" # change to cooling length resolution
             cmap = "magma"
-            width = 0.35*yt.units.pc
-            height = width/2
+            width = 0.20*yt.units.pc
+            height = disk_big[("index","dx")].to('pc').max()
+            print("width: {}, height4: {}".format(width, height))
             disk = ds.disk(center, L, width, height)
-            cool = yt.off_axis_projection(disk, center, dir, width, npixels, ("gas", field), weight=("gas", "density")) 
+            cool = yt.off_axis_projection(disk, center, dir, width, npixels, ("enzo", field), weight=("gas", "density")) 
             im4 = ax.imshow(cool, cmap=cmap, origin="lower", norm=LogNorm())
-            #im4.set_clim(min_cooling, max_cooling)
+            im4.set_clim(min_cooling, max_cooling)
+
+            im4.axes.set_title(r"Min $l_{{\rm cool}}$/dx = {:.1f}".format(cool.d.min()))
 
         # Set ticks and ticklabels
         ax.set_xticks(np.linspace(0, npixels, num=5))  # Adjust num for number of ticks
@@ -159,28 +168,40 @@ for row in range(nrows):
         ax.set_yticklabels([])
         if row == 2:
             tick_labels = ['-1.5', '-0.75', '0.0', '0.75', '1.5']
-            tick_labels2 = ['-0.15', '-0.075', '0.0', '0.075', '0.15']
+            tick_labels2 = ['-0.15', '-0.075', '0.0', '0.075', '0.15'] if col != 3 else ['-0.1', '-0.05', '0.0', '0.05', '0.1']
             ax.set_xticklabels(tick_labels) if col == 0 else ax.set_xticklabels(tick_labels2)
             ax.set_xlabel("(pc)")
 
         # Set tick parameters to create 'inner' ticks, except on the bottom axis of last row
         ax.tick_params(which='minor', length=1)
+        ax.tick_params(axis='y', which='both', direction='in', right=True, length=2)
         ax.tick_params(axis='x', which='both', direction='inout', bottom=True, top=True, length=2, width=1, colors='black')
 
 
 # Add the colorbar to the left side of the figure
 cax_width = 0.02
-cax_length = 0.90
-cax_left = fig.add_axes([0.01, 0.04, cax_width, cax_length])  # [left, bottom, width, height]
+cax_length = 0.95
+cax_y = 0.02
+cax_left = fig.add_axes([0.0, cax_y, cax_width, cax_length])  # [left, bottom, width, height]
 cbar_left = fig.colorbar(im1, cax=cax_left)  # Assuming im1 is one of your imshow panels with a colormap
-cbar_left.ax.set_ylabel('Temperature (K)', fontsize=14, rotation=270, labelpad=15)
+cbar_left.ax.set_ylabel('Temperature (K)', fontsize=16, rotation=270, labelpad=15)
 cbar_left.ax.yaxis.set_ticks_position('left') # Move the ticks to the left
 cbar_left.ax.yaxis.set_label_position('left') # Move the label to the left
 
+# Add the colorbar to the middle of the figure
+cax_mid = fig.add_axes([0.59, cax_y, cax_width, cax_length])
+cbar_mid = fig.colorbar(im3, cax=cax_mid)  
+cbar_mid.ax.set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)', fontsize=16,  rotation=270, labelpad=15)
+cbar_mid.ax.yaxis.set_ticks_position('left') # Move the ticks to the left
+cbar_mid.ax.yaxis.set_label_position('left') # Move the label to the left
+
 # Add the colorbar to the right side of the figure
-cax_right = fig.add_axes([1.07, 0.04, cax_width, cax_length])
-cbar_right = fig.colorbar(im3, cax=cax_right)  
-cbar_right.ax.set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)', fontsize=14)
+cax_right = fig.add_axes([0.90, cax_y, cax_width, cax_length])
+cbar_right = fig.colorbar(im4, cax=cax_right)
+cbar_right.ax.set_ylabel(r'Cooling Length Resolution', fontsize=16, rotation=270, labelpad=15)
+cbar_right.ax.yaxis.set_ticks_position('left') # Move the ticks to the left
+cbar_right.ax.yaxis.set_label_position('left') # Move the label to the left
+
 
 # Save the figure
 plot_name_prefix = f"multiplot_axesgrid_zoom-in_3_fields"
