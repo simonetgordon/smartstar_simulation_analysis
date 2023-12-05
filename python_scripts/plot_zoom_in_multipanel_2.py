@@ -8,11 +8,12 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from yt.utilities.math_utils import ortho_find
 import re
 from smartstar_find import ss_properties
-from plot_multipanel_time_2 import create_axes_grid, get_min_max_values, configure_font, set_ticks_and_labels, configure_font
+from plot_multipanel_time_2 import configure_font
 from plot_multi_projections import tidy_data_labels
 from plot_disc_projections import _make_disk_L
 from plot_zoom_in_multipanel import format_sci_notation
 from derived_fields import add_fields_ds
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 
 def field_from_projection_plot(field, ds, center, width_pc, north, dir, npixels=2048):
@@ -23,6 +24,18 @@ def field_from_projection_plot(field, ds, center, width_pc, north, dir, npixels=
     p = yt.ProjectionPlot(ds, dir, ("gas", field), center=center, width=width_pc, north_vector=north)
     frb = p.frb[field]/dx
     return frb
+
+
+# Add scalebar to first row
+def add_scalebar(size, ax, width, npixels, scale_color='black'):
+    """
+    Add scalebar of specifc size to a plot ax.
+    """
+    size_in_data_units = npixels*size/width.d
+    label = f"{size} pc"
+    location=4 # lower right
+    bar = AnchoredSizeBar(ax.transData, size_in_data_units, label, location, pad=0.02, color=scale_color, frameon=False)
+    ax.add_artist(bar)
 
 
 # Make data array
@@ -52,13 +65,12 @@ for sim_name, dds_path in zip(sim_names, dds_paths):
     labels.append(label)
 
 # Define the figure size
-configure_font()
+fontsize = 16
+configure_font(fontsize=fontsize)
 fig = plt.figure(figsize=(11, 8.7))
 nrows = 3
 ncols = 4
 gap = 0.038
-plt.rcParams['text.usetex'] = True # use LaTeX for all text
-fontsize = 14
  
 # Define the size of each subplot
 total_gap_width = (ncols - 1) * gap
@@ -88,7 +100,7 @@ for row in range(nrows):
     north = vecs[1] if orient=="face-on" else vecs[2]
     dir = vecs[0] if orient=="face-on" else vecs[1]
     
-    for col in range(ncols):         # Calculate the position of the bottom left corner of each subplot
+    for col in range(ncols):
         left = col * (im_width + gap)
         bottom = 1 - (row + 1) * size  # Subtract from 1 because the y-axis starts from the top
 
@@ -97,6 +109,7 @@ for row in range(nrows):
         ax_x_gap = ax_x_gap_dict.get(col, 0.05)  # Default to 0.05 if col is not in the dictionary
         ax = fig.add_axes([left+ax_x_gap, bottom, im_width, size-0.01], frame_on=True)
 
+        scalebar_size = 0.02 # pc
         # col 1
         if col == 0:
             field = "temperature" 
@@ -111,9 +124,11 @@ for row in range(nrows):
             im1.set_clim(min_temp, max_temp)
 
             # Cell width and simulation label
-            im1.axes.set_title("dx = {} pc".format(format_sci_notation(float(dx))))
+            im1.axes.set_title("dx = {} pc".format(format_sci_notation(float(dx))), fontsize=fontsize-2)
             im1.axes.text(0.07, 0.08, str(label), color='black', size=fontsize+4, transform=im1.axes.transAxes, 
                           bbox=dict(boxstyle="square,pad=0.3", facecolor="white", edgecolor="white", linewidth=3, alpha=0.5))
+            # Add scalebar
+            add_scalebar(scalebar_size*15, ax, width, npixels, scale_color='white') if row == 0 else None
 
         # col 2    
         elif col == 1:
@@ -127,8 +142,9 @@ for row in range(nrows):
             im2 = ax.imshow(temp, cmap=cmap, origin="lower", norm=LogNorm())
             im2.set_clim(min_temp, max_temp)
 
-            # BH age label
-            im2.axes.set_title("Min T = {:.0f}".format(temp.min()))
+            # Min temp label
+            im2.axes.set_title("Min T = {:.0f}".format(temp.min()), fontsize=fontsize-2)
+            add_scalebar(scalebar_size, ax, width, npixels) if row == 0 else None
 
         # col 3
         elif col == 2:
@@ -143,7 +159,8 @@ for row in range(nrows):
             im3.set_clim(min_density, max_density)
 
             # BH mass and BH position label
-            im3.axes.set_title(r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)))
+            im3.axes.set_title(r"BH Mass: {} $\rm M_\odot$".format(int(ss_mass.d)), fontsize=fontsize-2)
+            add_scalebar(scalebar_size, ax, width, npixels) if row == 0 else None
             #im3.axes.scatter(center[0], center[1], color='black', marker="x", s=15, alpha=0.8, linewidths=0.2)
 
         # col 4
@@ -158,7 +175,9 @@ for row in range(nrows):
             im4 = ax.imshow(cool, cmap=cmap, origin="lower", norm=LogNorm())
             im4.set_clim(min_cooling, max_cooling)
 
-            im4.axes.set_title(r"Min $l_{{\rm cool}}$/dx = {:.1f}".format(cool.d.min()))
+            # Min cooling length label
+            im4.axes.set_title(r"Min $l_{{\rm cool}}$/dx = {:.1f}".format(cool.d.min()), fontsize=fontsize-2)
+            add_scalebar(scalebar_size, ax, width, npixels) if row == 0 else None
 
         # Set ticks and ticklabels
         ax.set_xticks(np.linspace(0, npixels, num=5))  # Adjust num for number of ticks
@@ -184,24 +203,26 @@ cax_length = 0.95
 cax_y = 0.02
 cax_left = fig.add_axes([0.0, cax_y, cax_width, cax_length])  # [left, bottom, width, height]
 cbar_left = fig.colorbar(im1, cax=cax_left)  # Assuming im1 is one of your imshow panels with a colormap
-cbar_left.ax.set_ylabel('Temperature (K)', fontsize=16, rotation=270, labelpad=15)
+cbar_left.ax.set_ylabel('Temperature (K)', fontsize=16, labelpad=0)
 cbar_left.ax.yaxis.set_ticks_position('left') # Move the ticks to the left
 cbar_left.ax.yaxis.set_label_position('left') # Move the label to the left
+cbar_left.ax.tick_params(labelsize=14)
 
 # Add the colorbar to the middle of the figure
-cax_mid = fig.add_axes([0.59, cax_y, cax_width, cax_length])
+cax_mid = fig.add_axes([0.58, cax_y, cax_width, cax_length])
 cbar_mid = fig.colorbar(im3, cax=cax_mid)  
-cbar_mid.ax.set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)', fontsize=16,  rotation=270, labelpad=15)
+cbar_mid.ax.set_ylabel(r'Number Density \big($\rm \frac{1}{cm^{3}}$\big)', fontsize=16, labelpad=0)
 cbar_mid.ax.yaxis.set_ticks_position('left') # Move the ticks to the left
 cbar_mid.ax.yaxis.set_label_position('left') # Move the label to the left
+cbar_mid.ax.tick_params(labelsize=14)
 
 # Add the colorbar to the right side of the figure
 cax_right = fig.add_axes([0.90, cax_y, cax_width, cax_length])
 cbar_right = fig.colorbar(im4, cax=cax_right)
-cbar_right.ax.set_ylabel(r'Cooling Length Resolution', fontsize=16, rotation=270, labelpad=15)
+cbar_right.ax.set_ylabel(r'Cooling Length Resolution', fontsize=16,labelpad=1)
 cbar_right.ax.yaxis.set_ticks_position('left') # Move the ticks to the left
 cbar_right.ax.yaxis.set_label_position('left') # Move the label to the left
-
+cbar_right.ax.tick_params(labelsize=14)
 
 # Save the figure
 plot_name_prefix = f"multiplot_axesgrid_zoom-in_3_fields"
