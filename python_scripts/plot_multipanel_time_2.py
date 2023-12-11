@@ -34,8 +34,8 @@ def load_datasets(root_dir, sim, dds1, dds2, dds3=None):
     return DS, LABEL
 
 
-def configure_font():
-    pyplot.rcParams['font.size'] = 14
+def configure_font(fontsize=14):
+    pyplot.rcParams['font.size'] = fontsize
     pyplot.rcParams['font.weight'] = 'light'
     rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
     rc('text', usetex=True)

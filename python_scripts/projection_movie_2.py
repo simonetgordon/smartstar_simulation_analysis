@@ -89,7 +89,7 @@ def _metal_fraction(field, data):
     """
     return (data["enzo", "SN_Colour"] / data["gas", "density"]).to("dimensionless")
 
-def process_data_series(es, map, orient, w_pccm, c_min, c_max, root_dir, use_north_vector=False, use_north_vector_ds=False, cmap="viridis", 
+def process_data_series(es, map, orient, w_pc, c_min, c_max, root_dir, use_north_vector=False, use_north_vector_ds=False, cmap="viridis", 
                         weight_field="density", plot_type="projection"):
     """
     Process the data series.
@@ -153,16 +153,16 @@ def process_data_series(es, map, orient, w_pccm, c_min, c_max, root_dir, use_nor
         # make projection plot
         if plot_type == "projection":
             p = yt.ProjectionPlot(ds, dir, map, center=center, data_source=region, 
-                                  weight_field=weight_field, width=(w_pccm, 'pccm'))
+                                  weight_field=weight_field, width=(w_pc, 'pc'))
         elif plot_type == "slice":
             p = yt.SlicePlot(ds, dir, map, center=center, data_source=region, 
-                             width=(w_pccm, 'pccm'), north_vector=north)
+                             width=(w_pc, 'pc'), north_vector=north)
         p.set_cmap(map, cmap)
         p.set_zlim(map, c_min, c_max)
-        apply_annotations_and_save(p, ds, center, ss_mass, ss_age, title=None, orient_str=orient_str, w_pc=w_pccm, 
+        apply_annotations_and_save(p, ds, center, ss_mass, ss_age, title=None, orient_str=orient_str, w_pc=w_pc, 
                                    map=map, sim_str=extract_simulation_name(root_dir), plot_type=plot_type)
 
-def main(map, orient, w_pccm, c_min, c_max, root_dirs, cmap, weight_field, plot_type="projection", use_north_vector_ds=False):
+def main(map, orient, w_pc, c_min, c_max, root_dirs, cmap, weight_field, plot_type="projection", use_north_vector_ds=False):
     """
     Main function to execute the program.
     """
@@ -173,7 +173,7 @@ def main(map, orient, w_pccm, c_min, c_max, root_dirs, cmap, weight_field, plot_
         print("Processing simulation: {}".format(sim_str))
         es = yt.load_simulation(sim, "Enzo", find_outputs=True)
         es.get_time_series()
-        process_data_series(es, map, orient, w_pccm, c_min, c_max, root_dir,  use_north_vector_ds=use_north_vector_ds, cmap=cmap, 
+        process_data_series(es, map, orient, w_pc, c_min, c_max, root_dir,  use_north_vector_ds=use_north_vector_ds, cmap=cmap, 
                             weight_field=weight_field, plot_type=plot_type)
 
 
@@ -185,16 +185,16 @@ if __name__ == "__main__":
     map = ("gas", "number_density")
     weight_field = "density"
     orient = "face-on" # "edge-on" or "face-on"
-    w_pccm = 30
-    w_pc = 1
-    c_min = 2e2
-    c_max = 3e8
+    w_pc = 20 # width in pc
+    c_min = 1
+    c_max = 8e7
     cmap = "viridis" # e.g. "magma", "viridis", "plasma", "inferno"
-    plot_type = "slice" # "projection" or "slice"
+    plot_type = "projection" # "projection" or "slice"
     root_dirs = [
         #"/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/1S.m04-no-SN/",
-        "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.m16-4dx/",
-        "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/2B.RSb08-2/",
-        "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb16/"
+        #"/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.m16-4dx/",
+        #"/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/2B.RSb08-2/",
+        #"/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb16/"
+        "/Backup00/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/"
         ]
-    main(map, orient, w_pccm, c_min, c_max, root_dirs, cmap, weight_field, plot_type, use_north_vector_ds=True)
+    main(map, orient, w_pc, c_min, c_max, root_dirs, cmap, weight_field, plot_type, use_north_vector_ds=True)

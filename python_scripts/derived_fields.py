@@ -78,6 +78,15 @@ def _advective_cooling_rate(field, data):
     denom = (data["index", "radius"].to('cm') * m_p)
     return (num/denom).to('erg/((cm**3)*s)')
 
+def _cooling_length_resolution(field, data):
+    
+    gas_velocity = data['gas', 'sound_speed'].to('cm/s')
+    cooling_time = data['enzo', 'Cooling_Time'].to('s')
+
+    # Cooling length in cm
+    cooling_length = (gas_velocity * cooling_time).to('cm')
+    
+    return cooling_length / data['index', 'dx'].to('cm')
 
 def _height(field, data):
     return np.abs(data["index", "cylindrical_z"])
@@ -165,6 +174,13 @@ def add_fields_ds(ds):
         function=_advective_cooling_rate,
         sampling_type="local",
         units="erg/(s*cm**3)"
+    )
+
+    ds.add_field(
+        name=("enzo", "cooling_length_resolution"),
+        function=_cooling_length_resolution,
+        sampling_type="local",
+        units="dimensionless"
     )
 
     ds.add_field(

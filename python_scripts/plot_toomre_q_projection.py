@@ -33,7 +33,7 @@ def field_from_sliceplot(field, ds, disk, center, width_pc, north, dir, npixels=
     Surface Density = slice plot density * cell height
     """
     p = yt.SlicePlot(ds, dir, ("gas", field), center=disk.center, width=(width_pc, "pc"), data_source=disk)
-    slc_frb = p.data_source.to_frb((1.0, "pc"), npixels)
+    slc_frb = p.data_source.to_frb((width_pc, "pc"), npixels)
     slc_field = slc_frb[("gas", field)]
     if radius:
         radius = slc_frb['radius'].to('pc')

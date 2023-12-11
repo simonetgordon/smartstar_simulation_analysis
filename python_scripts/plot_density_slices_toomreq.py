@@ -136,7 +136,6 @@ def find_fourier_modes_and_phase_angles(radii, radius_pc, densities, theta, dV, 
         phi_1_values.append(phi_1)
     
     if cylindrical_theta_velocity is not None:
-        print("cylindrical_theta_velocity is not None")
         return m1_strengths, m2_strengths, phi_1_values, phi_2_values, angular_speeds
     
     if phi2_only:
@@ -258,6 +257,8 @@ def main(root_dir, sim, dds_list):
 
                 # Compute bar strength and phase angle variability across discrete annular regions
                 cylindrical_velocity_theta = disk['velocity_cylindrical_theta'].to('cm/s')
+                
+                cylindrical_velocity_theta = field_from_sliceplot("velocity_cylindrical_theta", ds, disk, center, width_pc, north, dir, npixels=npixels, radius=False)
                 m1_strengths, m2_strengths, _, phi_2_values, angular_speeds = find_fourier_modes_and_phase_angles(radii, radius_pc, density, theta, dV, dr, cylindrical_velocity_theta)
 
                 ## FOURIER MODES ##
@@ -308,7 +309,6 @@ def main(root_dir, sim, dds_list):
                 ## COROTATION SPEED ##
 
                 # find mean angular speed per annulus and plot
-                print("Angular speeds: ", angular_speeds)
                 angular_speed_means = [np.mean(annulus) for annulus in angular_speeds] # rad/sec
                 sec_to_yr = 3.154e7*yt.units.s*yt.units.year # seconds in a year
                 angular_speed_means_per_yr = [speed * sec_to_yr for speed in angular_speed_means] # rad/yr

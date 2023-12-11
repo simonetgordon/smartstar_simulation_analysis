@@ -3,8 +3,6 @@ import sys
 import yt
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import rc
-from mpl_toolkits.axes_grid1 import AxesGrid
 import matplotlib.ticker as ticker
 from yt.utilities.math_utils import ortho_find
 import re
@@ -13,15 +11,27 @@ from plot_multipanel_time_2 import create_axes_grid, get_min_max_values, configu
 from plot_disc_projections import _make_disk_L
 from contextlib import redirect_stdout
 
-def tidy_data_labels(labels):
-    # for lists of labels
-    if len(labels) < 5:
-        data_labels = [i.replace("-2", "") for i in labels]
-        data_labels = [i.replace("RS", "") for i in data_labels]
-    # for single label
+def tidy_data_labels(labels, custom_name=None):
+    if custom_name:
+        return custom_name
+    
+    # Function to apply replacements to a single label
+    def apply_replacements(label):
+        label = label.replace("-2", "")
+        label = label.replace("RS", "")
+        label = label.replace("-4dx", "")
+        return label
+
+    # Check if labels is a list or a single label
+    if isinstance(labels, list):
+        # Process each label in the list
+        data_labels = [apply_replacements(label) for label in labels]
+    elif isinstance(labels, str):
+        # Process a single label
+        data_labels = apply_replacements(labels)
     else:
-        data_labels = labels.replace("-2", "")
-        data_labels = data_labels.replace("RS", "")
+        raise TypeError("labels should be a string or a list of strings")
+
     return data_labels
 
 
@@ -32,20 +42,6 @@ def first_index(a, val, rtol=0.1, atol=10):
 def format_sci_notation(x):
     a, b = '{:.2e}'.format(x).split('e')
     return r'$\rm {} \times 10^{{{}}}$'.format(a, int(b))
-
-
-def find_smallest_cell_width(ds):
-    # find smallest cell width
-    with open('ds_stats.txt', 'w+') as f:
-        with redirect_stdout(f):
-            ds.print_stats()
-    with open('ds_stats.txt', 'r') as f:
-        for line in f:
-            cell_width = re.search(r'Width: (.{9}) pc', line)
-            if cell_width:
-                dx = cell_width.group(1)
-        f.close()
-    return dx
 
 
 def main(root_dir, sim, dds, field, k, widths_pccm, fontsize, min_n_factor, max_n_factor, orient="face-on", cmap="viridis", seed="s1"):
@@ -89,7 +85,7 @@ def main(root_dir, sim, dds, field, k, widths_pccm, fontsize, min_n_factor, max_
         p = make_projection_plot(ds, width, disk, L, field, vecs, v, north, min_n, max_n, fontsize, cmap)
 
         # find smallest cell width
-        dx = find_smallest_cell_width(ds)
+        dx = ds.index.get_smallest_dx().in_units('pc')
 
         # This section takes care of annotating the projections based on its column
         if k == 0:
@@ -171,12 +167,12 @@ if __name__ == "__main__":
     root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/",
                 "/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/",
                 "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/",]
-    #sim = ["1B.RSb01-2", "1B.RSb04", "1B.RSb16"]# s1
+    sim = ["1B.RSb01-2", "1B.RSb04", "1B.RSb16"]# s1
     #sim = ["2B.RSb01", "2B.RSb04", "2B.RSb08"]# s2
-    sim = ["2B.RSm01", "2B.RSm04", "2B.m08-4dx"]# s2
-    #dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0167/DD0167"] # s1
+    #sim = ["2B.RSm01", "2B.RSm04", "2B.m08-4dx"]# s2
+    dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0167/DD0167"] # s1
     #dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0534/DD0534"] # s2 BHL at t = 1 Myr
-    dds = ["DD0206/DD0206", "DD0278/DD0278", "DD0277/DD0277"] # s2 MF at t = 0.79 Myr
+    #dds = ["DD0206/DD0206", "DD0278/DD0278", "DD0277/DD0277"] # s2 MF at t = 0.79 Myr
 
     # column width in pc
     k = int(sys.argv[-1])
