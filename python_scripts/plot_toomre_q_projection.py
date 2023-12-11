@@ -16,9 +16,10 @@ def toomre_from_sliceplot(ds, disk, center, width_pc, north, dir, npixels=2048):
     Compute Toomre Q from a slice plot of a dataset.
     Surface Density = slice plot density * cell height
     """
+    G = yt.units.physical_constants.G
     dx = ds.index.get_smallest_dx().in_units('cm')
-    p = yt.SlicePlot(ds, dir, ("gas", "density"), center=center, width=(width_pc, "pc"), north_vector=north)
-    slc_frb = p.data_source.to_frb((1.0, "pc"), npixels)
+    p = yt.SlicePlot(ds, dir, ("gas", "density"), center=center, width=(width_pc, "pc"), data_source=disk)
+    slc_frb = p.data_source.to_frb((width_pc, "pc"), npixels)
     slc_dens = slc_frb[("gas", "density")]*slc_frb['index', 'dy'].to('cm') # replaced dx with array of dy
     slc_cs = slc_frb[("gas", "sound_speed")].to('cm/s')
     slc_kappa = kappa2D(slc_frb)
@@ -31,7 +32,7 @@ def field_from_sliceplot(field, ds, disk, center, width_pc, north, dir, npixels=
     Compute field from a slice plot of a dataset.
     Surface Density = slice plot density * cell height
     """
-    p = yt.SlicePlot(ds, dir, ("gas", field), center=disk.center, width=(width_pc, "pc"), north_vector=north)
+    p = yt.SlicePlot(ds, dir, ("gas", field), center=disk.center, width=(width_pc, "pc"), data_source=disk)
     slc_frb = p.data_source.to_frb((1.0, "pc"), npixels)
     slc_field = slc_frb[("gas", field)]
     if radius:

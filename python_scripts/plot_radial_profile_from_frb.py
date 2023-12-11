@@ -95,6 +95,7 @@ def ToomreQ(cs, kappa, G, surface_density):
     """
     Calculate the Toomre Q parameter for linear stability
     """
+    G = yt.units.physical_constants.G
     Q = cs * kappa / (np.pi * G * surface_density) # *0.6*1.67e-24 for surface number density
     return Q
 
