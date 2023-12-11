@@ -11,21 +11,34 @@ from plot_radial_profile_from_frb import compute_radial_profile, make_frb, Toomr
 from matplotlib.colors import LogNorm
 from plot_radial_profile_from_frb import extract_dd_segment, extract_simulation_name
 
-def toomre_from_sliceplot(ds, center, width_pc, north, dir, npixels=2048):
+def toomre_from_sliceplot(ds, disk, center, width_pc, north, dir, npixels=2048):
     """
     Compute Toomre Q from a slice plot of a dataset.
     Surface Density = slice plot density * cell height
     """
-    pixels = 2048
     dx = ds.index.get_smallest_dx().in_units('cm')
     p = yt.SlicePlot(ds, dir, ("gas", "density"), center=center, width=(width_pc, "pc"), north_vector=north)
-    slc_frb = p.data_source.to_frb((1.0, "pc"), pixels)
-    slc_dens = slc_frb[("gas", "density")]*dx
+    slc_frb = p.data_source.to_frb((1.0, "pc"), npixels)
+    slc_dens = slc_frb[("gas", "density")]*slc_frb['index', 'dy'].to('cm') # replaced dx with array of dy
     slc_cs = slc_frb[("gas", "sound_speed")].to('cm/s')
     slc_kappa = kappa2D(slc_frb)
     q = ToomreQ(slc_cs, slc_kappa, G, slc_dens)
 
     return q
+
+def field_from_sliceplot(field, ds, disk, center, width_pc, north, dir, npixels=2048, radius=False):
+    """
+    Compute field from a slice plot of a dataset.
+    Surface Density = slice plot density * cell height
+    """
+    p = yt.SlicePlot(ds, dir, ("gas", field), center=disk.center, width=(width_pc, "pc"), north_vector=north)
+    slc_frb = p.data_source.to_frb((1.0, "pc"), npixels)
+    slc_field = slc_frb[("gas", field)]
+    if radius:
+        radius = slc_frb['radius'].to('pc')
+        return slc_field, radius
+    else:
+        return slc_field
 
 def toomre_from_frb(ds, center, L, frb_height_pc, frb_width_pc, npixels=2048):
     """
