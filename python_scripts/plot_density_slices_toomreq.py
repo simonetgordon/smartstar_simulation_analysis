@@ -5,16 +5,66 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from yt.utilities.math_utils import ortho_find
-from matplotlib.lines import Line2D
 from matplotlib.colors import LogNorm
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from matplotlib.offsetbox import AnchoredText
 from plot_radial_profile_from_frb import extract_simulation_name, extract_dd_segment
-from find_fourier_modes import find_bar_radius, calculate_theta_array
+#from find_fourier_modes import find_bar_radius, calculate_theta_array
 from smartstar_find import ss_properties
 from plot_disc_projections import _make_disk_L
 from plot_multi_projections import tidy_data_labels
 from plot_toomre_q_projection import toomre_from_sliceplot, field_from_sliceplot
+
+
+def find_bar_radius(phi_2_values, radii, var_deg=5):
+    """
+    Find the radius at which the standard deviation std on the phase angle phi_2_values exceeds var_deg.
+    phi_2_values is the phase angle for each radius.
+    radii is the array of radii values.
+    var_deg is the variability threshold in degrees.
+    Output: bar_radius, i (bar radius and index of bar radius in radii array)
+    """
+    # find the incremental standard deviation in phi_2_values
+    std = np.zeros(len(phi_2_values))
+    # once the standard deviation exceeds var_deg, we have found the bar radius
+    for i in range(len(phi_2_values)):
+        std[i] = np.std(phi_2_values[:i])
+        if std[i] > var_deg:
+            bar_radius = radii[i]
+            break
+    return bar_radius, i
+
+
+def calculate_theta_array(dimensions):
+    """
+    Calculate the theta array for a given set of dimensions.
+    Input:
+        dimensions: tuple of dimensions for the array
+    Output:
+        theta_array: 2D array of theta values for each pixel in the array
+    """
+    # Create an empty array of the same dimensions
+    theta_array = np.zeros(dimensions)
+
+    # Calculate the center of the array
+    center_x, center_y = dimensions[0] // 2, dimensions[1] // 2
+
+    # Iterate over each pixel
+    for x in range(dimensions[0]):
+        for y in range(dimensions[1]):
+            # Calculate the relative positions
+            rel_x, rel_y = x - center_x, y - center_y
+
+            # Calculate the angle and adjust to ensure 0 is 'north'
+            theta = np.arctan2(rel_y, rel_x) + np.pi / 2
+
+            # Normalize the angle to be between 0 and 2pi
+            theta = theta % (2 * np.pi)
+
+            # Assign the calculated theta to the array
+            theta_array[x, y] = theta
+
+    return theta_array
 
 
 def find_fourier_modes_and_phase_angles(radii, radius_pc, densities, theta, dV, dr=0.001, cylindrical_theta_velocity=None, phi2_only=False):
@@ -86,6 +136,7 @@ def find_fourier_modes_and_phase_angles(radii, radius_pc, densities, theta, dV, 
         phi_1_values.append(phi_1)
     
     if cylindrical_theta_velocity is not None:
+        print("cylindrical_theta_velocity is not None")
         return m1_strengths, m2_strengths, phi_1_values, phi_2_values, angular_speeds
     
     if phi2_only:
@@ -118,7 +169,7 @@ def find_pattern_speed_rad_per_sec(ds, root_dir, sim, phi_2_values, ss_age, widt
     """
     # Find the previous dataset phi2 values
     ds_previous = find_previous_ds(ds, root_dir, sim)
-    center, _, ss_age_previous = ss_properties(ds_previous, velocity=False)
+    center, _, ss_age_previous = ss_properties(ds_previous)
     _, L = _make_disk_L(ds_previous, center, disc_r_pc, disc_h_pc)
     vecs = ortho_find(L)
     dir = vecs[0]
@@ -178,11 +229,11 @@ def main(root_dir, sim, dds_list):
                 print("Plotting " + str(sim_label) + " " + str(extract_dd_segment(ds.directory)))
 
                 # Grab bh properties and define center, width and resolution of sliceplots
-                ss_pos, ss_mass, ss_age = ss_properties(ds, velocity=False)
+                ss_pos, ss_mass, ss_age = ss_properties(ds)
                 center = ss_pos
                 width_pc = 1
                 tick_labels = ['', '-0.05', '0.0', '0.05', '']
-                npixels = 2048
+                npixels = 800
                 theta = calculate_theta_array((npixels, npixels))
                 dx = ds.index.get_smallest_dx().in_units('cm')
                 dV = dx**3
@@ -206,11 +257,8 @@ def main(root_dir, sim, dds_list):
                 radii = np.arange(r_min, r_max + dr, dr) # 73
 
                 # Compute bar strength and phase angle variability across discrete annular regions
-                n = field_from_sliceplot("number_density", ds, disk, center, width_pc, north, dir, npixels=npixels)
-                cylindrical_velocity_theta = field_from_sliceplot("velocity_cylindrical_theta", ds, disk, center, width_pc, north, dir, npixels=npixels, radius=False)[0]
-                #m1_strengths, m2_strengths, phi_1_values, phi_2_values = find_fourier_modes_and_phase_angles(radii, radius_pc, density, theta, dV, dr)
+                cylindrical_velocity_theta = disk['velocity_cylindrical_theta'].to('cm/s')
                 m1_strengths, m2_strengths, _, phi_2_values, angular_speeds = find_fourier_modes_and_phase_angles(radii, radius_pc, density, theta, dV, dr, cylindrical_velocity_theta)
-
 
                 ## FOURIER MODES ##
 
@@ -260,6 +308,7 @@ def main(root_dir, sim, dds_list):
                 ## COROTATION SPEED ##
 
                 # find mean angular speed per annulus and plot
+                print("Angular speeds: ", angular_speeds)
                 angular_speed_means = [np.mean(annulus) for annulus in angular_speeds] # rad/sec
                 sec_to_yr = 3.154e7*yt.units.s*yt.units.year # seconds in a year
                 angular_speed_means_per_yr = [speed * sec_to_yr for speed in angular_speed_means] # rad/yr
@@ -281,7 +330,7 @@ def main(root_dir, sim, dds_list):
                 corotation_radius = radii[(np.abs(angular_speed_means_per_yr - mean_ps)).argmin()]
                 ax_speed.axvline(x=corotation_radius, label=r'$R_{{\rm co-rot}}$ = {:.3f} pc'.format(corotation_radius), color='goldenrod', linestyle="--", alpha=0.7)
 
-                # Add legend to first row
+                # Add legends (full legend in first row, R_co-rot only in rest)
                 ax_speed.legend(fontsize=10, loc='upper right', handlelength=1.4)
 
                 # set axes limits and labels
@@ -414,11 +463,12 @@ def main(root_dir, sim, dds_list):
 if __name__ == "__main__":
     """
     Plot a timeseries of sliceplots for a given simulation, showing the density, toomre q and radial velocity fields.
+    To run: python plot_density_slices_toomreq.py
     """
 
     root_dir = [#"/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/",
             #"/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/"
-            "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/270msun/replicating-beckmann/"
+            "/Backup00/sgordon/pleiades/seed1-bh-only/270msun/replicating-beckmann/"
             ]
     sim = [#"2B.RSm04", 
         #"2B.m08-4dx"
