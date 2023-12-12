@@ -232,7 +232,7 @@ def main(root_dir, sim, dds_list):
                 center = ss_pos
                 width_pc = 1
                 tick_labels = ['', '-0.05', '0.0', '0.05', '']
-                npixels = 800
+                npixels = 2048
                 theta = calculate_theta_array((npixels, npixels))
                 dx = ds.index.get_smallest_dx().in_units('cm')
                 dV = dx**3
@@ -256,32 +256,29 @@ def main(root_dir, sim, dds_list):
                 radii = np.arange(r_min, r_max + dr, dr) # 73
 
                 # Compute bar strength and phase angle variability across discrete annular regions
-                cylindrical_velocity_theta = disk['velocity_cylindrical_theta'].to('cm/s')
-                
                 cylindrical_velocity_theta = field_from_sliceplot("velocity_cylindrical_theta", ds, disk, center, width_pc, north, dir, npixels=npixels, radius=False)
                 m1_strengths, m2_strengths, _, phi_2_values, angular_speeds = find_fourier_modes_and_phase_angles(radii, radius_pc, density, theta, dV, dr, cylindrical_velocity_theta)
 
                 ## FOURIER MODES ##
 
                 # Find radius of the bar feature
-                var_deg = 7.9 # degrees - 2 deg is too low, tiny bar
+                var_deg = 7.0 # degrees - 2 deg is too low, tiny bar
                 bar_radius, i = find_bar_radius(phi_2_values, radii, var_deg=var_deg)
 
                 # Plot bar strength and phase angle variability across discrete annular regions
-                c1 = (0.843, 0.255, 0.655)    # m1
-                c2 = (0.4157, 0.7608, 0.4118) # m2
-                c3 = (0.6078, 0.3725, 0.8275) # bar
-                c3 = 'orange'
+                c1 = (1.0,0.2,0.5882)    # m1, rose bonbon
+                c2 = (0.1882,0.6706,0.3647) # m2, pigment green
+                c3 = (0.9608,0.3922,0.0627) # bar, orange pantone
                 if row == 0:
                     ax_fourier.plot(radii, m1_strengths, color=c1, linestyle='solid', marker=None, label=r'$m=1$', alpha=0.8)
                     ax_fourier.plot(radii, m2_strengths, color=c2, linestyle='solid', marker=None, label=r'$m=2$', alpha=0.8)
                     ax_fourier.axvline(x=bar_radius, color=c3, linestyle='dashed', label=r'$R_{{\rm bar}}$ = {:.3f} pc'.format(bar_radius), alpha=1)
-                    ax_fourier.legend(loc='upper right', fontsize=11, handlelength=1)
+                    ax_fourier.legend(loc='upper right', fontsize=11, handlelength=1.4)
                 else:
                     ax_fourier.plot(radii, m1_strengths, color=c1, linestyle='solid', marker=None, alpha=0.8)
                     ax_fourier.plot(radii, m2_strengths, color=c2, linestyle='solid', marker=None, alpha=0.8)
                     ax_fourier.axvline(x=bar_radius, color=c3, linestyle='dashed', label=r'$R_{{\rm bar}}$ = {:.3f} pc'.format(bar_radius), alpha=1) 
-                    ax_fourier.legend(loc='upper right', fontsize=11, handlelength=1) if row == 2 else None
+                    ax_fourier.legend(loc='upper right', fontsize=11, handlelength=1.4) if row != 1 else None
                 
                 if row == 3:
                     ax_fourier.tick_params(axis='x', direction='out', which='major')
@@ -301,43 +298,43 @@ def main(root_dir, sim, dds_list):
                     ax_fourier.set_xlabel('')
                     ax_fourier.set_xticklabels([])
                 
-                ax_fourier.set_ylabel(r'$\rm Amplitude$', fontsize=12)
+                #ax_fourier.set_ylabel(r'$\rm Amplitude$', fontsize=12, labelpad=40) if row == 0 else None
                 ax_fourier.set_title('Fourier Modes') if row == 0 else None
                 ax_fourier.grid(color='grey', linestyle='dotted', alpha=0.5)
 
 
-                ## COROTATION SPEED ##
+                ## COROTATION FREQUENCY ##
 
                 # find mean angular speed per annulus and plot
                 angular_speed_means = [np.mean(annulus) for annulus in angular_speeds] # rad/sec
                 sec_to_yr = 3.154e7*yt.units.s*yt.units.year # seconds in a year
-                angular_speed_means_per_yr = [speed * sec_to_yr for speed in angular_speed_means] # rad/yr
-                label1 = r'Disc Angular Rotation' if row == 0 else None
-                ax_speed.plot(radii, angular_speed_means_per_yr, color='teal', label=label1, linestyle='solid', marker=None)
+                angular_freq_means_per_yr = [speed * sec_to_yr *2*np.pi for speed in angular_speed_means] # rad/yr
+                label1 = r'Disc Angular Freq.' if row == 0 else None
+                ax_speed.plot(radii, angular_freq_means_per_yr, color='teal', label=label1, linestyle='solid', marker=None)
 
                 # find pattern speed and plot
                 pattern_speeds_rad_per_sec = find_pattern_speed_rad_per_sec(ds, root_dir, sim, phi_2_values, ss_age, width_pc, disc_h_pc, disc_r_pc, disc_r_pc_big, disc_h_pc_big, npixels, radii, theta, dV)
                 lim_ps = (np.abs(radii - bar_radius)).argmin() # limit the number of pattern speed points plotted to almost within the bar radius
-                pattern_speeds_rad_per_yr = [speed2 * sec_to_yr for speed2 in pattern_speeds_rad_per_sec]
-                ps = np.abs(pattern_speeds_rad_per_yr)[0:lim_ps]
-                label2 = r'$m = 2$ Pattern Speed' if row == 0 else None
-                ax_speed.plot(radii[0:lim_ps+5], np.abs(pattern_speeds_rad_per_yr)[0:lim_ps+5], label=label2, linestyle=None, color='darkred', marker='x', linewidth=0.6)
+                pattern_freq_rad_per_yr = [speed2 * sec_to_yr*2*np.pi for speed2 in pattern_speeds_rad_per_sec]
+                ps = np.abs(pattern_freq_rad_per_yr)[0:lim_ps]
                 mean_ps = np.mean(ps)
-                label3 = r'Mean Bar Pattern Speed' if row == 0 else None
+                label2 = r'$m = 2$ Pattern Freq.' if row == 0 else None
+                ax_speed.plot(radii[0:lim_ps+5], np.abs(pattern_freq_rad_per_yr)[0:lim_ps+5], label=label2, linestyle=None, color='darkred', marker='x', linewidth=0.6)
+                label3 = r'Mean Bar Pattern Freq.' if row == 0 else None
                 ax_speed.axhline(y=mean_ps, label=label3, color='darkred', linestyle="-", alpha=0.5)
 
                 # find corotation radius and plot
-                corotation_radius = radii[(np.abs(angular_speed_means_per_yr - mean_ps)).argmin()]
+                corotation_radius = radii[(np.abs(angular_freq_means_per_yr - mean_ps)).argmin()]
                 ax_speed.axvline(x=corotation_radius, label=r'$R_{{\rm co-rot}}$ = {:.3f} pc'.format(corotation_radius), color='goldenrod', linestyle="--", alpha=0.7)
 
                 # Add legends (full legend in first row, R_co-rot only in rest)
-                ax_speed.legend(fontsize=10, loc='upper right', handlelength=1.4)
+                ax_speed.legend(fontsize=11, loc='upper center', handlelength=1.4) if row != 1 else None
 
                 # set axes limits and labels
                 ax_speed.set_xscale('log')
                 ax_speed.set_yscale('log')
                 ax_speed.grid(color='grey', linestyle='dotted', alpha=0.5)
-                ax_speed.set_ylim(7e-7, 8e-4)
+                ax_speed.set_ylim(7e-6, 8e-3)
                 if row == 3:
                     ax_speed.set_xlabel('Radius (pc)')
                 else:
@@ -346,7 +343,7 @@ def main(root_dir, sim, dds_list):
                     ax_speed.tick_params(axis='x', which='major', direction='in')
                     ax_speed.tick_params(axis='x', which='minor', direction='in')
                 ax_speed.set_title('Co-rotation Radius') if row == 0 else ax_speed.set_title('')
-                ax_speed.set_ylabel('Speed (rad/yr)')
+                #ax_speed.set_ylabel('Frequency (1/yr)', labelpad=40)  if row == 0 else None
                     
 
                 ## SLICEPLOTS ##
@@ -383,7 +380,7 @@ def main(root_dir, sim, dds_list):
                     elif column == 2:
                         # cylindrical_radial_velocity (add this part)
                         cmap = cmyt.kelp  # diverging, 'coolwarm, 'rainbow'
-                        cmap = "coolwarm" # magma
+                        cmap = "RdBu_r" # magma
                         min_v = -10     
                         max_v = 10   
                         velocity = field_from_sliceplot("velocity_cylindrical_radius", ds, disk, center, width_pc, north, dir, npixels=npixels).to("km/s")
@@ -453,6 +450,11 @@ def main(root_dir, sim, dds_list):
             fig.text(0.365+fourier_width, title_height, r'Number Density ($\rm cm^{-3}$)', ha='center', va='center')
             fig.text(0.493+fourier_width, title_height, r'Toomre $Q$', ha='center', va='center')
             fig.text(0.625+fourier_width, title_height, r'Radial Velocity ($\rm km/s$)', ha='center', va='center')  # Adjust this title as necessary
+
+            # Add ylabels
+            # Assuming your figure is named `fig` and you have your subplots in `ax` array
+            fig.text(-0.025, 0.665, 'Amplitude $A_m/A_0$', va='center', rotation='vertical', fontsize=12)
+            fig.text(0.02+fourier_width, 0.67, 'Frequency (1/yr)', va='center', rotation='vertical', fontsize=12)
 
             # save
             plot_name = f'sliceplot-timeseries-{sim_label}-{width_pc}pc-fourier_modes-toomreq-radial_vel_r={disc_r_pc}pc_ageset_low_toomre_{var_deg}deg_dr={dr}_rmin={r_min}.pdf'
