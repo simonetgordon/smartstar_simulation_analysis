@@ -4,7 +4,6 @@ python -i plot_cooling_rates.py DD0130/DD0130
 """
 
 import yt
-import shutil
 import sys
 import os
 import numpy as np
@@ -16,7 +15,6 @@ from derived_fields import add_fields_ds
 from find_disc_attributes import _make_disk_L
 from matplotlib import rc
 import matplotlib.transforms as mtransforms
-from plot_multi_projections import tidy_data_labels
 import matplotlib.cm as cm
 
 # plot and save figure
@@ -24,6 +22,34 @@ def moving_average(a, n=5) :
     ret = np.cumsum(a, dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n
+
+def adaptive_moving_average(data, window_size=5):
+    """
+    Compute an adaptive moving average on the logarithm of the data.
+    
+    :param data: The input data (list or array).
+    :param window_size: The window size for the moving average.
+    :return: An array of the moving average values in the original data space.
+    """
+    # Take the logarithm of data, excluding non-positive values
+    log_data = np.log(data[data > 0])
+    data_length = len(log_data)
+    log_moving_avg = np.zeros(data_length)
+
+    for i in range(data_length):
+        start = max(i - window_size // 2, 0)
+        end = min(i + window_size // 2 + 1, data_length)
+        log_moving_avg[i] = np.mean(log_data[start:end])
+
+    # Exponentiate to return to original data space
+    moving_avg = np.exp(log_moving_avg)
+
+    # Handle edge cases if original data had non-positive values
+    moving_avg_full = np.full_like(data, np.nan)
+    positive_indices = np.where(data > 0)[0]
+    moving_avg_full[positive_indices] = moving_avg
+
+    return moving_avg_full
 
 # function that does the interpolation
 def interpolate_data(arr, N=100):
@@ -60,52 +86,32 @@ def extract_colors(cmap_name, n, portion=None, start=None, end=None):
 # my data 
 root_dir = ["/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann",
             "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann", 
-            "/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann",
-            "/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2",
-            "/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2"]
+            "/Backup00/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann",
+            "/Backup00/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2",
+            "/Backup00/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2"]
 sim = [
     "1B.RSb01-2", 
     "1B.RSb16",
     "1B.m16-4dx",
     "2B.RSb08/2B.RSb08-2",
-    "2B.m08-4dx"]
+    "2B.m08-4dx/2B.m16-4dx-2",
+    #"2B.m08-4dx"
+    ] 
 dds = [
     "DD0138/DD0138", # 1 Myr
     "DD0166/DD0166", # 1 Myr
     "DD0202/DD0202", # 1.000 Myr
-    "DD0252/DD0252", # 0.750 Myr
-    "DD0291/DD0291"] # 0.934 Myr
+    "DD0279/DD0279", # 1 Myr
+    #"DD0299/DD0299", # 1 Myr in 2B.m08-4dx
+    "DD0304/DD0304"] # 1 Myr in 2B.m16-4dx
+
 labels = []
 DS = []
 
 # Beckmann data
-data_beck = pd.read_csv("beckmann-data/cooling_line_beckmann.csv")
+data_beck = pd.read_csv("cooling_line_beckmann.csv")
 radius_beck = data_beck['radius'].tolist()
 q_ratio_beck = data_beck['qratio'].tolist()
-
-## First check there is a local /data area                                                                                                                                                                 
-# if os.path.isdir("/data"):
-#     #sys.exit("Error: no /data")
-
-#     ## Second, check we have a directory. If not, then create one.                                                                                                                                             
-#     UserName=os.getlogin()
-#     LocalDir=os.path.join("/data",UserName)
-#     if not os.path.isdir(LocalDir):
-#         print("Creating Directory "+LocalDir)
-#         os.mkdir(LocalDir)
-
-#     ## Third, check if the data is already there, and if not, copy it over.                                                                                                                                    
-#     DataDumpFull = sys.argv[1]
-#     DataDump = DataDumpFull.split('/')
-#     LocalData = os.path.join(LocalDir,DataDump[0])
-#     if not os.path.isdir(LocalData):
-#         print("Copying data to "+LocalData)
-#         shutil.copytree(os.path.join(root_dir,DataDump[0]),LocalData)
-#         print("Done copying data")
-#     else:
-#         print("Found a local copy in "+LocalData)
-    
-#     root_dir = LocalDir
 
 # set font properties
 plt.rcParams["font.family"] = "serif"
@@ -128,8 +134,8 @@ fig, axs = plt.subplots(1, sharex=True)
 
 # set x and y labels
 plt.xlabel(r"Radius (pc)", fontsize=20)
-#plt.ylabel(r"$\rm Q_{adv} / Q_{rad}$", fontsize=20)
-plt.ylabel(r"$\rm Q_{rad} (\rm erg \, s^{-1} \, cm^{-3})$", fontsize=20)
+plt.ylabel(r"$\rm Q_{adv} / Q_{rad}$", fontsize=20)
+#plt.ylabel(r"$\rm Q_{rad} (\rm erg \, s^{-1} \, cm^{-3})$", fontsize=20)
 # set minorticks
 min_n_index = -3
 max_n_index = 1
@@ -139,9 +145,12 @@ minorticks = np.outer(a1, a2).flatten()
 plt.yticks(minorticks, minor=True)
 
 # plot Beckmann cooling line
-#plt.loglog(radius_beck, q_ratio_beck, color="grey", label="Beckmann_2018",linewidth=4)
+plt.loglog(radius_beck, q_ratio_beck, color="grey", label="B18",linewidth=4)
 
-labels = ['1B.b01_1Myr', '1B.b16_1Myr', '1B.m16_1Myr', '2B.b08_0.75Myr', '2B.m08_0.93Myr']
+labels = ['1B.b01', '1B.b16', '1B.m16', '2B.b08', '2B.m16']
+# Initialize lists to store aggregated data
+all_x = []
+all_y = []
 for j, ds in enumerate(dds):
     # Load the data from the local directory
     ds = yt.load(os.path.join(root_dir[j], sim[j], ds))
@@ -162,21 +171,23 @@ for j, ds in enumerate(dds):
         weight_field=("gas", "mass"),
     )
 
-    # make ds label
-    # label = tidy_data_labels(str(sim[j]) + "_" + "{:.2f}".format(ss_age[0]/1e6) + "Myr")
-    # DS.append(ds)
-    # labels.append(label)
-
     # take absolute value of cooling rate
-    cooling_ratio = np.abs(profile[("enzo", "radiative_cooling_rate")][profile.used]) 
-                    # profile[("enzo", "advective_cooling_rate")][profile.used])
-    n = 2
-    x_avg = interpolate_data(moving_average(profile.x[profile.used], n=n))
-    y_avg = interpolate_data(moving_average(cooling_ratio, n=n))
+    cooling_ratio = np.abs(profile[("enzo", "radiative_cooling_rate")][profile.used]/profile[("enzo", "advective_cooling_rate")][profile.used])
+    n = 10
+    #x_avg = interpolate_data(moving_average(profile.x[profile.used], n=n))
+    #y_avg = interpolate_data(moving_average(cooling_ratio, n=n))
+    x_avg = adaptive_moving_average(profile.x[profile.used], window_size=n)
+    y_avg = adaptive_moving_average(cooling_ratio, window_size=n)
+    x_avg = x_avg.d
+    y_avg = y_avg.d
+
+    # Append the data to the aggregated lists
+    all_x.append(x_avg)
+    all_y.append(y_avg)
 
     #plt.loglog(profile.x[profile.used], cooling_ratio)
     plt.loglog(x_avg, y_avg, color=c[j], label=labels[j])
-    #plt.axhline(y=1, color='grey', linestyle='dashed', linewidth=2, alpha=1)
+    plt.axhline(y=1, color='grey', linestyle='dashed', linewidth=2, alpha=1)
     plt.xlim(4e-4, 10.2)
     #plt.ylim(2e-4, 1.2e4)
     plt.legend(ncol=1, fontsize=16, frameon=False, handlelength=2, handletextpad=0.8, loc='lower right')
@@ -198,13 +209,24 @@ for j, ds in enumerate(dds):
     plt.axvline(accretion_r, color="black", alpha=1)
     trans = mtransforms.blended_transform_factory(axs.transData, axs.transAxes)
     if j == 1:
-        plt.fill_between(x_avg, 0, y_avg.max(), where=x_avg <= disc_r, facecolor=cr[0], transform=trans, alpha=0.5)
+        plt.fill_between(adaptive_moving_average(profile.x[profile.used], window_size=n), 0, adaptive_moving_average(cooling_ratio, window_size=n).max(), 
+                         where=adaptive_moving_average(profile.x[profile.used]) <= disc_r, facecolor=cr[0], transform=trans, alpha=0.5)
 
-plt.title("Radiative Cooling Rate Radial Profile", fontsize=20)
 
-plot_name = 'radial-profile-plot-radiative-cooling-' + str(sim[0]) + "_" + str(sim[1]) + '+s2.pdf'
-#+ '_' + str(sim[1]) + '_' + str(sim[2]) 
+# After the loop, compute the trendline for the aggregated data
+z = np.polyfit(all_x, all_y, 1)  # Adjust the degree (1 for linear) as needed
+p = np.poly1d(z)
 
+# Create a range of x values for plotting the trendline
+trend_x = np.linspace(min(all_x), max(all_x), len(all_x))
+trend_y = p(trend_x)
+
+# Plot the trendline
+plt.plot(trend_x, trend_y, linestyle="--", color='black', label='Trendline')
+
+# Save the figure
+plt.title("Advection/Radiative Cooling Rate Radial Profile", fontsize=20)
+plot_name = f'radial-profile-radiative-cooling-ratio-{str(sim[0])}_{str(sim[1])}_window={n}.pdf'
 fig.set_size_inches(8, 5.8)
 plt.savefig('plots/' + plot_name, dpi=100)
 print("created ", 'plots/' + plot_name)
