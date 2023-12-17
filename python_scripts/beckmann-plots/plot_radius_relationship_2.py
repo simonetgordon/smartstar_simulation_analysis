@@ -11,6 +11,31 @@ from matplotlib.ticker import FixedLocator
 def log_line_fit(x, slope, intercept):
     return 10 ** (np.log10(x) * slope + intercept)
 
+def determine_simulation_type():
+    datafile = sys.argv[2]
+    for sub in ['2S', '1S', '2B', '1B']:
+        if sub in datafile:
+            print("The datafile contains one of the specified substrings.")
+            if sub == '1S':
+                halo = 1
+                bh_mass = 10.8
+                sim = 's1-10.8msun-'
+            elif sub == '2S':
+                halo = 2
+                bh_mass = 10.8
+                sim = 's2-10.8msun-'
+            elif sub == '1B':
+                halo = 1
+                bh_mass = 270
+                sim = 's1-270msun-'
+            elif sub == '2B':
+                halo = 2
+                bh_mass = 270
+                sim = 's2-270msun-'
+            return bh_mass, halo, sim
+        else:
+            print("The filepath does not contain any of the specified substrings.")
+
 def setup_fonts(fontsize):
     rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
     rc('text', usetex=True)
@@ -224,16 +249,22 @@ def format_plots(axs, num_subplots, fontsize, linewidth, alpha, eddington, line_
 if __name__ == "__main__":
 
     # Define the plotting parameters
-    xlim = 0.1
-    sim = "s1-10.8msun-"
+    xlim = 0.4
     atol = 5e-4
     eddington = True
     accretion = sys.argv[-1]
-    colors = ['blueviolet', 'turquoise', 'limegreen', 'darkgreen']
     fontsize = 12
     window_size = 1
     linewidth = 1.5
     alpha = 0.5
+
+    bh_mass, halo, sim = determine_simulation_type()
+    print("Simulation: ", sim)
+    print("Black hole mass: ", bh_mass)
+    print("Halo: ", halo)
+
+    # Define the colors and labels
+    colors = ['blueviolet', 'turquoise', 'limegreen', 'darkgreen'] if halo == 1 else ['indigo', 'blueviolet', 'violet', 'dodgerblue', 'turquoise', 'limegreen', 'darkgreen'] # line colours s2S
 
     # Set up the plot
     setup_fonts(fontsize)
@@ -262,7 +293,7 @@ if __name__ == "__main__":
     #fig = plt.gcf()
     fig.subplots_adjust(wspace=0.005, hspace=0.005)
     fig.set_size_inches(8, 6)
-    fig.suptitle("10.8 $M_\odot$ Black Hole, t = 0.1 Myr", fontsize=fontsize + 5, y=0.95)
+    fig.suptitle(f"Halo {halo} {bh_mass} $M_\odot$ Black Hole, t = {xlim} Myr", fontsize=fontsize + 5, y=0.95)
     fig.tight_layout()
     plot_name = 'plots/accrate-dx_res-' + str(sim) + str(accretion) + "-" + str(xlim) + 'Myr_2.pdf'
     fig.savefig(plot_name)
