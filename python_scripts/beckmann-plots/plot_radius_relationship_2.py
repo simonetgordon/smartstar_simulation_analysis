@@ -165,10 +165,14 @@ def perform_analysis_and_plot_trendlines(lst_accrate_bhl, lst_res_hl_bhl, lst_re
 
     # Plot trendlines
     linear_fit_color = "yellow"
-    axs[0, 0].plot(lst_accrate_mf, log_line_fit(lst_accrate_mf, *p_hl_mf), linear_fit_color, linestyle='solid')
-    axs[0, 1].plot(lst_accrate_mf, log_line_fit(lst_accrate_mf, *p_bondi_mf), linear_fit_color, linestyle='solid')
-    axs[1, 0].plot(lst_accrate_bhl, log_line_fit(lst_accrate_bhl, *p_hl_bhl), linear_fit_color, linestyle='solid')
-    axs[1, 1].plot(lst_accrate_bhl, log_line_fit(lst_accrate_bhl, *p_bondi_bhl), linear_fit_color, linestyle='solid')
+    for i in range(num_subplots):
+        for j in range(num_subplots):
+            axs[i, j].set_yscale('log')
+            axs[i, j].set_xscale('log')
+    axs[0, 0].plot(lst_res_hl_mf, log_line_fit(lst_res_hl_mf, *p_hl_mf), linear_fit_color, linestyle='solid')
+    axs[0, 1].plot(lst_res_bondi_mf, log_line_fit(lst_res_bondi_mf, *p_bondi_mf), linear_fit_color, linestyle='solid')
+    axs[1, 0].plot(lst_res_hl_bhl, log_line_fit(lst_res_hl_bhl, *p_hl_bhl), linear_fit_color, linestyle='solid')
+    axs[1, 1].plot(lst_res_bondi_bhl, log_line_fit(lst_res_bondi_bhl, *p_bondi_bhl), linear_fit_color, linestyle='solid')
 
     return p_hl_bhl, p_bondi_bhl, p_hl_mf, p_bondi_mf, line_str_pearson_hl_bhl, line_str_pearson_bondi_bhl, line_str_pearson_hl_mf, line_str_pearson_bondi_mf
 
@@ -180,8 +184,8 @@ def format_plots(axs, num_subplots, fontsize, linewidth, alpha, eddington, line_
 
     for i in range(num_subplots):
         for j in range(num_subplots):
-            axs[i, j].set_yscale('log')
-            axs[i, j].set_xscale('log')
+            # axs[i, j].set_yscale('log')
+            # axs[i, j].set_xscale('log')
             #axs[i, j].set_yticks(yticks)
             #axs[i, j].yaxis.set_minor_locator(FixedLocator(yticks_minor))
             axs[i, j].tick_params(axis="both", which='both', length=2, direction="in", labelsize=fontsize)
@@ -220,7 +224,7 @@ def format_plots(axs, num_subplots, fontsize, linewidth, alpha, eddington, line_
 if __name__ == "__main__":
 
     # Define the plotting parameters
-    xlim = 0.4
+    xlim = 0.1
     sim = "s1-10.8msun-"
     atol = 5e-4
     eddington = True
@@ -258,7 +262,7 @@ if __name__ == "__main__":
     #fig = plt.gcf()
     fig.subplots_adjust(wspace=0.005, hspace=0.005)
     fig.set_size_inches(8, 6)
-    fig.suptitle("10.8 $M_\odot$ Black Hole, t = 1 Myr", fontsize=fontsize + 2, y=0.98)
+    fig.suptitle("10.8 $M_\odot$ Black Hole, t = 0.1 Myr", fontsize=fontsize + 5, y=0.95)
     fig.tight_layout()
     plot_name = 'plots/accrate-dx_res-' + str(sim) + str(accretion) + "-" + str(xlim) + 'Myr_2.pdf'
     fig.savefig(plot_name)
