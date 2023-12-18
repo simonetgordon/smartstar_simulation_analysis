@@ -33,8 +33,6 @@ def determine_simulation_type():
                 bh_mass = 270
                 sim = 's2-270msun-'
             return bh_mass, halo, sim
-        else:
-            print("The filepath does not contain any of the specified substrings.")
 
 def setup_fonts(fontsize):
     rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
@@ -158,33 +156,33 @@ def perform_analysis_and_plot_trendlines(lst_accrate_bhl, lst_res_hl_bhl, lst_re
     
     # perform Pearson correlation coefficient analysis
     # 1) HL radius resolution in cell widths
-    corr_hl_bhl, pv_hl_bhl = stats.pearsonr(lst_res_hl_bhl, lst_accrate_bhl)
-    corr_hl_mf, pv_hl_mf = stats.pearsonr(lst_res_hl_mf, lst_accrate_mf)
+    corr_hl_bhl, pv_hl_bhl = stats.pearsonr(np.log10(lst_res_hl_bhl), np.log10(lst_accrate_bhl))
+    corr_hl_mf, pv_hl_mf = stats.pearsonr(np.log(lst_res_hl_mf), np.log10(lst_accrate_mf))
     print("HL radius resolution in cell widths:")
-    print("BHL: corr = {:.2f}, p = {:.2f}".format(corr_hl_bhl, pv_hl_bhl))
-    print("MF: corr = {:.2f}, p = {:.2f}".format(corr_hl_mf, pv_hl_mf))
+    print("BHL: corr = {:.2f}, p = {:.3e}".format(corr_hl_bhl, pv_hl_bhl))
+    print("MF: corr = {:.2f}, p = {:.3e}".format(corr_hl_mf, pv_hl_mf))
 
     # 2) Bondi radius resolution in cell widths
-    corr_bondi_bhl, pv_bondi_bhl = stats.pearsonr(lst_res_bondi_bhl, lst_accrate_bhl)
-    corr_bondi_mf, pv_bondi_mf = stats.pearsonr(lst_res_bondi_mf, lst_accrate_mf)
+    corr_bondi_bhl, pv_bondi_bhl = stats.pearsonr(np.log10(lst_res_bondi_bhl), np.log10(lst_accrate_bhl))
+    corr_bondi_mf, pv_bondi_mf = stats.pearsonr(np.log10(lst_res_bondi_mf),np.log10(lst_accrate_mf))
     print("Bondi radius resolution in cell widths:")
-    print("BHL: corr = {:.2f}, p = {:.2f}".format(corr_bondi_bhl, pv_bondi_bhl))
-    print("MF: corr = {:.2f}, p = {:.2f}".format(corr_bondi_mf, pv_bondi_mf))
+    print("BHL: corr = {:.2f}, p = {:.3e}".format(corr_bondi_bhl, pv_bondi_bhl))
+    print("MF: corr = {:.2f}, p = {:.3e}".format(corr_bondi_mf, pv_bondi_mf))
 
     # perform linear regression on aggregate data per accretion scheme and radius resolution
     # 1) BHL
     slope_hl, intercept_hl, r_value_hl, p_value_hl, std_err_hl = stats.linregress(np.log10(lst_res_hl_bhl), np.log10(lst_accrate_bhl))
     slope_bondi, intercept_bondi, r_value_bondi, p_value_bondi, std_err_bondi = stats.linregress(np.log10(lst_res_bondi_bhl), np.log10(lst_accrate_bhl))
-    line_str_pearson_hl_bhl = r"$R^2$ = $\rm %.2f$" % (r_value_hl ** 2)
-    line_str_pearson_bondi_bhl = r"$R^2$ = $\rm %.2f$" % (r_value_bondi ** 2)
+    line_str_pearson_hl_bhl = "$R^2$ = ${:.2f}$\n $P$ = ${:.2f}$".format(r_value_hl**2, corr_hl_bhl)
+    line_str_pearson_bondi_bhl = "$R^2$ = ${:.2f}$\n $P$ = ${:.2f}*$".format(r_value_bondi**2, corr_bondi_bhl) if sim == 's2-270msun-' and xlim > 0.1 else "$R^2$ = ${:.2f}$\n $P$ = ${:.2f}$".format(r_value_bondi**2, corr_bondi_bhl)
     p_hl_bhl = [slope_hl, intercept_hl]
     p_bondi_bhl = [slope_bondi, intercept_bondi]
 
     # 2) MF
     slope_hl_2, intercept_hl_2, r_value_hl_2, p_value_hl_2, std_err_hl_2 = stats.linregress(np.log10(lst_res_hl_mf), np.log10(lst_accrate_mf))
     slope_bondi_2, intercept_bondi_2, r_value_bondi_2, p_value_bondi_2, std_err_bondi_2 = stats.linregress(np.log10(lst_res_bondi_mf), np.log10(lst_accrate_mf))
-    line_str_pearson_hl_mf = r"$R^2$ = $\rm %.2f$" % (r_value_hl_2 ** 2)
-    line_str_pearson_bondi_mf = r"$R^2$= $\rm %.2f$" % (r_value_bondi_2 ** 2)
+    line_str_pearson_hl_mf = "$R^2$ = ${:.2f}$\n $P$ = ${:.2f}$*".format(r_value_hl_2 ** 2, corr_hl_mf) if sim == 's1-10msun-' else "$R^2$ = ${:.2f}$\n $P$ = ${:.2f}$".format(r_value_hl_2 ** 2, corr_hl_mf)
+    line_str_pearson_bondi_mf = "$R^2$ = ${:.2f}$\n $P$ = ${:.2f}$".format(r_value_bondi_2 ** 2, corr_bondi_mf)
     p_hl_mf = [slope_hl_2, intercept_hl_2]
     p_bondi_mf = [slope_bondi_2, intercept_bondi_2]
 
@@ -203,10 +201,7 @@ def perform_analysis_and_plot_trendlines(lst_accrate_bhl, lst_res_hl_bhl, lst_re
 
 
 def format_plots(axs, num_subplots, fontsize, linewidth, alpha, eddington, line_str_pearson_bondi_mf, line_str_pearson_hl_bhl, line_str_pearson_bondi_bhl):
-    yticks = np.logspace(-3, 3, 7)
-    yticks_minor = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 2, 3, 4, 5, 6, 7, 8, 9, 20, 30, 40, 50, 60, 70, 80, 90, 200, 300, 400, 500, 600, 700, 800, 900]
-    linear_fit_color = "yellow"
-
+    # Set up the plot with font and line settings
     for i in range(num_subplots):
         for j in range(num_subplots):
             # axs[i, j].set_yscale('log')
@@ -227,13 +222,16 @@ def format_plots(axs, num_subplots, fontsize, linewidth, alpha, eddington, line_
     axs[0, 0].set_ylabel(ylabel)
     
     # Additional text and legend
-    xtext = 0.755
+    xtext = 0.705 if sim == 's2-270msun-' else 0.69
+    ytext = 0.085 if sim == 's2-270msun-' else 0.085
+    xtext2 = ytext if sim == 's2-270msun-' else 0.05
+    #text1 = f"{line_str_pearson_hl_mf}\n{line2}"
     axs[0, 1].text(1.02, 0.5, 'Mass-Flux', transform=axs[0, 1].transAxes, ha='left', va='center')
     axs[1, 1].text(1.02, 0.5, 'BHL', transform=axs[1, 1].transAxes, ha='left', va='center')
-    axs[0, 0].text(xtext, 0.065, line_str_pearson_hl_mf, fontsize=fontsize, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[0, 0].transAxes)
-    axs[0, 1].text(xtext, 0.065, line_str_pearson_bondi_mf, fontsize=fontsize, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[0, 1].transAxes)
-    axs[1, 0].text(xtext, 0.065, line_str_pearson_hl_bhl, fontsize=fontsize, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[1, 0].transAxes)
-    axs[1, 1].text(xtext, 0.065, line_str_pearson_bondi_bhl, fontsize=fontsize, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[1, 1].transAxes)
+    axs[0, 0].text(xtext, ytext, line_str_pearson_hl_mf, fontsize=fontsize, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[0, 0].transAxes)
+    axs[0, 1].text(xtext2, ytext, line_str_pearson_bondi_mf, fontsize=fontsize, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[0, 1].transAxes)
+    axs[1, 0].text(xtext, ytext, line_str_pearson_hl_bhl, fontsize=fontsize, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[1, 0].transAxes)
+    axs[1, 1].text(xtext2, ytext, line_str_pearson_bondi_bhl, fontsize=fontsize, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[1, 1].transAxes)
     axs[0, 1].legend(fontsize=fontsize - 2, ncol=2, loc="upper left")
     axs[1, 1].legend(fontsize=fontsize - 2, ncol=2, loc="upper left")
 
@@ -241,12 +239,50 @@ def format_plots(axs, num_subplots, fontsize, linewidth, alpha, eddington, line_
     axs[0, 1].set_yticklabels([])
     axs[1, 1].set_yticklabels([])
 
-    # limit y-axis range in top row
-    axs[0, 0].set_ylim(8e-2, 3e3)
-    axs[0, 1].set_ylim(8e-2, 3e3)
+    if sim == 's1-10.8msun-':
+        # limit y-axis range in top row
+        axs[0, 0].set_ylim(8e-2, 3e3)
+        axs[0, 1].set_ylim(8e-2, 3e3)
+
+    if sim == 's1-270msun-':
+        # limit x-axis range in all plots
+        axs[0, 0].set_xlim(6e-2, 2e3)
+
+        # limit y-axis range in top row
+        axs[0, 0].set_ylim(8e-1, 5e3)
+        axs[0, 1].set_ylim(8e-1, 5e3)
+
+        # limit y-axis range in bottom row
+        axs[1, 0].set_ylim(8e-1, 5e3)
+        axs[1, 1].set_ylim(8e-1, 5e3)
+
+    if sim == 's2-10.8msun-':
+        # limit y-axis range in top row
+        axs[0, 0].set_ylim(8e-2, 3e3)
+        axs[0, 1].set_ylim(8e-2, 3e3)
+
+    if sim == 's2-270msun-':
+        # limit x-axis range in top row
+        axs[0, 0].set_xlim(7e-3, 8e2)
+
+        # limit y-axis range in top row
+        axs[0, 0].set_ylim(8e-2, 3e3)
+        axs[0, 1].set_ylim(8e-2, 3e3)
+
+        # limit y-axis range in bottom row
+        axs[1, 0].set_ylim(2, 5e3)
+        axs[1, 1].set_ylim(2, 5e3)
+
 
 
 if __name__ == "__main__":
+
+    ##########################################################################################################
+    #                               Plot Accretion Rate vs Radius Resolution vs 
+    #
+    # to run: python -i plot_radius_relationship.py [csv1] [csv2] [csv3] [output_plotname e.g MF-BHL]
+    # for 2x2 update: list MF runs first, then BHL runs. Name: MF+BHL (in order of low res to high res)
+    ##########################################################################################################
 
     # Define the plotting parameters
     xlim = 0.4
@@ -264,7 +300,8 @@ if __name__ == "__main__":
     print("Halo: ", halo)
 
     # Define the colors and labels
-    colors = ['blueviolet', 'turquoise', 'limegreen', 'darkgreen'] if halo == 1 else ['indigo', 'blueviolet', 'violet', 'dodgerblue', 'turquoise', 'limegreen', 'darkgreen'] # line colours s2S
+    colors = ['blueviolet', 'turquoise', 'limegreen', 'darkgreen'] if bh_mass == 270 else ['goldenrod', 'chocolate', 'orangered', 'violet', 'deeppink', 'blueviolet',] # line colours s2S
+    colors = [ 'violet', 'deeppink', 'blueviolet','turquoise'] if bh_mass == 10.8 and halo == 1 else colors
 
     # Set up the plot
     setup_fonts(fontsize)
@@ -292,7 +329,7 @@ if __name__ == "__main__":
     # save plot as pdf
     #fig = plt.gcf()
     fig.subplots_adjust(wspace=0.005, hspace=0.005)
-    fig.set_size_inches(8, 6)
+    fig.set_size_inches(7, 5)
     fig.suptitle(f"Halo {halo} {bh_mass} $M_\odot$ Black Hole, t = {xlim} Myr", fontsize=fontsize + 5, y=0.95)
     fig.tight_layout()
     plot_name = 'plots/accrate-dx_res-' + str(sim) + str(accretion) + "-" + str(xlim) + 'Myr_2.pdf'
