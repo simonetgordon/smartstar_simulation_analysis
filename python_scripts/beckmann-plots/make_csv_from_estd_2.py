@@ -259,7 +259,7 @@ def main(root_dir):
     
     # Combine data from the second directory (if it exists)
     second_directory = ""
-    second_directory = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/estd-data-end/"  # Replace with the correct path to the second directory
+    #second_directory = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/estd-data-end/"  # Replace with the correct path to the second directory
 
     # Check if the second directory exists and append its data to the CSV file
     if os.path.isdir(second_directory):
@@ -279,5 +279,5 @@ def main(root_dir):
 if __name__ == "__main__":
     # User input: Replace with your desired root directory
     #root_directory = "/disk14/sgordon/cirrus-runs-rsync/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSb01/"
-    root_directory = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/estd-data-start/"
+    root_directory = "/Backup00/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/"
     main(root_directory)

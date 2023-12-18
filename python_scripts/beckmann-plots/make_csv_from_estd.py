@@ -209,7 +209,11 @@ if __name__ == "__main__":
     # root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSb01/estd-early/"
     # root_dir_2 = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSb01/2S.b01-234+/"
     #root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.m01-no-SN/"
-    root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.b01-no-SN/"
+    #root_dir = "/ceph/cephfs/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.b01-no-SN/"
+    #root_dir_2 = "/Backup00/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/"
+    #root_dir = "/Backup00/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/estd-start/"
+    #root_dir = "/Backup00/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb01/"
+    root_dir = "/Backup00/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.m01-no-SN/"
 
     # Extract simulation name
     sim = extract_simulation_name(root_dir)

@@ -5,7 +5,7 @@ import numpy as np
 from scipy import stats
 import sys
 from read_arrays_from_csv import bhl_object_list, bhl_object_labels
-from plot_variables import tidy_data_labels, first_index, interpolate_data, movingaverage, eddington_rate
+from plot_variables import tidy_data_labels, first_index, interpolate_data, moving_average, eddington_rate
 from matplotlib.ticker import FixedLocator
 
 
@@ -16,13 +16,13 @@ from matplotlib.ticker import FixedLocator
 # for 2x2 update: list MF runs first, then BHL runs. Name: MF+BHL (in order of low res to high res)
 ##########################################################################################################
 
-# # Define the line fit function
-# def line_fit(x, a, b, c):
-#     return a * np.exp(-b * x) + c
-
 # Define the line fit function
 def line_fit(x, *p):
     return 10**p[1] * x**p[0]
+
+
+def log_line_fit(x, slope, intercept):
+    return 10 ** (np.log10(x) * slope + intercept)
 
 
 def A_dyn_friction(M_msun, c_s_kmps):
@@ -115,12 +115,12 @@ if __name__ == "__main__":
         i_age = first_index(BHL.ages[i_start:], time_cutoff, rtol=1e-8, atol=atol) # 7e-2 for 1B.m, 1e-4 otherwise
 
         # calculate mass and hl_radius moving averages
-        accrate = movingaverage(BHL.accrates[i_start:i_age], window_size)
-        eddrate = eddington_rate(movingaverage(BHL.mass[i_start:i_age], window_size))
+        accrate = moving_average(BHL.accrates[i_start:i_age], window_size)
+        eddrate = eddington_rate(moving_average(BHL.mass[i_start:i_age], window_size))
         if eddington:
             accrate = accrate/eddrate
-        hl_radius = movingaverage(BHL.hl_radius[i_start:i_age], window_size)
-        bondi_radius = movingaverage(BHL.bondi_radius[i_start:i_age], window_size)
+        hl_radius = moving_average(BHL.hl_radius[i_start:i_age], window_size)
+        bondi_radius = moving_average(BHL.bondi_radius[i_start:i_age], window_size)
 
         # calculate how many cells it's resolving the hl radius by
         if i in i_mf:
@@ -232,15 +232,15 @@ if __name__ == "__main__":
     # perform linear regression on aggregate data per accretion scheme and radius resolution
     slope_hl, intercept_hl, r_value_hl, p_value_hl, std_err_hl = stats.linregress(np.log10(res_hl_total_bhl), np.log10(accrate_total_bhl))
     slope_bondi, intercept_bondi, r_value_bondi, p_value_bondi, std_err_bondi = stats.linregress(np.log10(res_bondi_total_bhl), np.log10(accrate_total_bhl))
-    line_str_pearson_hl_bhl = r"R-squared = $\rm %.2f$" % (r_value_hl ** 2)
-    line_str_pearson_bondi_bhl = r"R-squared = $\rm %.2f$" % (r_value_bondi ** 2)
+    line_str_pearson_hl_bhl = r"$R^2$ = $\rm %.2f$" % (r_value_hl ** 2)
+    line_str_pearson_bondi_bhl = r"$R^2$ = $\rm %.2f$" % (r_value_bondi ** 2)
     p_hl_bhl = [slope_hl, intercept_hl]
     p_bondi_bhl = [slope_bondi, intercept_bondi]
 
     slope_hl, intercept_hl, r_value_hl, p_value_hl, std_err_hl = stats.linregress(np.log10(res_hl_total_mf), np.log10(accrate_total_mf))
     slope_bondi, intercept_bondi, r_value_bondi, p_value_bondi, std_err_bondi = stats.linregress(np.log10(res_bondi_total_mf), np.log10(accrate_total_mf))
-    line_str_pearson_hl_mf = r"R-squared = $\rm %.2f$" % (r_value_hl ** 2)
-    line_str_pearson_bondi_mf = r"R-squared = $\rm %.2f$" % (r_value_bondi ** 2)
+    line_str_pearson_hl_mf = r"$R^2$ = $\rm %.2f$" % (r_value_hl ** 2)
+    line_str_pearson_bondi_mf = r"$R^2$= $\rm %.2f$" % (r_value_bondi ** 2)
     p_hl_mf = [slope_hl, intercept_hl]
     p_bondi_mf = [slope_bondi, intercept_bondi]
 
@@ -253,6 +253,7 @@ if __name__ == "__main__":
 
             axs[1, 0].set_xlabel(r"$R_{\rm Bondi}$ Resolution (cell widths)", fontdict=None)
             axs[1, 1].set_xlabel(r"$R_{\rm HL}$ Resolution (cell widths)", fontdict=None)
+
 
             # x-axis ticks
             axs[i, j].set_yticks(yticks)
@@ -278,16 +279,6 @@ if __name__ == "__main__":
             # set ylim
             axs[i, j].set_ylim(8e-5, 3e3)
 
-    # # format individual subplots
-    # axs[0, 0].set_ylabel(r"$R_{\rm HL}$ Resolution (cell widths)", fontdict=None)
-    # axs[0, 0].set_xscale('log')
-    # axs[0, 0].set_title(str(sim) + str(accretion) + "-" + str(xlim) + "Myr", fontdict=None)
-    # axs[0, 0].set_ylim(min_hl - min_hl*0.1, max_hl + max_hl*0.2)
-    # axs[1, 0].set_ylabel(r"$R_{\rm Bondi}$ Resolution (cell widths)", fontdict=None)
-    # axs[1, 0].set_ylim(min_bondi - min_bondi*0.1, max_bondi + max_bondi*0.25)
-    # axs[1, 0].legend(fontsize=8.5, ncol=3)
-    # axs[0, 0].legend(fontsize=8.5, ncol=3)
-
     # format individual subplots
     if str(accretion)[:2] == "MF":
         accretion_type = "Mass-Flux"
@@ -297,8 +288,9 @@ if __name__ == "__main__":
     linear_fit_color = "yellow"
     #axs[0, 0].set_title(str(accretion_type), fontdict=None)
     #axs[0, 0].legend(fontsize=fontsize - 4, ncol=2, loc="upper left")
-    axs[0, 0].text(0.63, 0.065, line_str_pearson_bondi_mf, fontsize=fontsize-4, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[0, 0].transAxes)
-    axs[0, 1].plot(accrate_total_mf, line_fit(accrate_total_mf, *p_hl_mf), linear_fit_color, linestyle='solid')
+
+    axs[0, 0].text(0.77, 0.065, line_str_pearson_bondi_mf, fontsize=fontsize, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[0, 0].transAxes)
+    axs[0, 1].loglog(accrate_total_mf, log_line_fit(accrate_total_mf, *p_hl_mf), linear_fit_color, linestyle='solid')
     axs[0, 0].set_xticklabels([])
 
     # ylabels
@@ -314,13 +306,13 @@ if __name__ == "__main__":
     axs[0, 0].set_yticklabels(yticklabels)
     axs[1, 0].set_yticklabels(yticklabels)
 
-    axs[1, 0].text(0.63, 0.065, line_str_pearson_bondi_mf, fontsize=fontsize-4, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[1, 0].transAxes)
+    axs[1, 0].text(0.63, 0.065, line_str_pearson_bondi_mf, fontsize=fontsize-2, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[1, 0].transAxes)
     # plot linear fit
-    axs[1, 1].plot(accrate_total_bhl, line_fit(accrate_total_bhl, *p_hl_bhl), linear_fit_color, linestyle='solid')
+    axs[1, 1].loglog(accrate_total_bhl, log_line_fit(accrate_total_bhl, *p_hl_bhl), linear_fit_color, linestyle='solid')
     
 
-    axs[0, 1].legend(fontsize=fontsize - 4, ncol=2, loc="upper left")
-    axs[0, 1].text(0.66, 0.065, line_str_pearson_hl_bhl, fontsize=fontsize-4, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[0, 1].transAxes)
+    axs[0, 1].legend(fontsize=fontsize - 2, ncol=2, loc="lower left")
+    axs[0, 1].text(0.66, 0.065, line_str_pearson_hl_bhl, fontsize=fontsize-2, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[0, 1].transAxes)
     axs[0, 1].text(1.02, 0.5, 'Mass-Flux', transform=axs[0, 1].transAxes, ha='left', va='center')
     #axs[0, 1].set_title(str(sim) + str(accretion)[3:6] + "-" + str(xlim) + "Myr", fontdict=None)
     #axs[0, 1].set_title("BHL", fontdict=None)
@@ -328,15 +320,15 @@ if __name__ == "__main__":
     axs[0, 1].tick_params(axis="y", which='major', width=1, length=4, direction="in")
     axs[0, 1].set_yticklabels([])
     axs[0, 1].set_xticklabels([])
-    axs[0, 0].plot(accrate_total_mf, line_fit(accrate_total_mf, *p_bondi_mf), linear_fit_color, linestyle='solid')
+    axs[0, 0].plot(accrate_total_mf, log_line_fit(accrate_total_mf, *p_bondi_mf), linear_fit_color, linestyle='solid')
 
     axs[1, 1].tick_params(axis="y", which='minor', length=2, direction="in")
     axs[1, 1].tick_params(axis="y", which='major', width=1, length=4, direction="in")
     axs[1, 1].set_yticklabels([])
-    axs[1, 1].text(0.66, 0.065, line_str_pearson_bondi_bhl, fontsize=fontsize-4, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[1, 1].transAxes)
-    axs[1, 0].plot(accrate_total_bhl, line_fit(accrate_total_bhl, *p_bondi_bhl), linear_fit_color, linestyle='solid')
+    axs[1, 1].text(0.66, 0.065, line_str_pearson_bondi_bhl, fontsize=fontsize-2, bbox=dict(facecolor='white', edgecolor='lightgrey'), transform=axs[1, 1].transAxes)
+    axs[1, 0].plot(accrate_total_bhl, log_line_fit(accrate_total_bhl, *p_bondi_bhl), linear_fit_color, linestyle='solid')
     axs[1, 1].text(1.02, 0.5, 'BHL', transform=axs[1, 1].transAxes, ha='left', va='center')
-    axs[1, 1].legend(fontsize=fontsize - 4, ncol=2, loc="upper left")
+    axs[1, 1].legend(fontsize=fontsize - 2, ncol=2, loc="upper left")
 
     # set xlims
     axs[0, 0].set_xlim(min_hl - min_hl * 0.1, max_hl + max_hl * 0.2)

@@ -8,9 +8,6 @@ from matplotlib import rc
 import matplotlib.cm as cm
 from scipy.interpolate import interp1d
 from scipy.ndimage import convolve1d
-import matplotlib.ticker as ticker
-import yt
-import matplotlib.colors as mcolors
 #import seaborn as sns
 
 ##########################################################################################################
@@ -22,6 +19,9 @@ import matplotlib.colors as mcolors
 
 
 def resample_data(accretion_rates: list, times: list, common_time: float, smooth_simulations=2, window_size=1):
+    """
+    Resample the accretion rates onto a common time grid.
+    """
     resampled_acc_rates = []
     for i in range(len(accretion_rates)):
         # Create an interpolator for each simulation
@@ -70,11 +70,6 @@ def interpolate_data(arr, N=1000):
     f = interp1d(x=t_orig, y=arr)
     interp_arr = f(t_interp)
     return interp_arr
-
-
-# def movingaverage(x, N):
-#     cumsum = np.cumsum(np.insert(x, 0, 0))
-#     return (cumsum[N:] - cumsum[:-N]) / float(N)
 
 def moving_min_max(data, window_size):
     """Calculate the moving min and max values."""
