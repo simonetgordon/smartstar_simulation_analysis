@@ -214,6 +214,12 @@ for j, ds in enumerate(dds):
 
 
 # After the loop, compute the trendline for the aggregated data
+# Ensure all_x and all_y are flat arrays with numeric types.
+# This assumes you want to use floating-point numbers for the fit.
+all_x = np.hstack(all_x).astype(float)
+all_y = np.hstack(all_y).astype(float)
+
+# Fit a linear trendline to the aggregated data
 z = np.polyfit(all_x, all_y, 1)  # Adjust the degree (1 for linear) as needed
 p = np.poly1d(z)
 
@@ -222,7 +228,7 @@ trend_x = np.linspace(min(all_x), max(all_x), len(all_x))
 trend_y = p(trend_x)
 
 # Plot the trendline
-plt.plot(trend_x, trend_y, linestyle="--", color='black', label='Trendline')
+#plt.plot(trend_x, trend_y, linestyle="--", color='black', label='Trendline')
 
 # Save the figure
 plt.title("Advection/Radiative Cooling Rate Radial Profile", fontsize=20)
