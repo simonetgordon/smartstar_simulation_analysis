@@ -77,7 +77,7 @@ def configure_font(fontsize=14):
 
 if __name__ == "__main__":
 
-    root_dir = "/ceph/cephfs/sgordon/pleiades/seed1-bh-only/270msun/replicating-beckmann/1B.m16-4dx/"
+    root_dir = "/Backup00/sgordon/pleiades/seed1-bh-only/270msun/replicating-beckmann/1B.m16-4dx/"
     input = sys.argv[1]
     ds = yt.load(os.path.join(root_dir, sys.argv[1]))
     add_fields_ds(ds)
