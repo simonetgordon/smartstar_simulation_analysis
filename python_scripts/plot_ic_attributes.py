@@ -139,7 +139,8 @@ if __name__ == "__main__":
     # line colours
     c2 = ['cyan', 'salmon', 'salmon', 
         'lightgreen', 'khaki', 'plum', 'seagreen', 'steelblue', 'salmon']
-    c = ['#415BFF', '#FF1F71']
+    #c = ['#415BFF', '#FF1F71']
+    c = [(0.1294, 0.5686, 0.5490), (0.7176, 0.2157, 0.4745)] # teal, magenta
     ################################################################################
 
     # generate line labels
@@ -186,8 +187,8 @@ if __name__ == "__main__":
         rp3 = yt.create_profile(
             sp,
             "radius",
-            [("gas", "H2_p0_fraction"), ("gas", "H_p0_fraction"), ("gas", "density")],
-            units={"radius": "pc"},
+            [("gas", "H2_p0_fraction"), ("gas", "H_p0_fraction"), ("gas", "density"), ("gas", "radial_velocity")],
+            units={"radius": "pc", "radial_velocity": "km/s"},
             logs={"radius": True},
             weight_field=('gas', 'density')
         )
@@ -201,41 +202,51 @@ if __name__ == "__main__":
                     color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
 
         # total density
-        axs[2].loglog(rp2.x[rp2.used], rp2[("gas", "density")][rp2.used] + rp2[("enzo", "Dark_Matter_Density")][rp2.used],
-                    color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
+        mh = 1.6735575e-24*yt.units.g # g
+        axs[2].loglog(rp2.x[rp2.used], (rp2[("gas", "density")][rp2.used] + rp2[("enzo", "Dark_Matter_Density")][rp2.used])/mh,
+                      color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
 
         # dynamical timescale
         axs[3].loglog(rp2.x[rp2.used], rp2[("gas", "blackhole_freefall_timescale")][rp2.used].to("Myr"),
                     color=c[i], linestyle='solid', label=r"BH ff time $\propto M$", alpha=alpha)
 
         # h2 fraction
-        axs[4].loglog(rp3.x[rp3.used], rp3[("gas", "H2_p0_fraction")][rp3.used],
+        # axs[4].loglog(rp3.x[rp3.used], rp3[("gas", "H2_p0_fraction")][rp3.used],
+        #             color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
+        
+        # radial velocity
+        axs[4].plot(rp3.x[rp3.used], rp3[("gas", "radial_velocity")][rp3.used],
                     color=c[i], linestyle='solid', label=labels[i], alpha=alpha)
-
     # set ticks
     xticks = np.logspace(-2, 4, 7)
-    set_tick_params(n_subplots, fontsize, custom_ticks=xticks, xlim=[2e-3, r_lim_kpc*1e3])
+    set_tick_params(axs, n_subplots, fontsize, custom_ticks=xticks, xlim=[2e-3, r_lim_kpc*1e3])
 
     # make lines for legend
     lines = [Line2D([0], [0], color=c[0], linestyle='solid', lw=linewidth),
                 Line2D([0], [0], color=c[1], linestyle='solid', lw=linewidth),
-                Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth),
+                Line2D([0], [0], color='grey', linestyle='dashdot', lw=linewidth),
                 Line2D([0], [0], color='grey', linestyle='dotted', lw=linewidth)]
-    labels = ['seed1_124.7Myr', 'seed2_195.5Myr', r'$R_{200}$', r'$M_{200}$']
+    labels = ['Halo1_124.7Myr', 'Halo2_195.5Myr', r'$R_{200}$', r'$M_{200}$']
     # set axis labels
     axs[-1].set_xlabel(r"$\rm Radius \, (pc)$", fontdict=None)
-    #axs[4].set_ylim([1e-3, 1e0])
-    axs[4].set_ylabel(r"$\rm f_{H_2}$", fontdict=None)
-    axs[2].set_ylabel(r"$\rm \rho \, (g \, cm^{-3})$", fontdict=None)
+    axs[4].set_ylim([-7, 1])
+    axs[4].set_ylabel(r"$\nu_r$ (km/s)", fontdict=None)
+    axs[4].set_yscale('linear')
+    axs[2].set_ylabel(r"$\rm n \, (1/cm^{3})$", fontdict=None)
     for i in range(n_subplots):
-        axs[i].axvline(x=rvir_pc_s1, color='blue', linestyle='dashed', lw=linewidth-0.5, alpha=0.7, label=r"$R_{200}$")
-        axs[i].axvline(x=rvir_pc_s2, color='red', linestyle='dashed', lw=linewidth-0.5, alpha=0.7, label=r"$R_{200}$")
-    axs[3].set_ylabel(r"$\rm t_{ff} \, (Myr)$", fontdict=None)
+        axs[i].axvline(x=rvir_pc_s1, color=c[0], linestyle='dashdot', lw=linewidth-0.5, alpha=0.7, label=r"$R_{200}$")
+        axs[i].axvline(x=rvir_pc_s2, color=c[1], linestyle='dashdot', lw=linewidth-0.5, alpha=0.7, label=r"$R_{200}$")
+    axs[3].set_ylabel(r"$t_{\rm ff} \, \rm (Myr)$", fontdict=None)
     axs[1].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
     axs[0].set_ylabel(r"$\rm M_{encl} \, (M_{\odot})$", fontdict=None)
     axs[0].axhline(y=M200, color=c[0], linestyle='dotted', lw=linewidth-0.5, alpha=0.8, label=r"$M_{200}$")
     axs[0].axhline(y=M200_s2, color=c[1], linestyle='dotted', lw=linewidth-0.5, alpha=0.8, label=r"$M_{200}$")
-    axs[0].legend(lines, labels, loc="upper left", fontsize=fontsize-3, ncol=1)  # upper/lower
+    axs[0].legend(lines, labels, loc="upper left", fontsize=fontsize-1, ncol=1)  # upper/lower
+    for i in range(n_subplots):
+        axs[i].set_xlim([2e-3, 1e3])
+        axs[i].grid(which='major', linestyle='solid', linewidth=0.5, color='grey', alpha=0.5)
+        axs[i].tick_params(axis="x", which='major', length=3, direction="in")
+        axs[i].tick_params(axis="x", which='minor', length=2, direction="in")
     #axs[0].set_title("Halo properties at time of BH formation", fontsize=fontsize, fontdict=None)
     #axs[3].axhline(y=360*critical_density(ds), color='grey', linestyle='dotted', lw=linewidth, alpha=1, label=r"$n_{200}$")
 

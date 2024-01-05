@@ -28,9 +28,9 @@ def apply_annotations_and_save(p, ds, center, ss_mass, ss_age, title=None, orien
     p.annotate_marker(center, coord_system="data", color="white")
 
     # top left text
-    p.annotate_text((a, b), r"SS Mass: {:.0f} $\rm M_\odot$".format(ss_mass.d), coord_system="axis",
+    p.annotate_text((a, b), r"BH Mass: {:.0f} $\rm M_\odot$".format(ss_mass.d), coord_system="axis",
                         text_args={"color": "white"}) 
-    p.annotate_text((a, b-0.05), "SS Age = {:.2f} Myr".format(ss_age[0] / 1e6), coord_system="axis",
+    p.annotate_text((a, b-0.05), "BH Age = {:.2f} Myr".format(ss_age[0] / 1e6), coord_system="axis",
                         text_args={"color": "white"})
     
     # lower right text
@@ -185,9 +185,9 @@ if __name__ == "__main__":
     map = ("gas", "number_density")
     weight_field = "density"
     orient = "face-on" # "edge-on" or "face-on"
-    w_pc = 20 # width in pc
-    c_min = 1
-    c_max = 8e7
+    w_pc = 0.7 # width in pc
+    c_min = 5e3
+    c_max = 8e9
     cmap = "viridis" # e.g. "magma", "viridis", "plasma", "inferno"
     plot_type = "projection" # "projection" or "slice"
     root_dirs = [
@@ -195,6 +195,7 @@ if __name__ == "__main__":
         #"/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.m16-4dx/",
         #"/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/2B.RSb08-2/",
         #"/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb16/"
-        "/Backup00/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/"
+        #"/Backup00/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/"
+        "/Backup00/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.m08-4dx/2B.m16-4dx-2/"
         ]
     main(map, orient, w_pc, c_min, c_max, root_dirs, cmap, weight_field, plot_type, use_north_vector_ds=True)
