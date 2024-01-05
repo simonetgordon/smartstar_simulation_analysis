@@ -197,7 +197,7 @@ def main(root_dir, sim, dds_list):
         for s in range(len(dds)):
             ds = yt.load(os.path.join(root_dir[0], sim[0], dds[s]))
             DS.append(ds)
-        for disc_r_pc in [0.1]:
+        for disc_r_pc in [0.05]:
 
             #### PLOT ####
 
@@ -262,7 +262,7 @@ def main(root_dir, sim, dds_list):
                 ## FOURIER MODES ##
 
                 # Find radius of the bar feature
-                var_deg = 7.0 # degrees - 2 deg is too low, tiny bar
+                var_deg = 7.9 # degrees - 2 deg is too low, tiny bar
                 bar_radius, i = find_bar_radius(phi_2_values, radii, var_deg=var_deg)
 
                 # Plot bar strength and phase angle variability across discrete annular regions
@@ -334,7 +334,7 @@ def main(root_dir, sim, dds_list):
                 ax_speed.set_xscale('log')
                 ax_speed.set_yscale('log')
                 ax_speed.grid(color='grey', linestyle='dotted', alpha=0.5)
-                ax_speed.set_ylim(7e-6, 8e-3)
+                ax_speed.set_ylim(7e-7, 7e-3)
                 if row == 3:
                     ax_speed.set_xlabel('Radius (pc)')
                 else:
@@ -470,12 +470,13 @@ if __name__ == "__main__":
 
     root_dir = [#"/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/seed2-bh-only/270msun/replicating-beckmann-2/",
             #"/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/"
-            "/Backup00/sgordon/pleiades/seed1-bh-only/270msun/replicating-beckmann/"
+            #"/Backup00/sgordon/pleiades/seed1-bh-only/270msun/replicating-beckmann/",
+            "/Backup00/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/"
             ]
     sim = [#"2B.RSm04", 
         #"2B.m08-4dx"
-        "1B.m16-4dx"
-        #"2B.RSb08-2"
+        #"1B.m16-4dx"
+        "2B.RSb08-2"
         ] 
 
     dds = ["DD0167/DD0167", "DD0178/DD0178", "DD0189/DD0189", "DD0231/DD0231"]  # 0.39, 0.50, 0.6, 1 Myr for 1B.m16,
@@ -491,11 +492,11 @@ if __name__ == "__main__":
                 ]
 
     #2B.b08
-    # dds_list = [#["DD0219/DD0219", "DD0227/DD0227", "DD0236/DD0236", "DD0276/DD0276"],
-    #             #["DD0218/DD0218", "DD0226/DD0226", "DD0235/DD0235", "DD0278/DD0278"],
-    #             #["DD0220/DD0220", "DD0228/DD0228", "DD0237/DD0237", "DD0279/DD0279"],
-    #             #["DD0217/DD0217", "DD0225/DD0225", "DD0234/DD0234", "DD0270/DD0270"],
-    #             ["DD0219/DD0219", "DD0246/DD0246", "DD0270/DD0270", "DD0279/DD0279"], # 0.29, 0.50, 0.70, 1 Myr
-    #             ]
+    dds_list = [#["DD0219/DD0219", "DD0227/DD0227", "DD0236/DD0236", "DD0276/DD0276"],
+                #["DD0218/DD0218", "DD0226/DD0226", "DD0235/DD0235", "DD0278/DD0278"],
+                #["DD0220/DD0220", "DD0228/DD0228", "DD0237/DD0237", "DD0279/DD0279"],
+                #["DD0217/DD0217", "DD0225/DD0225", "DD0234/DD0234", "DD0270/DD0270"],
+                ["DD0219/DD0219", "DD0246/DD0246", "DD0270/DD0270", "DD0279/DD0279"], # 0.29, 0.50, 0.70, 1 Myr
+                ]
 
     main(root_dir, sim, dds_list)
