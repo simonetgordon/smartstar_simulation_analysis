@@ -1,6 +1,6 @@
 """
-Plots 6x1 radial profile of disc attributes (excluding surface density)
-python -i plot_disc_attributes.py "1B.m+2B.m-x7" 
+Plots 8x1 radial profile of disc attributes (excluding surface density)
+python -i plot_disc_attributes.py "1B.m+2B.m-toomre_q_x8_2" 
 """
 import yt
 import sys
@@ -13,9 +13,9 @@ from yt.utilities.math_utils import ortho_find
 import matplotlib as mpl
 import pandas as pd
 from matplotlib import rc
+import matplotlib.cm as cm
 from find_disc_attributes import _make_disk_L
 from plot_multi_projections import tidy_data_labels
-from plot_cooling_rates import extract_colors
 from plot_radial_profile_from_frb import compute_radial_profile, make_frb, ToomreQ, kappa2D
 
 
@@ -34,6 +34,26 @@ def radial_profile(field, disk, n_bins, cell_width_pc):
     y_no_zeros = y[y > 0]
     r_no_zeros = radius[:-1][y > 0]
     return r_no_zeros, y_no_zeros
+
+
+def extract_colors(cmap_name, n, portion=None, start=None, end=None):
+    cmap = cm.get_cmap(cmap_name)
+
+    if start is not None and end is not None:
+        values = np.linspace(start, end, n)
+    elif portion == "beginning":
+        values = np.linspace(0, 0.3, n)
+    elif portion == "middle":
+        values = np.linspace(0.3, 0.95, n)
+    elif portion == "end":
+        values = np.linspace(0.7, 1, n)
+    elif portion is None:
+        values = np.linspace(0, 1, n)
+    else:
+        raise ValueError("Invalid portion specified. Use 'beginning', 'middle', 'end', or None.")
+
+    colors = cmap(values)
+    return colors
 
 
 if __name__ == "__main__":
@@ -72,25 +92,25 @@ if __name__ == "__main__":
     #            "/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/40msun/replicating-beckmann/"]
     # sim = ["1S.RSb04", "1S.RSm04", "1S.RSbf4", "1S.RSmf4"]
     ## at t = 1 Myr in 1B.b group
-    root_dir = ["/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/", 
-                "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
-                #"/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/",
-                "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
-                "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/",
-                "/cephfs/sgordon/disk14/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/",
-               # "/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/",
-                "/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/"]
+    root_dir = ["/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/", 
+                "/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+                #"/Backup01/sgordon/pleiades/seed1-bh-only/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+                "/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+                "/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/",
+                "/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/",
+               # "/Backup01/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/",
+                "/Backup01/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/"]
                
     sim = ["1B.RSb01-2", "1B.RSb04", "1B.RSb16", \
-           "2B.RSb01", "2B.RSb04", "2B.RSb16"]
+           "2B.RSb01", "2B.RSb04", "2B.RSb08/2B.RSb08-2"]
     # sim = ["1B.RSm01", "1B.RSm04-2", "1B.m16-4dx", \
     #        "2B.RSm01", "2B.RSm04", "2B.m08-4dx"]
     # 1B.b, 2B.b
     dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0166/DD0166", \
-           "DD0208/DD0208", "DD0208/DD0208", "DD0750/DD0750"] # 2B.m16 at 0.57 Myr
+           "DD0208/DD0208", "DD0208/DD0208", "DD0279/DD0279"] # 1 Myr at 2B.b01, 2B.b04, 2B.b08 (2B.B16 is "DD0750/DD0750")
     # 1B.m, 2B.m
     # dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0202/DD0202", \
-    #        "DD0208/DD0208", "DD0370/DD0370", "DD0291/DD0291"]
+    #        "DD0208/DD0208", "DD0370/DD0370", "DD0298/DD0298"] # 1 Myr 2B.m01-4dx, 2B.m04-4dx, 2B.m08-4dx
 
     ########################################################################################
 
@@ -102,7 +122,9 @@ if __name__ == "__main__":
         add_fields_ds(ds)
         j = []
         formation_time = 124.76 if sim[i].startswith('1') else 195.59
-        label = str(sim[i]) + "-" + str(float(ds.current_time.to('Myr')) - formation_time)[:3] + "Myr"
+        #label = str(sim[i]) + "-" + str(float(ds.current_time.to('Myr')) - formation_time)[:3] + "Myr"
+        print("Formation time of simulation " + str(sim[i]) + " is " + str(float(ds.current_time.to('Myr')) - formation_time)[:3] + " Myr")
+        label = str(sim[i])
         DS.append(ds)
         labels.append(label)
 
@@ -263,8 +285,8 @@ if __name__ == "__main__":
         c_s2 = extract_colors('magma', n, portion="middle", start=0.25, end=0.8)
         c = np.concatenate((c_s1, c_s2))
 
-        plot_omega = axs[0].loglog(profile.x[profile.used], profile[("gas", "omega")][profile.used] /
-                    profile[("gas", "omega_k")][profile.used], color=c[k], label=labels[k])
+        # plot_omega = axs[0].loglog(profile.x[profile.used], profile[("gas", "omega")][profile.used] /
+        #             profile[("gas", "omega_k")][profile.used], color=c[k], label=labels[k])
         plot_density = axs[0].plot(profile.x[profile.used], profile[("gas", "number_density")][profile.used], color=c[k], label=labels[k])
         plot_temp = axs[1].loglog(profile.x[profile.used], profile[("gas", "temperature")][profile.used], color=c[k], label=labels[k])
         plot_h = axs[2].loglog(r_h, h, color=c[k], label=labels[k])
@@ -303,7 +325,7 @@ if __name__ == "__main__":
         # axs[0].set_yscale('linear')
         # axs[0].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
         #axs[0].legend(loc="upper left", fontsize=fontsize-1, ncol = 2)
-        axs[0].legend(fontsize=fontsize-2, ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.53), handlelength=1) # 1.3 for m01, 
+        axs[0].legend(fontsize=fontsize, ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.58), handlelength=1) # 1.3 for m01, 
         #axs[0].set_title("BH Age = " + "{:.2f}".format(ss_age[0]/1e6) + " Myr" + ", " + str(root_dir[index:]))
 
         for i in range(n_subplots):
