@@ -94,23 +94,24 @@ if __name__ == "__main__":
     ## at t = 1 Myr in 1B.b group
     root_dir = ["/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/", 
                 "/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
-                #"/Backup01/sgordon/pleiades/seed1-bh-only/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
-                "/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
+                "/Backup01/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/", # 1B.m16-4dx
+                #"/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/", # 1B.b16
                 "/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/",
-                "/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/",
-               # "/Backup01/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/",
-                "/Backup01/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/"]
+                #"/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/", # 2B.b08
+                "/Backup01/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/",# 2B.m08
+                "/Backup01/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/",# both 2B.m08 and 2B.b08
+                ]
                
     sim = ["1B.RSb01-2", "1B.RSb04", "1B.RSb16", \
            "2B.RSb01", "2B.RSb04", "2B.RSb08/2B.RSb08-2"]
-    # sim = ["1B.RSm01", "1B.RSm04-2", "1B.m16-4dx", \
-    #        "2B.RSm01", "2B.RSm04", "2B.m08-4dx"]
+    sim = ["1B.RSm01", "1B.RSm04-2", "1B.m16-4dx", \
+           "2B.RSm01", "2B.RSm04", "2B.m08-4dx"]
     # 1B.b, 2B.b
     dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0166/DD0166", \
            "DD0208/DD0208", "DD0208/DD0208", "DD0279/DD0279"] # 1 Myr at 2B.b01, 2B.b04, 2B.b08 (2B.B16 is "DD0750/DD0750")
     # 1B.m, 2B.m
-    # dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0202/DD0202", \
-    #        "DD0208/DD0208", "DD0370/DD0370", "DD0298/DD0298"] # 1 Myr 2B.m01-4dx, 2B.m04-4dx, 2B.m08-4dx
+    dds = ["DD0138/DD0138", "DD0138/DD0138", "DD0202/DD0202", \
+           "DD0208/DD0208", "DD0370/DD0370", "DD0298/DD0298"] # 1 Myr 2B.m01-4dx, 2B.m04-4dx, 2B.m08-4dx
 
     ########################################################################################
 
@@ -313,20 +314,26 @@ if __name__ == "__main__":
         axs[5].set_yscale('log')
         axs[4].set_ylabel(r"$\rm \nu_r \, (km/s)$", fontdict=None)
         axs[4].set_yscale('linear')
-        axs[4].set_ylim([-120,6])
         axs[3].set_ylabel(r"$\rm \nu_{\theta}/c_s$", fontdict=None)
         axs[3].set_yscale('log')
         axs[2].set_ylabel(r"$\rm H \, (pc)$", fontdict=None)
         axs[1].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
-        axs[1].set_ylim([50,2.1e5])
         axs[0].set_ylabel(r"$\rm n \, (cm^{-3})$", fontdict=None)
         axs[0].set_yscale('log')
-        # axs[0].set_ylabel(r"$\rm \omega / \omega_K $", fontdict=None)
-        # axs[0].set_yscale('linear')
-        # axs[0].axhline(y=1, color='grey', linestyle='dashed', alpha=1)
-        #axs[0].legend(loc="upper left", fontsize=fontsize-1, ncol = 2)
-        axs[0].legend(fontsize=fontsize, ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.58), handlelength=1) # 1.3 for m01, 
-        #axs[0].set_title("BH Age = " + "{:.2f}".format(ss_age[0]/1e6) + " Myr" + ", " + str(root_dir[index:]))
+
+        # Set ylims
+        axs[0].set_ylim([7e-1, 2e11]) # density
+        axs[1].set_ylim([50,2.1e5]) # temperature
+        axs[2].set_ylim([2e-4, 1.2e-1]) # height
+        axs[3].set_ylim([8e-2, 4e1]) # vel theta/c_s
+        axs[4].set_ylim([-120,6]) # radial vel
+        axs[5].set_ylim([0.02, 1.1]) # H/r
+        axs[6].set_ylim([2e-30, 1e-12]) # Qrad
+        axs[7].set_ylim([9e-3, 3e2]) # Q
+
+
+        # Legend
+        axs[0].legend(fontsize=fontsize, ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.59), handlelength=1) # 1.3 for m01, 
 
         for i in range(n_subplots):
             axs[i].set_xlim([4e-4, 1e1])

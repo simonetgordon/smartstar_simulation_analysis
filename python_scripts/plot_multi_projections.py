@@ -29,6 +29,13 @@ def tidy_data_labels(labels, custom_name=None):
         label = label.replace("-2", "")
         label = label.replace("RS", "")
         label = label.replace("-4dx", "")
+        label = label.replace("/2B.b08", "") # for plot_disc_attributes.py 2B.b08
+        try: 
+            parts = labels.split('/')
+            if len(parts) == 2 and parts[0] == parts[1]:
+                label = parts[0]
+        except AttributeError:
+            pass
         return label
 
     # Check if labels is a list or a single label
