@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import rc
-import matplotlib.cm as cm
+import re
 from read_arrays_from_csv import bhl_object_list, bhl_object_labels
 from plot_variables import *
 
@@ -46,7 +46,47 @@ def create_subplots(num_subplots, xlim, time_cutoff, fontsize, title):
 
     return fig, axs
 
-def plot_extra_line_mass_growth(j, data_file, label_extra, alpha=0.8):
+def extract_label(file_path):
+    # Extract the base file name without the path and extension
+    file_name = file_path.split('/')[-1].split('.csv')[0]
+
+    # Use regex to find the label pattern in the file name, excluding 'RS'
+    match = re.search(r'(\dS)\.(?:RS)?([a-zA-Z0-9+]+(?:-no-SN)?)', file_name)
+    if match:
+        return match.group(1) + '.' + match.group(2)
+    else:
+        return 'Unknown'
+
+def adaptive_moving_average(data, window_size=5):
+    """
+    Compute an adaptive moving average on the logarithm of the data.
+    
+    :param data: The input data (list or array).
+    :param window_size: The window size for the moving average.
+    :return: An array of the moving average values in the original data space.
+    """
+    # Take the logarithm of data, excluding non-positive values
+    log_data = np.log(data[data > 0])
+    data_length = len(log_data)
+    log_moving_avg = np.zeros(data_length)
+
+    for i in range(data_length):
+        start = max(i - window_size // 2, 0)
+        end = min(i + window_size // 2 + 1, data_length)
+        log_moving_avg[i] = np.mean(log_data[start:end])
+
+    # Exponentiate to return to original data space
+    moving_avg = np.exp(log_moving_avg)
+
+    # Handle edge cases if original data had non-positive values
+    moving_avg_full = np.full_like(data, np.nan)
+    positive_indices = np.where(data > 0)[0]
+    moving_avg_full[positive_indices] = moving_avg
+
+    return moving_avg_full
+
+
+def plot_extra_line_mass_growth(j, data_file, label_extra, alpha=0.8, n=10):
         # Load the CSV file into a DataFrame
         df = pd.read_csv(data_file)
 
@@ -55,12 +95,17 @@ def plot_extra_line_mass_growth(j, data_file, label_extra, alpha=0.8):
         bh_mass = df['BH mass'].values
         accrate = df['accrate'].values
 
+        # try adaptively smoothing the data
+        age_av = adaptive_moving_average(age, window_size=n)
+        bh_mass_av = adaptive_moving_average(bh_mass, window_size=n)
+        accrate_av = adaptive_moving_average(accrate, window_size=n)
+
         # 1) BH Mass
-        axs[0].plot(age, bh_mass, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+        axs[0].plot(age_av, bh_mass_av, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
 
         # 2) Accretion Rates
-        axs[1].plot(age, accrate, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-        axs[1].plot(age, eddington_rate(bh_mass), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
+        axs[1].plot(age_av, accrate_av, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+        axs[1].plot(age_av, eddington_rate(bh_mass_av), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
 
         return 0
 
@@ -93,63 +138,26 @@ if __name__ == "__main__":
     c_s2 = extract_colors('magma', n, portion="middle", start=0.3, end=0.85) # start=0.3, end=0.85 for 10.8msun-no-sn
     c = np.concatenate((c_s1, c_s2))
 
-    # Set BHL properties parameters and resample data
-    l = tidy_data_labels(bhl_object_labels)
-    times = [BHL.ages/1e6 for BHL in bhl_object_list]
-    min_time = min([min(t) for t in times])
-    min_final_time = min([t[-1] for t in times])
-    num_steps = int(len(times[-1])/5)
-    common_time = np.linspace(min_time, min_final_time, num_steps)
+    # Plot data
+    data_files = [
+        "data_files/data-1S.RSb01.csv", "data_files/data-1S.RSm01.csv",
+        "data_files/data-2S.RSb01.csv", "data_files/data-2S.m01-386+.csv",
+        "data_files/data-1S.b01-no-SN.csv", "data_files/data-1S.m01-no-SN.csv",
+        "data_files/data-2S.b01-no-SN.csv", "data_files/data-2S.m01-no-SN.csv"
+    ]
 
-    # Resample mass and accretion rates data
-    mass = resample_data([BHL.mass for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
-    accretion_rates = resample_data([BHL.accrates for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
-
-    # Plot BH Mass and Accretion Rates
-    for i in range(len(mass)):
-        axs[0].plot(common_time, mass[i], color=c[i], linestyle='solid', label=l[i], alpha=alpha)
-        axs[1].plot(common_time, accretion_rates[i], color=c[i], linestyle='solid', label=l[i], alpha=alpha)
-        axs[1].plot(common_time, eddington_rate(mass[i]), color=c[i], linestyle='dashed', label=l[i], alpha=alpha)
+    j = 0
+    alpha2 = 0.8
+    for data_file in data_files:
+        label = extract_label(data_file)
+        n = 20 if 'b' in label else 10
+        plot_extra_line_mass_growth(j, data_file=data_file, label_extra=label, alpha=alpha2, n=n)
         j += 1
-
-    if extra_line:
-        alpha2 = 0.6
-
-        data_file="data_files/data-2S.RSb01.csv"
-        label_extra='2S.b01'
-
-        plot_extra_line_mass_growth(j, data_file=data_file, label_extra=label_extra, alpha=alpha2)
-        j += 1
-
-        data_file="data_files/data-2S.m01-386+.csv"
-        label_extra='2S.m01'
-
-        ## No-SN
-        # data_file = "data_files/data-1S.b04-no-SN.csv"
-        # label_extra='1S.b04-no-SN'
-
-        plot_extra_line_mass_growth(j, data_file=data_file, label_extra=label_extra, alpha=alpha2)
-        j += 1
-
-        plot_extra_line_mass_growth(j, data_file="data_files/data-1S.b01-no-SN.csv", label_extra='1S.b01-no-SN', alpha=alpha2)
-        j += 1
-
-        plot_extra_line_mass_growth(j, data_file="data_files/data-1S.m01-no-SN.csv", label_extra='1S.m01-no-SN', alpha=alpha2)
-        j += 1
-
-        plot_extra_line_mass_growth(j, data_file="data_files/data-2S.b01-no-SN.csv", label_extra='2S.b01-no-SN', alpha=alpha2)
-        j += 1
-
-        plot_extra_line_mass_growth(j, data_file="data_files/data-2S.m01-no-SN.csv", label_extra='2S.m01-no-SN', alpha=alpha2)
-        j += 1
-
-        # plot_extra_line_mass_growth(j, data_file="data_files/data-2S.mf4-no-SN.csv", label_extra='2S.mf4-no-SN', alpha=alpha2)
-        # j += 1
 
     accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
 
     # Include legends and save the plot
-    axs[0].legend(fontsize=fontsize-6, ncol=2, loc="lower right", handlelength=0.7) # "lower right" for no-sn
+    axs[0].legend(fontsize=fontsize-4, ncol=2, loc="upper right", handlelength=0.7) # "lower right" for no-sn
     axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-2.2, ncol=1)
     fig.subplots_adjust(wspace=0, hspace=0)
     fig.set_size_inches(4.7, 4.7)
