@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import rc
-import re
 from read_arrays_from_csv import bhl_object_list, bhl_object_labels
 from plot_variables import *
 
@@ -45,45 +44,6 @@ def create_subplots(num_subplots, xlim, time_cutoff, fontsize, title):
     axs[-1].set_xlabel('Black Hole Age (Myr)', fontdict=None)
 
     return fig, axs
-
-def extract_label(file_path):
-    # Extract the base file name without the path and extension
-    file_name = file_path.split('/')[-1].split('.csv')[0]
-
-    # Use regex to find the label pattern in the file name, excluding 'RS'
-    match = re.search(r'(\dS)\.(?:RS)?([a-zA-Z0-9+]+(?:-no-SN)?)', file_name)
-    if match:
-        return match.group(1) + '.' + match.group(2)
-    else:
-        return 'Unknown'
-
-def adaptive_moving_average(data, window_size=5):
-    """
-    Compute an adaptive moving average on the logarithm of the data.
-    
-    :param data: The input data (list or array).
-    :param window_size: The window size for the moving average.
-    :return: An array of the moving average values in the original data space.
-    """
-    # Take the logarithm of data, excluding non-positive values
-    log_data = np.log(data[data > 0])
-    data_length = len(log_data)
-    log_moving_avg = np.zeros(data_length)
-
-    for i in range(data_length):
-        start = max(i - window_size // 2, 0)
-        end = min(i + window_size // 2 + 1, data_length)
-        log_moving_avg[i] = np.mean(log_data[start:end])
-
-    # Exponentiate to return to original data space
-    moving_avg = np.exp(log_moving_avg)
-
-    # Handle edge cases if original data had non-positive values
-    moving_avg_full = np.full_like(data, np.nan)
-    positive_indices = np.where(data > 0)[0]
-    moving_avg_full[positive_indices] = moving_avg
-
-    return moving_avg_full
 
 
 def plot_extra_line_mass_growth(j, data_file, label_extra, alpha=0.8, n=10):
@@ -141,7 +101,7 @@ if __name__ == "__main__":
     # Plot data
     data_files = [
         "data_files/data-1S.RSb01.csv", "data_files/data-1S.RSm01.csv",
-        "data_files/data-2S.RSb01.csv", "data_files/data-2S.m01-386+.csv",
+        "data_files/data-2S.RSb01.csv", "data_files/data-2S.RSm01-2.csv",
         "data_files/data-1S.b01-no-SN.csv", "data_files/data-1S.m01-no-SN.csv",
         "data_files/data-2S.b01-no-SN.csv", "data_files/data-2S.m01-no-SN.csv"
     ]
@@ -157,7 +117,7 @@ if __name__ == "__main__":
     accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
 
     # Include legends and save the plot
-    axs[0].legend(fontsize=fontsize-4, ncol=2, loc="upper right", handlelength=0.7) # "lower right" for no-sn
+    axs[0].legend(fontsize=fontsize-4, ncol=2, loc="lower right", handlelength=0.7) # "lower right" for no-sn
     axs[1].legend(accrate_line, [r"$\rm \dot{M}_{Edd}$"], loc="lower right", fontsize=fontsize-2.2, ncol=1)
     fig.subplots_adjust(wspace=0, hspace=0)
     fig.set_size_inches(4.7, 4.7)

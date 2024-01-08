@@ -8,6 +8,7 @@ from matplotlib import rc
 import matplotlib.cm as cm
 from scipy.interpolate import interp1d
 from scipy.ndimage import convolve1d
+import re
 #import seaborn as sns
 
 ##########################################################################################################
@@ -16,27 +17,6 @@ from scipy.ndimage import convolve1d
 # to run: python plot_variables.py [csv1] [csv2] [csv3] [output_plotname e.g mass-flux-x4]
 # list data files in order of low res -> high res
 ##########################################################################################################
-
-
-def resample_data(accretion_rates: list, times: list, common_time: float, smooth_simulations=2, window_size=1):
-    """
-    Resample the accretion rates onto a common time grid.
-    """
-    resampled_acc_rates = []
-    for i in range(len(accretion_rates)):
-        # Create an interpolator for each simulation
-        interpolator = interp1d(times[i], accretion_rates[i], kind='linear', fill_value='extrapolate')
-
-        # Resample the accretion rates onto the common time grid
-        resampled_acc_rates.append(interpolator(common_time))
-
-    # Smooth the specified number of simulations with a moving average
-    if smooth_simulations > 0 and len(accretion_rates) >= smooth_simulations:
-        smooth_indices = range(-1, -smooth_simulations-1, -1)  # Indices of the last 'smooth_simulations' simulations (reversed)
-        for idx in smooth_indices:
-            resampled_acc_rates[idx] = convolve1d(resampled_acc_rates[idx], np.ones(window_size)/window_size, mode='reflect')
-
-    return resampled_acc_rates
 
 
 def tidy_data_labels(labels: str or list):
@@ -54,32 +34,6 @@ def tidy_data_labels(labels: str or list):
         data_labels = data_labels.replace("-gap", "")
         data_labels = data_labels.replace("-4dx", "")
     return data_labels
-
-
-def first_index(a, val, rtol=0.1, atol=10):
-    return next(m for m, _ in enumerate(a) if np.isclose(_, val, rtol, atol))
-
-
-def interpolate_data(arr, N=1000):
-    # interpolate arr over N evenly spaced points
-    min_val = np.min(arr)
-    max_val = np.max(arr)
-
-    t_orig = np.linspace(min_val, max_val, len(arr))
-    t_interp = np.linspace(min_val, max_val, N)
-    f = interp1d(x=t_orig, y=arr)
-    interp_arr = f(t_interp)
-    return interp_arr
-
-def moving_min_max(data, window_size):
-    """Calculate the moving min and max values."""
-    min_vals = np.array([np.min(data[i:i+window_size]) for i in range(len(data) - window_size + 1)])
-    max_vals = np.array([np.max(data[i:i+window_size]) for i in range(len(data) - window_size + 1)])
-    return min_vals, max_vals
-
-def moving_average(data, window_size):
-    """Calculate the moving average for smoothing."""
-    return np.convolve(data, np.ones(window_size) / window_size, mode='valid')
 
 
 def eddington_rate(mparticle_msun: float):
@@ -115,7 +69,7 @@ def identify_cell_widths(x: str):
     elif x == "s1+s2-40msun-":
         #dx = [2.459867e-02, 1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 7.692833e-04, 8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04, 1.3e-04]
         dx = [1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 7.692833e-04, 8.4e-03, 5.2e-04, 1.3e-04, 1.3e-04] # for 1Sm/2Sm
-        dx = [1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 8.4e-03, 5.2e-04, 1.3e-04, 1.3e-04, 7.692833e-04,]
+        #dx = [1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 8.4e-03, 5.2e-04, 1.3e-04, 1.3e-04, 7.692833e-04,] # for 1Sb/2Sb
     else:
         dx = None  # You may want to handle this case differently
     return dx
@@ -140,63 +94,97 @@ def extract_colors(cmap_name, n, portion=None, start=None, end=None):
     colors = cmap(values)
     return colors
 
-def plot_extra_line(data_file:str, label_extra:str, i, j, alpha = 0.6, window_size=20):
-        
-        df = pd.read_csv(data_file)
-        group_labels = np.arange(len(df)) // window_size
-        df = df.groupby(group_labels).mean().reset_index(drop=True)
 
-        # Extract the columns you're interested in
-        times = df['age'].values/1e6
-        bh_mass = moving_average(df['BH mass'].values, window_size)
-        accrate = moving_average(df['accrate'].values, window_size)
-        avg_density = moving_average(df['average density'].values, window_size)
-        avg_vinfinity = moving_average(df['average vinfinity'].values, window_size)
-        avg_cinfinity = moving_average(df['average cinfinity'].values, window_size)
-        hl_radius = moving_average(df['HL radius'].values, window_size)
-        age = np.linspace(times[0], times[-1], len(accrate))
+def adaptive_moving_average(data, window_size=5):
+    """
+    Compute an adaptive moving average on the logarithm of the data.
+    
+    :param data: The input data (list or array).
+    :param window_size: The window size for the moving average.
+    :return: An array of the moving average values in the original data space.
+    """
+    # Take the logarithm of data, excluding non-positive values
+    log_data = np.log(data[data > 0])
+    data_length = len(log_data)
+    log_moving_avg = np.zeros(data_length)
 
-        # 1) BH Mass
-        axs[0].plot(age, bh_mass, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+    for i in range(data_length):
+        start = max(i - window_size // 2, 0)
+        end = min(i + window_size // 2 + 1, data_length)
+        log_moving_avg[i] = np.mean(log_data[start:end])
 
-        # 2) Accretion Rates
-        axs[1].plot(age, accrate, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-        #axs[1].plot(age, eddington_rate(bh_mass), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
+    # Exponentiate to return to original data space
+    moving_avg = np.exp(log_moving_avg)
 
-        # 3) Densities
-        axs[2].plot(age, avg_density, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+    # Handle edge cases if original data had non-positive values
+    moving_avg_full = np.full_like(data, np.nan)
+    positive_indices = np.where(data > 0)[0]
+    moving_avg_full[positive_indices] = moving_avg
 
-        # 4) Velocities
-        #axs[3].plot(age, avg_vinfinity/avg_cinfinity, color=c[j], linestyle='solid', label=label_extra+'-Mach', alpha=alpha)
-        axs[3].plot(age, avg_vinfinity, color=c[j], linestyle='solid', label=label_extra+'-vinf', alpha=alpha)
-        #axs[3].plot(age, avg_cinfinity, color=c[j], linestyle='dashdot', label=label_extra+'-cinf', alpha=alpha)
-
-        # 5) HL radius
-        axs[4].plot(age, hl_radius/dx[j], color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-
-        # 6) Scatter Residual - not possible for this data
-
-        i += 1
-        j += 1
-        return i,j 
+    return moving_avg_full
 
 
-def moving_min_max(data, window_size):
-    """Calculate the moving min and max values."""
-    min_vals = np.array([np.min(data[i:i+window_size]) for i in range(len(data) - window_size + 1)])
-    max_vals = np.array([np.max(data[i:i+window_size]) for i in range(len(data) - window_size + 1)])
-    return min_vals, max_vals
+def extract_label(file_path):
+    # Extract the base file name without the path and extension
+    file_name = file_path.split('/')[-1].split('.csv')[0]
 
-def moving_average(data, window_size):
-    """Calculate the moving average for smoothing."""
-    return np.convolve(data, np.ones(window_size) / window_size, mode='valid')
+    # Use regex to find the label pattern in the file name, excluding 'RS'
+    match = re.search(r'(\dS)\.(?:RS)?([a-zA-Z0-9+]+(?:-no-SN)?)', file_name)
+    if match:
+        return match.group(1) + '.' + match.group(2)
+    else:
+        return 'Unknown'
+
+
+def plot_lines(i, j, data_file, label_extra, alpha=0.8, n=10):
+
+    # Load the CSV file into a DataFrame
+    df = pd.read_csv(data_file)
+    #group_labels = np.arange(len(df)) // window_size
+    #df = df.groupby(group_labels).mean().reset_index(drop=True)
+
+    # Extract the columns you're interested in
+    age = df['age'].values/1e6
+    bh_mass = df['BH mass'].values
+    accrate = df['accrate'].values
+    density = df['average density'].values
+    vinfinity = df['average vinfinity'].values
+    cinfinity = df['average cinfinity'].values
+    hl_radius = df['HL radius'].values
+
+    # try adaptively smoothing the data
+    age_av = adaptive_moving_average(age, window_size=n)
+    bh_mass_av = adaptive_moving_average(bh_mass, window_size=n)
+    accrate_av = adaptive_moving_average(accrate, window_size=n)
+    density_av = adaptive_moving_average(density, window_size=n)
+    vinfinity_av = adaptive_moving_average(vinfinity, window_size=n)
+    cinfinity_av = adaptive_moving_average(cinfinity, window_size=n)
+    hl_radius_av = adaptive_moving_average(hl_radius, window_size=n)
+
+    # 1) BH Mass
+    axs[0].plot(age_av, bh_mass_av, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+
+    # 2) Accretion Rates
+    axs[1].plot(age_av, accrate_av, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+    axs[1].plot(age_av, eddington_rate(bh_mass_av), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
+
+    # 3) Densities
+    axs[2].plot(age_av, density_av, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+
+    # 4) Velocities
+    axs[3].plot(age_av, vinfinity_av, color=c[j], linestyle='solid', label=label_extra+'-vinf', alpha=alpha)
+
+    # 5) HL radius
+    axs[4].plot(age_av, hl_radius_av/dx[i], color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+
+    return 0
 
 
 if __name__ == "__main__":
 
     ###################################### Parameters ######################################
 
-    x = "s1+s2-270msun-"       # simulation type
+    x = "s1+s2-40msun-"       # simulation type
     y = sys.argv[-1]        # naming plot
     xlim = 1                # Myrs
     time_cutoff = xlim      # Myrs
@@ -279,113 +267,37 @@ if __name__ == "__main__":
     """""""""""""""""
 
     # set line colours
-    # c = ['indigo', 'darkmagenta', 'mediumslateblue', 'turquoise', 'limegreen', 'darkgreen']
-    n = int(len(bhl_object_list)/2)+1
-    c_s1 = extract_colors('magma', 4, portion="middle", start=0.2, end=0.8)
-    c_s2 = extract_colors('viridis', 4, portion="middle", start=0.25, end=0.85)
+    c_s1 = extract_colors('magma', 5, portion="middle", start=0.3, end=0.8)
+    c_s2 = extract_colors('viridis', 4, portion="middle", start=0.3, end=0.9)
     c = np.concatenate((c_s1, c_s2))
 
-    # set BHL properties parameters
-    l = tidy_data_labels(bhl_object_labels)
-    j = 0
+    # Plot data
+    # 1S.b + 2S.b
+    data_files = [
+        'data_files/data-1S.RSbf4.csv', 'data_files/data-1S.RSb01.csv',
+        'data_files/data-1S.b01-no-SN.csv', 'data_files/data-1S.RSb04.csv', 'data_files/data-1S.b04-no-SN.csv', 
+        'data_files/data-2S.RSbf16.csv', 'data_files/data-2S.RSbf4.csv', 
+        'data_files/data-2S.RSb01.csv',  'data_files/data-2S.b01-no-SN.csv'
+    ]
 
-    # Resampling the time series data
-    times = [BHL.ages/1e6 for BHL in bhl_object_list]
+    # 1S.m + 2S.m
+    data_files = [
+        'data_files/data-1S.mf4-no-derefine.csv', 'data_files/data-1S.RSm01.csv',
+        'data_files/data-1S.m01-no-SN.csv', 'data_files/data-1S.RSm04.csv', 'data_files/data-1S.m04-no-SN.csv',
+        'data_files/data-2S.RSmf16-2-gap.csv', 'data_files/data-2S.RSmf4-2.csv',
+        'data_files/data-2S.m01-386+.csv', 'data_files/data-2S.m01-no-SN.csv'
+    ]
 
-    # Find the minimum and maximum times among all simulations
-    min_time = min([min(t) for t in times])
-    min_final_time = min([t[-1] for t in times])
-
-    # Define the common time grid
-    num_steps = int(len(times[-1])/5)  # take time steps from last (most refined) simulation
-    print("num points: ", num_steps)
-    common_time = np.linspace(min_time, min_final_time, num_steps)
-
-    # resample BHL attributes over the common_time - produces a list of length 4 (for each simulations), 
-    # where list elements = attribute array
-    mass = resample_data([BHL.mass for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
-    accretion_rates = resample_data([BHL.accrates for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
-    density = resample_data([BHL.average_density for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
-    avg_vinf = resample_data([BHL.average_vinfinity for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
-    avg_cinf = resample_data([BHL.average_cinfinity for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
-    hl_radius = resample_data([BHL.hl_radius for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
-    bondi_radius = resample_data([BHL.hl_radius for BHL in bhl_object_list], times, common_time, smooth_simulations=smooth_simulations, window_size=window)
-
-    for i in range(len(mass)):
-
-        # 1) BH Mass
-        axs[0].plot(common_time, mass[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
-
-        # 2) Accretion Rates
-        axs[1].plot(common_time, accretion_rates[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
-        #axs[1].plot(common_time, eddington_rate(mass[i]), color=c[j], linestyle='dashed', label=l[i], alpha=alpha)
-
-        # 3) Densities
-        axs[2].plot(common_time, density[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
-
-        # 4) Velocities
-        #axs[3].plot(common_time, avg_vinf[i]/avg_cinf[i], color=c[j], linestyle='solid', label=l[i]+'-Mach', alpha=alpha)
-        axs[3].plot(common_time, avg_vinf[i], color=c[j], linestyle='solid', label=l[i]+'-vinf', alpha=alpha)
-        #axs[3].plot(common_time, avg_cinf[i], color=c[j], linestyle='dashed', label=l[i]+'-cinf', alpha=alpha-0.2)
-
-        # 5) HL radius
-        axs[4].plot(common_time, hl_radius[i]/dx[i], color=c[j], linestyle='solid', label=l[i], alpha=alpha)
-        #axs[4].plot(common_time, bondi_radius, color=c[j], linestyle='dotted', label=l[i], alpha=alpha)
-        print("average hl radius resolution: ", hl_radius[i].mean()/dx[i])
-
-        # 6) Scatter Residual
-        residual = (accretion_rates[i] - accretion_rates[-1])
-            
-        print("Min residual: ", residual.min())
-        if i == 2:
-            alpha2 = 0.2
-        elif i == 1:
-            alpha2 = 0.4
-        else: 
-            alpha2 = 0.6
-        #axs[5].scatter(common_time, residual, s=3, color=c[j], linestyle='solid', marker='o', label=l[i], alpha=alpha2)
-        
-        yscale_residual = 'linear'
-        axs[3].set_ylim([4e-3, 1.2e2])
-
-        print("=============================")
-
+    i = j = 0
+    alpha2 = 0.8
+    for data_file in data_files:
+        label = extract_label(data_file)
+        n = 20
+        plot_lines(i, j, data_file=data_file, label_extra=label, alpha=alpha2, n=n)
         j += 1
-
-    # plot line not using common time (hasn't reached ~ 1 Myr yet)
-    if extra_line:
-
-        # data_file = "data_files/data-2S.RSmf4-2.csv"
-        # label_extra = "2S.mf4"
-        data_file = "data_files/data-2B.RSb16.csv"
-        label_extra = "2B.b16"
-        # data_file = "data_files/data-2B.m16-4dx-2.csv"
-        # label_extra = "2B.m16"
-        # data_file = "data_files/data-2S.RSb01.csv"
-        # label_extra = "2S.b01"
-
-        #j -+ 1
-
-        i, j = plot_extra_line(data_file, label_extra, i, j, alpha=0.8, window_size=int(window/2))
-
-        # data_file = "data_files/data-2S.m01-386+.csv"
-        # label_extra = "2S.m01"
-
-        # # data_file = "data_files/data-2S.b01-no-SN.csv"
-        # # label_extra = "2S.b01-no-SN"
-
-        # i, j = plot_extra_line(data_file, label_extra, i, j, alpha=1)
-        
-        # data_file = "data_files/data-2S.m01-no-SN.csv"
-        # label_extra = "2S.m01-no-SN"
-
-        # i,j = plot_extra_line(data_file, label_extra, i, j, alpha=1)
-
+        i += 1
 
     ############################### Format plots #################################
-
-    # include title (might remove later)
-    axs[0].set_title(title)
 
     for i in range(num_subplots):
         axs[i].set_xticks(np.arange(0.1, time_cutoff+0.1, 0.1))
@@ -402,8 +314,8 @@ if __name__ == "__main__":
     axs[0].set_yscale('log')
     axs[0].set_ylabel(r"$\rm M_{BH} \, (M_{\odot})$", fontdict=None)
     axs[1].set_ylabel(r"$\rm \dot{M} \, (M_{\odot}/yr)$", fontdict=None)
-    axs[2].set_ylabel(r"$\rm n \, (H \, cm^{-3})$", fontdict=None)
-    axs[3].set_ylabel(r"$\rm \nu \, (km/s)$", fontdict=None)
+    axs[2].set_ylabel(r"$\rm n \, (cm^{-3})$", fontdict=None)
+    axs[3].set_ylabel(r"$\rm \nu_\infty \, (km/s)$", fontdict=None)
     axs[4].set_ylabel(r"$\rm r_{HL}/dx $", fontdict=None)
     axs[-1].set_xlabel('BH Age (Myr)')
 
@@ -429,10 +341,10 @@ if __name__ == "__main__":
         #axs[5].set_ylim([-1.5e-2, 0.9e-2])
     elif x == "s1+s2-40msun-":
         axs[0].set_ylim([10.1, 3000])
-        axs[1].set_ylim([3e-9, 8e-2])
+        axs[1].set_ylim([7e-10, 4e-2])
         axs[2].set_ylim([18, 2e10])
         axs[3].set_ylim([1.1e-1, 30])
-        axs[4].set_ylim([5e-3, 2e2])
+        axs[4].set_ylim([2e-3, 2e2])
         axs[0].axhline(y=60, color='grey', linestyle='dotted', linewidth=linewidth+2, alpha=alpha)
         axs[4].axhline(y=1, color='grey', linestyle='dotted', linewidth=linewidth+2,alpha=alpha)
     elif x == "s1+s2-270msun-":
@@ -475,7 +387,7 @@ if __name__ == "__main__":
     accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
 
     # Include legends
-    axs[0].legend(fontsize=fontsize-2, ncol=4, loc='upper center', bbox_to_anchor=(0.5, 1.45), handlelength=1) # 1.3 for m01, 
+    axs[0].legend(fontsize=fontsize-2, ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.58), handlelength=1) # 1.3 for m01, 
 
     ##########################################################################
 
