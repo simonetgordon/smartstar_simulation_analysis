@@ -103,13 +103,20 @@ def _baryon_overdensity_sg(field, data):
     )
 
 
+# def _blackhole_freefall_timescale(field, data):
+#     num = np.pi * data['index', 'radius'].to('cm')**1.5
+#     try:
+#         denom = 2 * np.sqrt(2 * G * data['SmartStar', 'particle_mass'].to('g')[0])
+#     except IndexError:
+#         denom = 2 * np.sqrt(2 * G * M)
+#     return num/denom
+
 def _blackhole_freefall_timescale(field, data):
-    num = np.pi * data['index', 'radius'].to('cm')**1.5
-    try:
-        denom = 2 * np.sqrt(2 * G * data['SmartStar', 'particle_mass'].to('g')[0])
-    except IndexError:
-        denom = 2 * np.sqrt(2 * G * M)
-    return num/denom
+    # Free-fall time formula for a cloud
+    G = 6.67e-8 * (yt.units.cm ** 3)/(yt.units.g*yt.units.s**2) # cgs
+    rho = data['gas', 'density'].to('g/cm**3')  # density in g/cm^3
+    t_ff = np.sqrt((3 * np.pi) / (32 * G * rho))  # time in seconds
+    return t_ff
 
 
 def _theta_vel_dynamical_timescale(field, data):
