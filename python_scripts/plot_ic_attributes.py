@@ -5,14 +5,12 @@
 
 import sys
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-from helper_functions import ss_properties
-from derived_fields import add_fields_ds
 import numpy as np
 import yt
 import os
-from matplotlib import rc
-from helper_functions import critical_density, extract_simulation_name, extract_dd_segment, tidy_data_labels
+from matplotlib.lines import Line2D
+from derived_fields import add_fields_ds
+from helper_functions import tidy_data_labels, configure_font, ss_properties
 
 
 def set_tick_params(axs, n_subplots, fontsize, custom_ticks=[], xlim=[], vline=0, linewidth=2):
@@ -40,17 +38,6 @@ def set_tick_params(axs, n_subplots, fontsize, custom_ticks=[], xlim=[], vline=0
         # Set major tick parameters on the y-axis with specified label size and visual properties
         axs[i].tick_params(axis="y", which='major', labelsize=fontsize)  # Set major tick label size on the y-axis
         axs[i].tick_params(axis="y", which='minor', length=2)  # Set minor tick parameters on the y-axis
-
-
-def set_font(fontsize=12, linewidth=1):
-    # font settings
-    plt.rcParams['font.size'] = fontsize
-    plt.rcParams['font.weight'] = 'light'
-    rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
-    rc('text', usetex=True)
-    plt.rcParams["mathtext.default"] = "regular"
-    plt.rcParams['lines.linewidth'] = linewidth
-
 
 def generate_labels(dds, root_dir, sim, s=True, tform=0):
     # generate 2 lists: labels, datasets (DS)
@@ -110,7 +97,8 @@ if __name__ == "__main__":
     labels, DS = generate_labels(dds, root_dir, sim)
 
     # set font format
-    set_font(fontsize, linewidth)
+    configure_font(fontsize)
+    plt.rcParams['lines.linewidth'] = linewidth
 
     # set up plot
     fig = plt.figure()
