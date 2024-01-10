@@ -1,7 +1,7 @@
 python_scripts/plots/
 python_scripts/movies/
-python_scripts/beckmann-plots/plots/
-python_scripts/beckmann-plots/estd_files/
+python_scripts/csv-data-plotting/plots/
+python_scripts/csv-data-plotting/estd_files/
 .idea/
 python_scripts/__pycache__/
-python_scripts/beckmann-plots/__pycache__/
+python_scripts/csv-data-plotting/__pycache__/
