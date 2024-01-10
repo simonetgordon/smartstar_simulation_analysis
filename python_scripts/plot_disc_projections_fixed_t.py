@@ -16,10 +16,8 @@ from mpl_toolkits.axes_grid1 import AxesGrid
 from yt.utilities.math_utils import ortho_find
 import matplotlib.ticker as ticker
 from contextlib import redirect_stdout
-from smartstar_find import ss_properties
 import re # complex str searches
-from plot_multi_projections import tidy_data_labels, first_index, format_sci_notation
-from plot_disc_projections import _make_disk_L
+from helper_functions import tidy_data_labels, first_index, format_sci_notation, _make_disk_L, ss_properties
 
 # input data - simulations and individual outputs
 root_dir = ["/home/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",

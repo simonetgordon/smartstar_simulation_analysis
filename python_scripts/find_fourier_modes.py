@@ -2,9 +2,9 @@ import numpy as np
 import yt
 from scipy.interpolate import griddata
 from plot_toomre_q_projection import field_from_sliceplot
-from smartstar_find import ss_properties
-from plot_disc_projections import _make_disk_L
-from plot_multi_projections import tidy_data_labels
+from helper_functions import ss_properties
+from helper_functions import _make_disk_L
+from helper_functions import tidy_data_labels
 from yt.utilities.math_utils import ortho_find
 from plot_radial_profile_from_frb import extract_dd_segment, extract_simulation_name
 
@@ -27,7 +27,6 @@ def find_bar_radius(phi_2_values, radii, var_deg=5):
             break
     return bar_radius, i
 
-import numpy as np
 
 def calculate_theta_array(dimensions):
     # Create an empty array of the same dimensions

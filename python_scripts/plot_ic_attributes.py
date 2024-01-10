@@ -6,12 +6,13 @@
 import sys
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from smartstar_find import ss_properties
+from helper_functions import ss_properties
 from derived_fields import add_fields_ds
 import numpy as np
 import yt
 import os
 from matplotlib import rc
+from helper_functions import critical_density, extract_simulation_name, extract_dd_segment, tidy_data_labels
 
 
 def set_tick_params(axs, n_subplots, fontsize, custom_ticks=[], xlim=[], vline=0, linewidth=2):
@@ -39,31 +40,6 @@ def set_tick_params(axs, n_subplots, fontsize, custom_ticks=[], xlim=[], vline=0
         # Set major tick parameters on the y-axis with specified label size and visual properties
         axs[i].tick_params(axis="y", which='major', labelsize=fontsize)  # Set major tick label size on the y-axis
         axs[i].tick_params(axis="y", which='minor', length=2)  # Set minor tick parameters on the y-axis
-
-
-def critical_density(ds, n_crit=False):
-    # Get the cosmological parameters from the dataset parameters
-    hubble_constant = yt.YTQuantity(ds.parameters.get("CosmologyHubbleConstantNow")*100, "km/s/Mpc")
-    matter_density = yt.YTQuantity(ds.parameters.get("CosmologyOmegaMatterNow"), "")
-    cosmological_constant_density = yt.YTQuantity(ds.parameters.get("CosmologyOmegaLambdaNow"), "")
-
-    # Convert the Hubble constant to CGS units (cm/s/Mpc)
-    hubble_constant_cgs = (hubble_constant).to("cm/s/Mpc")
-
-    # Conver Hubble constant to 1/s units
-    hubble_constant_pers = hubble_constant_cgs / yt.YTQuantity(3.1e19*1e5, "cm/Mpc") 
-
-    # Calculate the critical density
-    critical_density = (3 * hubble_constant_pers**2) / (8 * np.pi * yt.physical_constants.G) * (matter_density + cosmological_constant_density)
-
-    # Convert the critical density to the desired units (1/cm^3)
-    critical_density = critical_density.to("g/cm**3")
-
-    # Convert to hydrogen nuclei density if desired
-    if n_crit:
-        critical_density /= yt.physical_constants.mh # /cm**3
-
-    return critical_density
 
 
 def set_font(fontsize=12, linewidth=1):
@@ -103,19 +79,6 @@ def generate_DS(dds, root_dir, sim):
         add_fields_ds(ds)
         DS.append(ds)
     return DS
-
-
-def tidy_data_labels(labels):
-    # for lists of labels
-    if len(labels) < 50:
-        data_labels = [i.replace("-2", "") for i in labels]
-        data_labels = [i.replace("RS", "") for i in data_labels]
-    # for single label
-    else:
-        data_labels = labels.replace("-2", "")
-        data_labels = data_labels.replace("RS", "")
-    return data_labels
-
 
 if __name__ == "__main__":
 

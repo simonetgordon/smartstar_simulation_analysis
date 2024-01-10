@@ -2,77 +2,15 @@ import yt
 import sys
 import os
 import numpy as np
-from smartstar_find import ss_properties
+from helper_functions import ss_properties
 import matplotlib.pyplot as plt
 from matplotlib import pyplot
 from matplotlib import rc
 from derived_fields import add_fields_ds
 from yt.utilities.math_utils import ortho_find
-from plot_multi_projections import tidy_data_labels
+from helper_functions import tidy_data_labels
 import re
-
-
-# make disc data container
-def _make_disk_L(ds, center, width_pc, height_pc):
-    width = width_pc*yt.units.pc
-    height = height_pc*yt.units.pc
-    sp = ds.sphere(center, width)
-    L = sp.quantities.angular_momentum_vector()
-    L /= np.sqrt((L ** 2).sum()) # normal vector is N = L/|L|
-    disk = ds.disk(center, L, width, height)
-    return disk, L
-
-
-def extract_simulation_name(fp):
-    """
-    Extract the simulation name from a file path.
-
-    Parameters:
-    fp (str): The file path.
-
-    Returns:
-    str: The extracted simulation name.
-    """
-    # Find all substrings that match the pattern
-    matches = re.findall(r'/([^/]+)/DD', fp)
-
-    # Return the last match (closest to the end of the string)
-    if matches:
-        return matches[-1]
-    else:
-        print("No match found")
-        return None
-    
-
-def extract_dd_segment(file_path: str) -> str:
-    """
-    Extracts the 'DDxxxx' segment from a given file path.
-
-    Parameters:
-    file_path (str): The file path from which to extract the 'DDxxxx' segment.
-
-    Returns:
-    str: The 'DDxxxx' segment if it exists, otherwise an empty string.
-    """
-    # Define a regular expression pattern to find 'DDxxxx' where xxxx are numbers
-    pattern = re.compile(r'DD[0-9]{4}')
-    
-    # Search for the pattern in the file path
-    match = pattern.search(file_path)
-    
-    # If a match is found, return it; otherwise return an empty string
-    if match:
-        return match.group()
-    else:
-        return ""
-    
-
-def configure_font(fontsize=14):
-    pyplot.rcParams['font.size'] = fontsize
-    pyplot.rcParams['font.weight'] = 'light'
-    rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
-    rc('text', usetex=True)
-    plt.rcParams["mathtext.default"] = "regular"
+from helper_functions import extract_dd_segment, extract_simulation_name, _make_disk_L, configure_font
 
 
 if __name__ == "__main__":

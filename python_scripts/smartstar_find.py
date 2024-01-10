@@ -4,28 +4,7 @@ For use by plot_variables_2.py
 import sys
 import os
 import yt
-#import ytree
-
-
-def ss_properties(ds):
-    print("ds = ", ds)
-    ad = ds.all_data()
-    try:
-        # find ss properties
-        ss_creation = ad['SmartStar', 'creation_time'].to('yr')
-        ss_pos = ad['SmartStar', 'particle_position'].to('unitary')[0]
-        ss_mass = ad['SmartStar', 'particle_mass'].to('Msun')[0]
-
-        # find ss age
-        time = ds.current_time.to('yr').d
-        creation = ss_creation.d  # strip units off variables
-        ss_age = time - creation
-    except:
-        ss_pos = None
-        ss_mass=0*yt.units.msun
-        ss_age = [0*yt.units.Myr]
-
-    return ss_pos, ss_mass, ss_age
+from helper_functions import ss_properties
 
 
 if __name__ == "__main__":

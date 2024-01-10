@@ -5,59 +5,12 @@ from yt.utilities.math_utils import ortho_find
 import matplotlib as mpl
 import pandas as pd
 from matplotlib import rc
-from find_disc_attributes import _make_disk_L
-from smartstar_find import ss_properties
+from helper_functions import ss_properties
 from plot_radial_profile_from_frb import compute_radial_profile, make_frb, ToomreQ, kappa2D
 from matplotlib.colors import LogNorm
 from plot_radial_profile_from_frb import extract_dd_segment, extract_simulation_name
+from helper_functions import _make_disk_L,field_from_sliceplot,toomre_from_sliceplot
 
-def toomre_from_sliceplot(ds, disk, center, width_pc, north, dir, npixels=2048):
-    """
-    Compute Toomre Q from a slice plot of a dataset.
-    Surface Density = slice plot density * cell height
-    """
-    G = yt.units.physical_constants.G
-    dx = ds.index.get_smallest_dx().in_units('cm')
-    p = yt.SlicePlot(ds, dir, ("gas", "density"), center=center, width=(width_pc, "pc"), data_source=disk)
-    slc_frb = p.data_source.to_frb((width_pc, "pc"), npixels)
-    slc_dens = slc_frb[("gas", "density")]*slc_frb['index', 'dy'].to('cm') # replaced dx with array of dy
-    slc_cs = slc_frb[("gas", "sound_speed")].to('cm/s')
-    slc_kappa = kappa2D(slc_frb)
-    q = ToomreQ(slc_cs, slc_kappa, G, slc_dens)
-
-    return q
-
-def field_from_sliceplot(field, ds, disk, center, width_pc, north, dir, npixels=2048, radius=False):
-    """
-    Compute field from a slice plot of a dataset.
-    Surface Density = slice plot density * cell height
-    """
-    p = yt.SlicePlot(ds, dir, ("gas", field), center=disk.center, width=(width_pc, "pc"), data_source=disk)
-    slc_frb = p.data_source.to_frb((width_pc, "pc"), npixels)
-    slc_field = slc_frb[("gas", field)]
-    if radius:
-        radius = slc_frb['radius'].to('pc')
-        return slc_field, radius
-    else:
-        return slc_field
-
-def toomre_from_frb(ds, center, L, frb_height_pc, frb_width_pc, npixels=2048):
-    """
-    Compute Toomre Q from a frb of a dataset.
-    Surface Density = disk frb densities * disk height from plane of particle.
-    """
-    frb_height = frb_height_pc
-    frb_width = frb_width_pc
-    cutting = ds.cutting(L, center)
-    frb = cutting.to_frb(frb_width, npixels, height=frb_height)
-
-    #Get radius and Toomre Q inputs from frb
-    radius = frb['radius'].to('pc')
-    surface_density = frb['density'].to('g/cm**3') * frb_height.to('cm') # cm^-2
-    cs = frb['sound_speed'].to('cm/s')
-    kappa = kappa2D(frb)
-    q = ToomreQ(cs, kappa, G, surface_density)
-    return q, radius
 
 if __name__ == "__main__":
     file_paths = [ 
@@ -99,9 +52,7 @@ if __name__ == "__main__":
 
         # Compute Toomre Q from slice plot
         q = toomre_from_sliceplot(ds, center, width_pc, north, dir, npixels=2048)
-        #q, _ = toomre_from_frb(ds, center, L, disc_h_pc, disc_r_pc, npixels=2048)
 
-        
         # Create a figure and axis object
         fig, ax = plt.subplots()
         cax = ax.imshow(q, cmap='magma', origin="lower", norm=LogNorm())

@@ -6,54 +6,14 @@ import yt
 import sys
 import os
 import numpy as np
-from smartstar_find import ss_properties
 import matplotlib.pyplot as plt
-from derived_fields import add_fields_ds
-from yt.utilities.math_utils import ortho_find
 import matplotlib as mpl
 import pandas as pd
 from matplotlib import rc
-import matplotlib.cm as cm
-from find_disc_attributes import _make_disk_L
-from plot_multi_projections import tidy_data_labels
-from plot_radial_profile_from_frb import compute_radial_profile, make_frb, ToomreQ, kappa2D
-
-
-def orbital_velocity(ds, disk):
-    G = 6.67e-8 * (yt.units.cm ** 3)/(yt.units.g*yt.units.s**2) # cgs
-    return np.sqrt(G * ds.r['SmartStar', 'particle_mass'].to('g') / disk['index', 'radius'].to('cm'))
-
-
-def radial_profile(field, disk, n_bins, cell_width_pc):
-    bins = np.logspace(np.log10(cell_width_pc), np.log10(disk["index", "radius"].to('pc').max()), n_bins+1)
-    counts_r, r_bin_edges = np.histogram(disk["index", "radius"].to('pc'), bins=bins)
-    y, radius = np.histogram(disk["index", "radius"].to('pc'), weights=field, bins=bins)
-    y = np.nan_to_num(y)
-    y = y/counts_r
-    y = np.nan_to_num(y)
-    y_no_zeros = y[y > 0]
-    r_no_zeros = radius[:-1][y > 0]
-    return r_no_zeros, y_no_zeros
-
-
-def extract_colors(cmap_name, n, portion=None, start=None, end=None):
-    cmap = cm.get_cmap(cmap_name)
-
-    if start is not None and end is not None:
-        values = np.linspace(start, end, n)
-    elif portion == "beginning":
-        values = np.linspace(0, 0.3, n)
-    elif portion == "middle":
-        values = np.linspace(0.3, 0.95, n)
-    elif portion == "end":
-        values = np.linspace(0.7, 1, n)
-    elif portion is None:
-        values = np.linspace(0, 1, n)
-    else:
-        raise ValueError("Invalid portion specified. Use 'beginning', 'middle', 'end', or None.")
-
-    colors = cmap(values)
-    return colors
+from derived_fields import add_fields_ds
+from yt.utilities.math_utils import ortho_find
+from helper_functions import tidy_data_labels, ss_properties
+from helper_functions import _make_disk_L, compute_radial_profile, make_frb, ToomreQ, kappa2D, extract_colors, orbital_velocity
 
 
 if __name__ == "__main__":

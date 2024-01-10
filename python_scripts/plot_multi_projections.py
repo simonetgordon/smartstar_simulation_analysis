@@ -16,39 +16,9 @@ from matplotlib_scalebar.scalebar import ScaleBar
 #from matplotlib_scalebar.dimension import Dimension
 import matplotlib.ticker as ticker
 from contextlib import redirect_stdout
-from smartstar_find import ss_properties
+from helper_functions import ss_properties
 import re # complex str searches
-
-
-def tidy_data_labels(labels, custom_name=None):
-    if custom_name:
-        return custom_name
-    
-    # Function to apply replacements to a single label
-    def apply_replacements(label):
-        label = label.replace("-2", "")
-        label = label.replace("RS", "")
-        label = label.replace("-4dx", "")
-        label = label.replace("/2B.b08", "") # for plot_disc_attributes.py 2B.b08
-        try: 
-            parts = labels.split('/')
-            if len(parts) == 2 and parts[0] == parts[1]:
-                label = parts[0]
-        except AttributeError:
-            pass
-        return label
-
-    # Check if labels is a list or a single label
-    if isinstance(labels, list):
-        # Process each label in the list
-        data_labels = [apply_replacements(label) for label in labels]
-    elif isinstance(labels, str):
-        # Process a single label
-        data_labels = apply_replacements(labels)
-    else:
-        raise TypeError("labels should be a string or a list of strings")
-
-    return data_labels
+from helper_functions import tidy_data_labels, _make_disk_L, ortho_find, make_frb
 
 
 def first_index(a, val, rtol=0.1, atol=10):

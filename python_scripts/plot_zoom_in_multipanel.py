@@ -5,11 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from yt.utilities.math_utils import ortho_find
-import re
-from smartstar_find import ss_properties
+from helper_functions import ss_properties
 from plot_multipanel_time_2 import create_axes_grid, get_min_max_values, configure_font, make_projection_plot, set_ticks_and_labels
-from plot_disc_projections import _make_disk_L
-from contextlib import redirect_stdout
+from helper_functions import _make_disk_L, format_sci_notation
 
 def tidy_data_labels(labels, custom_name=None):
     if custom_name:
@@ -37,11 +35,6 @@ def tidy_data_labels(labels, custom_name=None):
 
 def first_index(a, val, rtol=0.1, atol=10):
     return next(j for j, _ in enumerate(a) if np.isclose(_, val, rtol, atol))
-
-
-def format_sci_notation(x):
-    a, b = '{:.2e}'.format(x).split('e')
-    return r'$\rm {} \times 10^{{{}}}$'.format(a, int(b))
 
 
 def main(root_dir, sim, dds, field, k, widths_pccm, fontsize, min_n_factor, max_n_factor, orient="face-on", cmap="viridis", seed="s1"):

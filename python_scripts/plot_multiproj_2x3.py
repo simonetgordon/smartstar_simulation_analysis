@@ -9,11 +9,11 @@ import sys
 import os
 import re # complex str searches
 from matplotlib import ticker
-from smartstar_find import ss_properties
-from plot_disc_projections import _make_disk_L
+from helper_functions import ss_properties
+from helper_functions import _make_disc_L
 from plot_multipanel_time_2 import configure_font, make_projection_plot, create_axes_grid, set_axis_labels_and_colorbar, \
     configure_projection_plot, get_min_max_values, set_ticks_and_labels, make_slice_plot
-from plot_multi_projections import tidy_data_labels, find_north_vector
+from helper_functions import tidy_data_labels, find_north_vector
 from yt.utilities.math_utils import ortho_find
 import matplotlib.pyplot as plt
 from matplotlib import rc

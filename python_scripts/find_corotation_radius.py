@@ -1,8 +1,8 @@
 import os
 from plot_toomre_q_projection import field_from_sliceplot
-from smartstar_find import ss_properties
-from plot_disc_projections import _make_disk_L
-from plot_multi_projections import tidy_data_labels
+from helper_functions import ss_properties
+from helper_functions import _make_disk_L
+from helper_functions import tidy_data_labels
 from yt.utilities.math_utils import ortho_find
 from plot_radial_profile_from_frb import extract_dd_segment, extract_simulation_name
 from find_fourier_modes import get_theta_values, find_bar_radius, extract_dd_number

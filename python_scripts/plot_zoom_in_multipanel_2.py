@@ -7,10 +7,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from yt.utilities.math_utils import ortho_find
 import re
-from smartstar_find import ss_properties
-from plot_multipanel_time_2 import configure_font
-from plot_multi_projections import tidy_data_labels
-from plot_disc_projections import _make_disk_L
+from helper_functions import ss_properties
+from helper_functions import configure_font, tidy_data_labels, _make_disk_L
 from plot_zoom_in_multipanel import format_sci_notation
 from derived_fields import add_fields_ds
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar

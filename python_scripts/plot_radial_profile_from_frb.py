@@ -2,15 +2,16 @@ import yt
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-from smartstar_find import ss_properties
+from helper_functions import ss_properties
 import sys
-from plot_disc_projections import _make_disk_L
+from helper_functions import _make_disc_L
 from yt.utilities.math_utils import ortho_find
-from plot_multi_projections import tidy_data_labels
+from helper_functions import tidy_data_labels
 from yt.units import pc
 from matplotlib import rc
 import re
 import matplotlib.colors as colors
+from helper_functions import ToomreQ, extract_dd_segment, extract_simulation_name, kappa2D, kappa2D_vmag, compute_radial_profile
 
 
 def setup_plot_env(fontsize, linewidth):
@@ -19,115 +20,6 @@ def setup_plot_env(fontsize, linewidth):
     plt.rcParams["mathtext.default"] = "regular"
     plt.rcParams['font.size'] = fontsize
     plt.rcParams['lines.linewidth'] = linewidth
-
-
-def extract_simulation_name(fp):
-    """
-    Extract the simulation name from a file path.
-
-    Parameters:
-    fp (str): The file path.
-
-    Returns:
-    str: The extracted simulation name.
-    """
-    # Find all substrings that match the pattern
-    matches = re.findall(r'/([^/]+)/DD', fp)
-
-    # Return the last match (closest to the end of the string)
-    if matches:
-        return matches[-1]
-    else:
-        print("No match found")
-        return None
-
-
-def extract_dd_segment(file_path: str) -> str:
-    """
-    Extracts the 'DDxxxx' segment from a given file path.
-
-    Parameters:
-    file_path (str): The file path from which to extract the 'DDxxxx' segment.
-
-    Returns:
-    str: The 'DDxxxx' segment if it exists, otherwise an empty string.
-    """
-    # Define a regular expression pattern to find 'DDxxxx' where xxxx are numbers
-    pattern = re.compile(r'DD[0-9]{4}')
-    
-    # Search for the pattern in the file path
-    match = pattern.search(file_path)
-    
-    # If a match is found, return it; otherwise return an empty string
-    if match:
-        return match.group()
-    else:
-        return ""
-
-
-def make_frb(ds, L, center, width= 10*yt.units.pc, npixels=1024, height=0.05*yt.units.pc):
-    """
-    Make a fixed resolution buffer (frb) of the disk from its center and 
-    angular momentum vector L.
-    """
-    cutting = ds.cutting(L, center)
-    frb = cutting.to_frb(width, npixels, height=height)
-    return frb, height
-
-
-def kappa2D(frb):
-    """
-    Calculate the epicyclic frequency kappa = v/r
-    """
-    kappa = np.abs(frb['velocity_cylindrical_theta']) / frb['radius']
-    return kappa
-
-
-def kappa2D_vmag(frb):
-    """
-    Calculate the epicyclic frequency kappa = v/r
-    """
-    kappa = frb['velocity_magnitude'] / frb['radius']
-    return kappa
-
-
-def ToomreQ(cs, kappa, G, surface_density):
-    """
-    Calculate the Toomre Q parameter for linear stability
-    """
-    G = yt.units.physical_constants.G
-    Q = cs * kappa / (np.pi * G * surface_density) # *0.6*1.67e-24 for surface number density
-    return Q
-
-
-def compute_radial_profile(radius, data, num_bins=128):
-    """
-    Compute the radial profile of surface density.
-
-    Parameters:
-    radius (2D array): frb image map of radius values.
-    data (2D array): frb image map of surface density/toomre Q/etc. values.
-    num_bins (int): Number of bins to use for the radial profile.
-
-    Returns:
-    bin_centers (1D array): Center of each radial bin.
-    profile (1D array): Average surface density within each bin.
-    """
-    # Flatten the arrays
-    radius_flat = np.array(radius).flatten()
-    data_flat = np.array(data).flatten()
-    
-    # Define the radial bins in log space
-    radial_bins = np.logspace(np.log10(radius_flat.min()+1e-5), np.log10(radius_flat.max()), num_bins+1)
-    
-    # Compute the bin centers
-    bin_centers = np.sqrt(radial_bins[:-1] * radial_bins[1:])  # geometric mean for log bins
-    
-    # Compute the profile by averaging surface density within each bin
-    profile = np.array([data_flat[(radius_flat >= rb_start) & (radius_flat < rb_end)].mean() for 
-                        rb_start, rb_end in zip(radial_bins[:-1], radial_bins[1:])])
-
-    return bin_centers, profile
 
 
 if __name__ == "__main__":

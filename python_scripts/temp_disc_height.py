@@ -2,11 +2,10 @@ import yt
 import sys
 import os
 import numpy as np
-from smartstar_find import ss_properties
 import matplotlib.pyplot as plt
+from smartstar_find import ss_properties
 from derived_fields import add_fields_ds
-from find_disc_attributes import _make_disk_L
-from plot_disc_attributes import radial_profile
+from helper_functions import radial_profile, _make_disk_L
 
 
 # data

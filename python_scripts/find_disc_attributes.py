@@ -7,7 +7,7 @@ import yt
 import sys
 import os
 import numpy as np
-from smartstar_find import ss_properties
+from helper_functions import ss_properties
 import matplotlib.pyplot as plt
 from derived_fields import add_fields_ds
 from yt.utilities.math_utils import ortho_find
@@ -15,6 +15,7 @@ import matplotlib as mpl
 mpl.rcParams['agg.path.chunksize'] = 10000
 from scipy import stats
 from matplotlib import rc
+from helper_functions import _make_disk_L
 
 # font settings
 fontsize = 12 # for projection annotations
@@ -27,15 +28,7 @@ rc('text', usetex=True)
 plt.rcParams["mathtext.default"] = "regular"
 plt.rcParams['lines.linewidth'] = linewidth
 
-# make disc data container
-def _make_disk_L(ds, center, width, height):
-    sp = ds.sphere(center, width)
-    L = sp.quantities.angular_momentum_vector()
-    L /= np.sqrt((L ** 2).sum())
-    disk = ds.disk(center, L, width, height)
-    return disk, L
-
-
+# define functions used in this script only
 def radius(s_area):
     return np.sqrt(s_area/4*np.pi)
 

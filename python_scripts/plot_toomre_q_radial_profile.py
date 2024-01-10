@@ -2,36 +2,16 @@ import yt
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-from smartstar_find import ss_properties
+from helper_functions import ss_properties
 import sys
-from plot_disc_projections import _make_disk_L
+from helper_functions import _make_disc_L
 from yt.utilities.math_utils import ortho_find
-from plot_multi_projections import tidy_data_labels
+from helper_functions import tidy_data_labels
 from yt.units import pc
 from plot_multipanel_velocity import extract_simulation_name
 import re
+from helper_functions import ToomreQ, extract_dd_segment
 
-def extract_dd_segment(file_path: str) -> str:
-    """
-    Extracts the 'DDxxxx' segment from a given file path.
-
-    Parameters:
-    file_path (str): The file path from which to extract the 'DDxxxx' segment.
-
-    Returns:
-    str: The 'DDxxxx' segment if it exists, otherwise an empty string.
-    """
-    # Define a regular expression pattern to find 'DDxxxx' where xxxx are numbers
-    pattern = re.compile(r'DD[0-9]{4}')
-    
-    # Search for the pattern in the file path
-    match = pattern.search(file_path)
-    
-    # If a match is found, return it; otherwise return an empty string
-    if match:
-        return match.group()
-    else:
-        return ""
     
 def bin_data(radial_bins, indices, data):
     """
@@ -59,13 +39,6 @@ def kappa2D(frb, G):
     """
     kappa = frb['velocity_magnitude'] / frb['radius'] # try cylindrical theta
     return kappa
-
-def ToomreQ(cs, kappa, G, surface_density):
-    """
-    Calculate the Toomre Q parameter for linear stability
-    """
-    Q = cs * kappa / (np.pi * G * surface_density*0.6*1.67e-24)
-    return Q
 
 def radial_bins(ds, width, npixels, num_bins=50):
     """

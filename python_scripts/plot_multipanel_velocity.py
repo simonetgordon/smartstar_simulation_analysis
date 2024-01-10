@@ -3,37 +3,16 @@ from mpl_toolkits.axes_grid1 import AxesGrid
 import re
 import os
 import yt
-import pygrackle
-from smartstar_find import ss_properties
+
 import sys
-from plot_disc_projections import _make_disk_L
 from yt.utilities.math_utils import ortho_find
-from plot_multi_projections import tidy_data_labels
-#import colorcet as cc
-#import typhon - has nice cmaps
+from helper_functions import ss_properties, tidy_data_labels, extract_simulation_name
+
 
 ########################################################################################################
 # Produces 2x2 sliceplots of the following fields: 
 # number_density, cooling_time, relative_velocity_x, velocity_magnitude, relative_velocity_z
 ########################################################################################################
-
-def extract_simulation_name(filepath):
-    # Get the last part of the path
-    last_part = os.path.basename(filepath)
-
-    # Use regular expression to extract the full simulation name
-    match = re.search(r'\b(?:\d+[A-Za-z]+\d+|[A-Za-z]+\d+)\b', last_part)
-
-    if match:
-        return match.group(0)
-
-    # If the match is not found, try to extract from the parent directories
-    path_parts = filepath.split(os.path.sep)
-    for i in range(len(path_parts)-1, -1, -1):
-        match = re.search(r'\b(?:\d+[A-Za-z]+\d+|[A-Za-z]+\d+)\b', path_parts[i])
-        if match:
-            return path_parts[i]
-    return None
 
 
 def main(directory: str, snapshot: str, plot: str, width_pc: float, dir="z", quiver=False, streamlines=False, disc_r=None):
