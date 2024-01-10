@@ -12,76 +12,10 @@ from smartstar_find import ss_properties
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from derived_fields import add_fields_ds
-from find_disc_attributes import _make_disk_L
+from helper_functions import _make_disk_L, adaptive_moving_average, extract_colors
 from matplotlib import rc
 import matplotlib.transforms as mtransforms
-import matplotlib.cm as cm
 
-# plot and save figure
-def moving_average(a, n=5) :
-    ret = np.cumsum(a, dtype=float)
-    ret[n:] = ret[n:] - ret[:-n]
-    return ret[n - 1:] / n
-
-def adaptive_moving_average(data, window_size=5):
-    """
-    Compute an adaptive moving average on the logarithm of the data.
-    
-    :param data: The input data (list or array).
-    :param window_size: The window size for the moving average.
-    :return: An array of the moving average values in the original data space.
-    """
-    # Take the logarithm of data, excluding non-positive values
-    log_data = np.log(data[data > 0])
-    data_length = len(log_data)
-    log_moving_avg = np.zeros(data_length)
-
-    for i in range(data_length):
-        start = max(i - window_size // 2, 0)
-        end = min(i + window_size // 2 + 1, data_length)
-        log_moving_avg[i] = np.mean(log_data[start:end])
-
-    # Exponentiate to return to original data space
-    moving_avg = np.exp(log_moving_avg)
-
-    # Handle edge cases if original data had non-positive values
-    moving_avg_full = np.full_like(data, np.nan)
-    positive_indices = np.where(data > 0)[0]
-    moving_avg_full[positive_indices] = moving_avg
-
-    return moving_avg_full
-
-# function that does the interpolation
-def interpolate_data(arr, N=100):
-    # interpolate arr over `N` evenly spaced points
-    min_val = np.min(arr)
-    max_val = np.max(arr)
-
-    t_orig = np.linspace(min_val, max_val, len(arr))
-    t_interp = np.linspace(min_val, max_val, N)
-    f = interp1d(x=t_orig, y=arr)
-    interp_arr = f(t_interp)
-    return interp_arr
-
-
-def extract_colors(cmap_name, n, portion=None, start=None, end=None):
-    cmap = cm.get_cmap(cmap_name)
-
-    if start is not None and end is not None:
-        values = np.linspace(start, end, n)
-    elif portion == "beginning":
-        values = np.linspace(0, 0.3, n)
-    elif portion == "middle":
-        values = np.linspace(0.3, 0.95, n)
-    elif portion == "end":
-        values = np.linspace(0.7, 1, n)
-    elif portion is None:
-        values = np.linspace(0, 1, n)
-    else:
-        raise ValueError("Invalid portion specified. Use 'beginning', 'middle', 'end', or None.")
-
-    colors = cmap(values)
-    return colors
 
 # my data 
 root_dir = ["/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann",
@@ -123,8 +57,6 @@ plt.rcParams["mathtext.default"] = "regular" # for the same font used in regular
 rc('text', usetex=True)
 
 # colors
-# c = ['blueviolet','plum', 'green', 'red']
-#n = 2
 c_s1 = extract_colors('viridis', 3, portion="middle")
 c_s2 = extract_colors('magma', 2, portion="middle", start=0.4, end=0.6)
 c = np.concatenate((c_s1, c_s2))
@@ -174,8 +106,6 @@ for j, ds in enumerate(dds):
     # take absolute value of cooling rate
     cooling_ratio = np.abs(profile[("enzo", "radiative_cooling_rate")][profile.used]/profile[("enzo", "advective_cooling_rate")][profile.used])
     n = 10
-    #x_avg = interpolate_data(moving_average(profile.x[profile.used], n=n))
-    #y_avg = interpolate_data(moving_average(cooling_ratio, n=n))
     x_avg = adaptive_moving_average(profile.x[profile.used], window_size=n)
     y_avg = adaptive_moving_average(cooling_ratio, window_size=n)
     x_avg = x_avg.d
