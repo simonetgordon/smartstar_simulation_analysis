@@ -11,9 +11,8 @@ import matplotlib as mpl
 import pandas as pd
 from matplotlib import rc
 from derived_fields import add_fields_ds
-from yt.utilities.math_utils import ortho_find
 from helper_functions import tidy_data_labels, ss_properties
-from helper_functions import _make_disk_L, compute_radial_profile, make_frb, ToomreQ, kappa2D, extract_colors, orbital_velocity
+from helper_functions import _make_disk_L, compute_radial_profile, make_frb, ToomreQ, kappa2D, extract_colors, orbital_velocity, radial_profile
 
 
 if __name__ == "__main__":

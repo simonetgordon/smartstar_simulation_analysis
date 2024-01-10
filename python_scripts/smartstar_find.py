@@ -5,6 +5,7 @@ import sys
 import os
 import yt
 from helper_functions import ss_properties
+import ytree
 
 
 if __name__ == "__main__":

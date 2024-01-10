@@ -1,16 +1,8 @@
 import yt
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-from helper_functions import ss_properties
-import sys
-from helper_functions import _make_disc_L
-from yt.utilities.math_utils import ortho_find
-from helper_functions import tidy_data_labels
 from yt.units import pc
-from plot_multipanel_velocity import extract_simulation_name
-import re
-from helper_functions import ToomreQ, extract_dd_segment
+from helper_functions import ToomreQ, extract_dd_segment, _make_disk_L, extract_simulation_name, ss_properties
 
     
 def bin_data(radial_bins, indices, data):

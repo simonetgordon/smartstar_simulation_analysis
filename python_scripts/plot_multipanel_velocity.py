@@ -6,7 +6,7 @@ import yt
 
 import sys
 from yt.utilities.math_utils import ortho_find
-from helper_functions import ss_properties, tidy_data_labels, extract_simulation_name
+from helper_functions import ss_properties, tidy_data_labels, extract_simulation_name, _make_disk_L
 
 
 ########################################################################################################

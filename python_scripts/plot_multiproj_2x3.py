@@ -4,23 +4,15 @@ python -i plot_multiproj_2x3.py
 """
 
 import yt
-import shutil
-import sys
 import os
-import re # complex str searches
-from matplotlib import ticker
-from helper_functions import ss_properties
-from helper_functions import _make_disc_L
-from plot_multipanel_time_2 import configure_font, make_projection_plot, create_axes_grid, set_axis_labels_and_colorbar, \
-    configure_projection_plot, get_min_max_values, set_ticks_and_labels, make_slice_plot
-from helper_functions import tidy_data_labels, find_north_vector
-from yt.utilities.math_utils import ortho_find
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+from helper_functions import ss_properties, _make_disk_L, tidy_data_labels
+from plot_multipanel_time_2 import configure_font, make_projection_plot, create_axes_grid, \
+    configure_projection_plot, get_min_max_values, set_ticks_and_labels
+from yt.utilities.math_utils import ortho_find
 from matplotlib import rc
 from mpl_toolkits.axes_grid1 import AxesGrid
-import time
-import numpy as np
-import matplotlib as mpl
 
 
 def plot_cbar_on_right(fig, grid, k, p, cmap):
@@ -115,6 +107,7 @@ def main(root_dir, sim, dds1, dds2, dds3, field, width_pc, xticks, fontsize, min
                         p.annotate_title("Disk z-Velocity (km/s)")
                     #p.hide_colorbar()
             else:
+                v = 0
                 p = make_projection_plot(ds, width_pc, disk, L, field, vecs, v, north, min_n, max_n, fontsize, cmap=cmap, center=center)
                 p = configure_projection_plot(p, field, cmap, min_n, max_n, fontsize=14)
             

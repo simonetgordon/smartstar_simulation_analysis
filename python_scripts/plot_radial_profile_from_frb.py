@@ -4,14 +4,13 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from helper_functions import ss_properties
 import sys
-from helper_functions import _make_disc_L
 from yt.utilities.math_utils import ortho_find
 from helper_functions import tidy_data_labels
 from yt.units import pc
 from matplotlib import rc
 import re
 import matplotlib.colors as colors
-from helper_functions import ToomreQ, extract_dd_segment, extract_simulation_name, kappa2D, kappa2D_vmag, compute_radial_profile
+from helper_functions import ToomreQ, extract_dd_segment, extract_simulation_name, kappa2D, kappa2D_vmag, compute_radial_profile, _make_disk_L, make_frb
 
 
 def setup_plot_env(fontsize, linewidth):

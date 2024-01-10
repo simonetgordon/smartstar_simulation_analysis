@@ -1,9 +1,11 @@
 import numpy as np
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 import yt
+import os
+import re
 from yt.utilities.math_utils import ortho_find
 from matplotlib import rc, pyplot
-import matplotlib.pyplot as plt
 
 
 def configure_font(fontsize=14):
@@ -12,6 +14,7 @@ def configure_font(fontsize=14):
     rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
     rc('text', usetex=True)
     plt.rcParams["mathtext.default"] = "regular"
+
 
 def ss_properties(ds):
     print("ds = ", ds)
