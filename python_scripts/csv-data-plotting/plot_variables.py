@@ -1,15 +1,11 @@
 import sys
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-from read_arrays_from_csv import bhl_object_list, bhl_object_labels
 import numpy as np
 import pandas as pd
-from matplotlib import rc
-import matplotlib.cm as cm
-from scipy.interpolate import interp1d
-from scipy.ndimage import convolve1d
 import re
-#import seaborn as sns
+from matplotlib import rc
+from matplotlib.lines import Line2D
+from helper_functions import adaptive_moving_average, extract_colors, eddington_rate, configure_font, extract_simulation_name_from_csv
 
 ##########################################################################################################
 #                                     Plot BHL Variables vs time
@@ -17,38 +13,6 @@ import re
 # to run: python plot_variables.py [csv1] [csv2] [csv3] [output_plotname e.g mass-flux-x4]
 # list data files in order of low res -> high res
 ##########################################################################################################
-
-
-def tidy_data_labels(labels: str or list):
-    # for lists of labels
-    if len(labels) < 50:
-        data_labels = [i.replace("-2", "") for i in labels]
-        data_labels = [i.replace("RS", "") for i in data_labels]
-        data_labels = [i.replace("-gap", "") for i in data_labels]
-        data_labels = [i.replace("-4dx", "") for i in data_labels]
-        
-    # for single label
-    else:
-        data_labels = labels.replace("-2", "")
-        data_labels = data_labels.replace("RS", "")
-        data_labels = data_labels.replace("-gap", "")
-        data_labels = data_labels.replace("-4dx", "")
-    return data_labels
-
-
-def eddington_rate(mparticle_msun: float):
-    # eddington rate constants in cgs units
-    PI = 3.1415927
-    GravConst = 6.6740831e-8
-    mh = 1.67262171e-24
-    clight = 2.99792458e10
-    sigma_thompson = 6.65E-25
-    eta_disk = 0.1 # optically thick and e_radiative = 0.11
-    SolarMass = 1.9891e33
-    yr_s = 3.1556952E7
-    mparticle_g = mparticle_msun*SolarMass
-    mdot_edd = 4.0 * PI * GravConst * mparticle_g * mh / (clight * eta_disk * sigma_thompson)
-    return mdot_edd*yr_s/SolarMass
 
 
 def identify_cell_widths(x: str):
@@ -70,78 +34,17 @@ def identify_cell_widths(x: str):
         #dx = [2.459867e-02, 1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 7.692833e-04, 8.4e-03, 2.1e-03, 5.2e-04, 1.3e-04, 1.3e-04]
         dx = [1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 7.692833e-04, 8.4e-03, 5.2e-04, 1.3e-04, 1.3e-04] # for 1Sm/2Sm
         #dx = [1.229940e-02, 3.074829e-03, 3.074829e-03, 7.692833e-04, 8.4e-03, 5.2e-04, 1.3e-04, 1.3e-04, 7.692833e-04,] # for 1Sb/2Sb
+    elif x == "s1-baseline-fb":
+        dx = [1.229940e-02, 1.543e-03] # l14, l17
     else:
         dx = None  # You may want to handle this case differently
     return dx
 
 
-def extract_colors(cmap_name, n, portion=None, start=None, end=None):
-    cmap = cm.get_cmap(cmap_name)
-
-    if start is not None and end is not None:
-        values = np.linspace(start, end, n)
-    elif portion == "beginning":
-        values = np.linspace(0, 0.3, n)
-    elif portion == "middle":
-        values = np.linspace(0.3, 0.95, n)
-    elif portion == "end":
-        values = np.linspace(0.7, 1, n)
-    elif portion is None:
-        values = np.linspace(0, 1, n)
-    else:
-        raise ValueError("Invalid portion specified. Use 'beginning', 'middle', 'end', or None.")
-
-    colors = cmap(values)
-    return colors
-
-
-def adaptive_moving_average(data, window_size=5):
-    """
-    Compute an adaptive moving average on the logarithm of the data.
-    
-    :param data: The input data (list or array).
-    :param window_size: The window size for the moving average.
-    :return: An array of the moving average values in the original data space.
-    """
-    # Take the logarithm of data, excluding non-positive values
-    log_data = np.log(data[data > 0])
-    data_length = len(log_data)
-    log_moving_avg = np.zeros(data_length)
-
-    for i in range(data_length):
-        start = max(i - window_size // 2, 0)
-        end = min(i + window_size // 2 + 1, data_length)
-        log_moving_avg[i] = np.mean(log_data[start:end])
-
-    # Exponentiate to return to original data space
-    moving_avg = np.exp(log_moving_avg)
-
-    # Handle edge cases if original data had non-positive values
-    moving_avg_full = np.full_like(data, np.nan)
-    positive_indices = np.where(data > 0)[0]
-    moving_avg_full[positive_indices] = moving_avg
-
-    return moving_avg_full
-
-
-def extract_label(file_path):
-    # Extract the base file name without the path and extension
-    file_name = file_path.split('/')[-1].split('.csv')[0]
-
-    # Use regex to find the label pattern in the file name, excluding 'RS'
-    match = re.search(r'(\dS)\.(?:RS)?([a-zA-Z0-9+]+(?:-no-SN)?)', file_name)
-    if match:
-        return match.group(1) + '.' + match.group(2)
-    else:
-        return 'Unknown'
-
-
-def plot_lines(i, j, data_file, label_extra, alpha=0.8, n=10):
+def plot_lines(i, j, data_file, label, alpha=0.8, n=10):
 
     # Load the CSV file into a DataFrame
     df = pd.read_csv(data_file)
-    #group_labels = np.arange(len(df)) // window_size
-    #df = df.groupby(group_labels).mean().reset_index(drop=True)
 
     # Extract the columns you're interested in
     age = df['age'].values/1e6
@@ -162,138 +65,130 @@ def plot_lines(i, j, data_file, label_extra, alpha=0.8, n=10):
     hl_radius_av = adaptive_moving_average(hl_radius, window_size=n)
 
     # 1) BH Mass
-    axs[0].plot(age_av, bh_mass_av, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+    axs[0].plot(age_av, bh_mass_av, color=c[j], linestyle='solid', label=label, alpha=alpha)
 
     # 2) Accretion Rates
-    axs[1].plot(age_av, accrate_av, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
-    axs[1].plot(age_av, eddington_rate(bh_mass_av), color=c[j], linestyle='dashed', label=label_extra, alpha=alpha)
+    axs[1].plot(age_av, accrate_av, color=c[j], linestyle='solid', label=label, alpha=alpha)
+    axs[1].plot(age_av, eddington_rate(bh_mass_av), color=c[j], linestyle='dashed', label=label, alpha=alpha)
 
     # 3) Densities
-    axs[2].plot(age_av, density_av, color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+    axs[2].plot(age_av, density_av, color=c[j], linestyle='solid', label=label, alpha=alpha)
 
     # 4) Velocities
-    axs[3].plot(age_av, vinfinity_av, color=c[j], linestyle='solid', label=label_extra+'-vinf', alpha=alpha)
+    axs[3].plot(age_av, vinfinity_av, color=c[j], linestyle='solid', label=label+'-vinf', alpha=alpha)
 
     # 5) HL radius
-    axs[4].plot(age_av, hl_radius_av/dx[i], color=c[j], linestyle='solid', label=label_extra, alpha=alpha)
+    axs[4].plot(age_av, hl_radius_av/dx[i], color=c[j], linestyle='solid', label=label, alpha=alpha)
 
     return 0
+
+def plot_beckmann_data(axs, alpha=0.8):
+    # Beckmann data 1 - D_126_tiny_Figure6
+    beck_data_fp = '/cephfs/sgordon/smartstar_simulation_analysis/python_scripts/beckmann-data/D_126_tiny_Figure6'
+    csv_files = ['mass.csv', 'accretion_rate.csv', 'number_density.csv', 'velocity.csv', 'radii.csv']
+    beck_data_arr = []
+    l_beck = "D_126_tiny" # label
+    
+    # Loop through each CSV file
+    for k, file_name in enumerate(csv_files):
+        # Create the full file path
+        file_path = beck_data_fp + '/' + file_name
+        
+        # Load CSV file into DataFrame
+        df = pd.read_csv(file_path)
+        
+        # Extract NumPy array and append to the list
+        beck_data_arr.append(df.to_numpy())
+        beck_data = df.to_numpy()
+
+        axs[k].plot(beck_data[:,0], beck_data[:, 1], color="darkblue", linestyle='solid', label=l_beck, alpha=alpha)
+    
+    # Beckmann data 1 - R_128_Figure11
+    csv_files = ['mass.csv','accretion_rate.csv', 'number_density.csv']
+    beck_data_fp = '/cephfs/sgordon/smartstar_simulation_analysis/python_scripts/beckmann-data/R_128_Figure11'
+    beck_data_arr_2 = []
+    l_beck = "R_128" # label
+
+    # Loop through each CSV file
+    for k, file_name in enumerate(csv_files):
+        # Create the full file path
+        file_path = beck_data_fp + '/' + file_name
+        
+        # Load CSV file into DataFrame
+        df = pd.read_csv(file_path)
+        
+        # Extract NumPy array and append to the list
+        beck_data_arr_2.append(df.to_numpy())
+        beck_data = df.to_numpy()
+
+        axs[k].plot(beck_data[:,0], beck_data[:, 1], color="royalblue", linestyle='solid', label=l_beck, alpha=alpha)
+
 
 
 if __name__ == "__main__":
 
     ###################################### Parameters ######################################
 
-    x = "s1+s2-40msun-"       # simulation type
+    x = "s1-baseline-fb"    # simulation type
     y = sys.argv[-1]        # naming plot
-    xlim = 1                # Myrs
+    xlim = 2                # Myrs
     time_cutoff = xlim      # Myrs
-    i_start = 0             # start index
     include_beckmann_data = False
-    alpha = 0.9        # transparency of lines
+    alpha = 0.9             # transparency of lines
     num_subplots = 5        # number of subplots
-    smooth_simulations = len(bhl_object_list)  # number of simulations to smooth (starting from last sim)
-    window = 30            # window size to average over
-    rtol=1e-6   
-    atol=1e-4               # 1e-4 for 1S.m, 2e-4 for 1B.m
     title = None          # plot title
-    extra_line = True      # plot extra line from data file
+    linewidth = 1.5
+    fontsize = 12
 
     ########################################################################################
 
-    # text format
-    linewidth = 1.5
-    fontsize = 12
-    rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
-    rc('text', usetex=True)
-    plt.rcParams["mathtext.default"] = "regular"
-    plt.rcParams['font.size'] = fontsize
-    plt.rcParams['lines.linewidth'] = linewidth
-
     # set up figure
+    configure_font(fontsize=fontsize, linewidth=linewidth)
     fig = plt.figure()
     fig, axs = plt.subplots(num_subplots, 1, sharex=True)
 
     # identify cell widths for this simulation
     dx = identify_cell_widths(x)
 
-    """""""""""""""""""""
-    1) Plot Beckmann data
-    """""""""""""""""""""
 
     if include_beckmann_data:
-        # make array of Beckmann data
-        beck_data_fp = '/cephfs/sgordon/smartstar_simulation_analysis/python_scripts/beckmann-data/D_126_tiny_Figure6'
-        csv_files = ['mass.csv', 'accretion_rate.csv', 'number_density.csv', 'velocity.csv', 'radii.csv']
-        beck_data_arr = []
-        l_beck = "D_126_tiny" # label
-        
-        # Loop through each CSV file
-        for k, file_name in enumerate(csv_files):
-            # Create the full file path
-            file_path = beck_data_fp + '/' + file_name
-            
-            # Load CSV file into DataFrame
-            df = pd.read_csv(file_path)
-            
-            # Extract NumPy array and append to the list
-            beck_data_arr.append(df.to_numpy())
-            beck_data = df.to_numpy()
-
-            axs[k].plot(beck_data[:,0], beck_data[:, 1], color="darkblue", linestyle='solid', label=l_beck, alpha=alpha)
-
-        csv_files = ['mass.csv','accretion_rate.csv', 'number_density.csv']
-        beck_data_fp = '/cephfs/sgordon/smartstar_simulation_analysis/python_scripts/beckmann-data/R_128_Figure11'
-        beck_data_arr_2 = []
-        l_beck = "R_128" # label
-
-        # Loop through each CSV file
-        for k, file_name in enumerate(csv_files):
-            # Create the full file path
-            file_path = beck_data_fp + '/' + file_name
-            
-            # Load CSV file into DataFrame
-            df = pd.read_csv(file_path)
-            
-            # Extract NumPy array and append to the list
-            beck_data_arr_2.append(df.to_numpy())
-            beck_data = df.to_numpy()
-
-            axs[k].plot(beck_data[:,0], beck_data[:, 1], color="royalblue", linestyle='solid', label=l_beck, alpha=alpha)
-
+        plot_beckmann_data(axs, alpha=alpha)
 
     """""""""""""""""
-    2) Plot my data
+       Plot data
     """""""""""""""""
 
     # set line colours
-    c_s1 = extract_colors('magma', 5, portion="middle", start=0.3, end=0.8)
-    c_s2 = extract_colors('viridis', 4, portion="middle", start=0.3, end=0.9)
+    c_s1 = extract_colors('magma', 1, portion="middle", start=0.3, end=0.8)
+    c_s2 = extract_colors('viridis', 1, portion="middle", start=0.3, end=0.9)
     c = np.concatenate((c_s1, c_s2))
 
     # Plot data
-    # 1S.b + 2S.b
-    data_files = [
-        'data_files/data-1S.RSbf4.csv', 'data_files/data-1S.RSb01.csv',
-        'data_files/data-1S.b01-no-SN.csv', 'data_files/data-1S.RSb04.csv', 'data_files/data-1S.b04-no-SN.csv', 
-        'data_files/data-2S.RSbf16.csv', 'data_files/data-2S.RSbf4.csv', 
-        'data_files/data-2S.RSb01.csv',  'data_files/data-2S.b01-no-SN.csv'
-    ]
+    # # 1S.b + 2S.b
+    # data_files = [
+    #     'data_files/data-1S.RSbf4.csv', 'data_files/data-1S.RSb01.csv',
+    #     'data_files/data-1S.b01-no-SN.csv', 'data_files/data-1S.RSb04.csv', 'data_files/data-1S.b04-no-SN.csv', 
+    #     'data_files/data-2S.RSbf16.csv', 'data_files/data-2S.RSbf4.csv', 
+    #     'data_files/data-2S.RSb01.csv',  'data_files/data-2S.b01-no-SN.csv'
+    # ]
 
-    # 1S.m + 2S.m
-    data_files = [
-        'data_files/data-1S.mf4-no-derefine.csv', 'data_files/data-1S.RSm01.csv',
-        'data_files/data-1S.m01-no-SN.csv', 'data_files/data-1S.RSm04.csv', 'data_files/data-1S.m04-no-SN.csv',
-        'data_files/data-2S.RSmf16-2-gap.csv', 'data_files/data-2S.RSmf4-2.csv',
-        'data_files/data-2S.m01-386+.csv', 'data_files/data-2S.m01-no-SN.csv'
-    ]
+    # # 1S.m + 2S.m
+    # data_files = [
+    #     'data_files/data-1S.mf4-no-derefine.csv', 'data_files/data-1S.RSm01.csv',
+    #     'data_files/data-1S.m01-no-SN.csv', 'data_files/data-1S.RSm04.csv', 'data_files/data-1S.m04-no-SN.csv',
+    #     'data_files/data-2S.RSmf16-2-gap.csv', 'data_files/data-2S.RSmf4-2.csv',
+    #     'data_files/data-2S.m01-386+.csv', 'data_files/data-2S.m01-no-SN.csv'
+    # ]
+    data_files = ['data_files/data-1B.RSb01-2.csv', 
+              #'data_files/data-2B.RSb01.csv',
+              'data_files/data-1B.resim.th.b01.csv']
 
     i = j = 0
     alpha2 = 0.8
     for data_file in data_files:
-        label = extract_label(data_file)
-        n = 20
-        plot_lines(i, j, data_file=data_file, label_extra=label, alpha=alpha2, n=n)
+        label = extract_simulation_name_from_csv(data_file)
+        n = 30
+        plot_lines(i, j, data_file=data_file, label=label, alpha=alpha2, n=n)
         j += 1
         i += 1
 
@@ -308,7 +203,7 @@ if __name__ == "__main__":
         axs[i].tick_params(axis="y", which='major', labelsize=fontsize-1)
         axs[i].tick_params(axis="y", which='minor', labelsize=fontsize-2)
         axs[i].set_yscale('log')
-        axs[i].set_xlim([0.01, xlim+0.01]) # for truncated view
+        axs[i].set_xlim([1.4, xlim+0.01]) # for truncated view
 
     # ylabels
     axs[0].set_yscale('log')
@@ -318,14 +213,6 @@ if __name__ == "__main__":
     axs[3].set_ylabel(r"$\rm \nu_\infty \, (km/s)$", fontdict=None)
     axs[4].set_ylabel(r"$\rm r_{HL}/dx $", fontdict=None)
     axs[-1].set_xlabel('BH Age (Myr)')
-
-    dx_1s = [2.459867e-02, 1.229940e-02, 3.074829e-03, 7.692833e-04]
-    c1 = c3 = 'lightcoral'
-    c2 = 'indianred'
-    l1 = 'dashdot'
-    l2 = 'dashdot'
-    l3 = 'dotted'
-    alpha_dx = 0.5
 
     # set ylims
     if x == "s1-40msun-":
@@ -349,45 +236,27 @@ if __name__ == "__main__":
         axs[4].axhline(y=1, color='grey', linestyle='dotted', linewidth=linewidth+2,alpha=alpha)
     elif x == "s1+s2-270msun-":
         linewidth = 1.5
-        axs[0].set_ylim([250, 3100])
+        axs[0].set_ylim([900, 3100])
         axs[0].axhline(y=1000, color='grey', linestyle='dotted', linewidth=linewidth+2,alpha=1)
-        axs[1].set_ylim([3e-4, 2e-2])
-        axs[2].set_ylim([2e4, 6e9])
-        axs[3].set_ylim([1.1, 6e1])
-        axs[4].set_ylim([9e-2, 7e1])
+        axs[1].set_ylim([2e-9, 6e-3])
+        axs[2].set_ylim([2e2, 2e8])
+        axs[3].set_ylim([6, 400])
+        axs[4].set_ylim([6e-3, 3])
+        axs[4].axhline(y=1, color='grey', linestyle='dashdot', linewidth=linewidth+1,alpha=1)
+    elif x == "s1-baseline-fb":
+        linewidth = 1.5
+        axs[0].set_ylim([900, 3100])
+        axs[0].axhline(y=1000, color='grey', linestyle='dotted', linewidth=linewidth+2,alpha=1)
+        axs[1].set_ylim([2e-9, 6e-3])
+        axs[2].set_ylim([2e2, 2e8])
+        axs[3].set_ylim([6, 400])
+        axs[4].set_ylim([6e-3, 3])
         axs[4].axhline(y=1, color='grey', linestyle='dashdot', linewidth=linewidth+1,alpha=1)
 
     ############################### Legends ################################
-
-    # Set cell widths to be plotted
-    if x == "s1-270msun-":
-        dx = ["dx = 0.012 pc", "dx = 3.1e-03 pc", "dx = 1.5e-03 pc", "dx = 7.7e-04 pc"]
-    elif x == "beck-comp-":
-        dx = ["dx = 1.2e-02 pc", "dx = 3.1e-03 pc"]
-    elif x == "s1-40msun-":
-        dx = ["dx = 2.5e-02 pc", "dx = 1.2e-02 pc", "dx = 3.1-03 pc", "dx = 7.7e-04 pc"]
-    elif x == "s2-270msun-":
-        dx = ["dx = 8.3e-03 pc", "dx = 2.1e-03 pc", "dx = 1.5e-03 pc", "dx = 7.7e-04 pc"]
-    elif x == "s2-40msun-":
-        dx = ["dx = 8.4e-03 pc", "dx = 2.1e-03 pc", "dx = 5.2e-04 pc", "dx = 1.3e-04 pc"]
-    elif x == "s2-40msun-2":
-        dx = ["dx = 1.3e-03 pc", "dx = 5.2e-04 pc", "dx = 1.3e-04  pc"]
-
-    # Configure the legend lines: color, linestyle, linewidth
-    dx_lines = [Line2D([0], [0], color=c[0], lw=linewidth, linestyle=l1),
-                Line2D([0], [0], color=c[1], lw=linewidth, linestyle=l1),
-                # Line2D([0], [0], color=c[2], lw=linewidth, linestyle=l1),
-                # Line2D([0], [0], color=c[3], lw=linewidth, linestyle=l1),
-                ]
-    vel_lines = [Line2D([0], [0], color='grey', lw=linewidth),
-                Line2D([0], [0], color='grey', linestyle='dotted', lw=linewidth)]
-    radius_lines = [Line2D([0], [0], color='grey', lw=linewidth),
-                    #Line2D([0], [0], color='grey', linestyle='dotted', lw=linewidth)
-                    ]
-    accrate_line = [Line2D([0], [0], color='grey', linestyle='dashed', lw=linewidth)]
-
-    # Include legends
-    axs[0].legend(fontsize=fontsize-2, ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.58), handlelength=1) # 1.3 for m01, 
+    # Include legend
+    axs[0].legend(fontsize=fontsize-2, ncol=3, loc='upper center', 
+                  bbox_to_anchor=(0.5, 1.58), handlelength=1) # 1.3 for m01, 
 
     ##########################################################################
 
