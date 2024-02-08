@@ -3,7 +3,7 @@ import yt
 import re # complex str searches
 yt.enable_parallelism()
 from yt.utilities.math_utils import ortho_find
-from helper_functions import _make_disk_L, ss_properties, find_north_vector, _metal_fraction, extract_field
+from helper_functions import _make_disk_L, ss_properties, find_north_vector, _metal_fraction, extract_field, _h2_fraction, _hii_fraction
 
 
 def extract_simulation_name(filepath, custom_name=None):
@@ -61,10 +61,14 @@ def apply_annotations_and_save(p, ds, center, ss_mass, ss_age, title=None, orien
 
     # font size and colour
     p.set_font({"size": 24})
-    txt_color = "black" if map == ("gas", "temperature") else "white"
+    txt_color = "white" if map == ("gas", "temperature") else "white"
 
     # BH position cross
     p.annotate_marker(center, coord_system="data", color=txt_color)
+
+    # BH Thermal Feedback Sphere
+    r_fb = 5*ds.index.get_smallest_dx().in_units("pc")
+    p.annotate_sphere(center, radius=r_fb, circle_args={"color": "green", "alpha": 0.5, "linestyle": "--"})
 
     # top left text
     p.annotate_text((a, b), r"BH Mass: {:.0f} $\rm M_\odot$".format(ss_mass.d), coord_system="axis",
@@ -74,7 +78,7 @@ def apply_annotations_and_save(p, ds, center, ss_mass, ss_age, title=None, orien
     
     # lower right text
     p.annotate_text((0.82, b2), "z = {:.2f}".format(ds.current_redshift), coord_system="axis",
-                        text_args={"color": txt_color})
+                        text_args={"color": txt_color}, )
     p.annotate_text([0.05, 0.05], sim_str, coord_system="axis", text_args={"color": "black"},
                     inset_box_args={"boxstyle": "square,pad=0.3", "facecolor": "white", "linewidth": 3,
                                     "edgecolor": "white", "alpha": 0.5},
@@ -115,8 +119,8 @@ def process_data_series(es, map, orient, w_pc, c_min, c_max, root_dir, use_north
             orient_str = "z"
             north = None
         else:
-            dir = "y"
-            orient_str = "y"
+            dir = "x"
+            orient_str = "x"
             north = None
 
     for ds in es.piter():
@@ -124,7 +128,13 @@ def process_data_series(es, map, orient, w_pc, c_min, c_max, root_dir, use_north
         # add metal fraction field if map is metal_fraction
         if map == "metal_fraction":
             ds.add_field(("gas", "metal_fraction"), function=_metal_fraction, 
-                         units="dimensionless", display_name="Metal Fraction")
+                         units="dimensionless", display_name="Metal Fraction", sampling_type="cell")
+        elif map == ("gas", "h2_fraction"):
+            ds.add_field(("gas", "h2_fraction"), function=_h2_fraction, 
+                         units="dimensionless", display_name="H2 Fraction", sampling_type="cell")
+        elif map == ("gas", "hii_fraction"):
+            ds.add_field(("gas", "hii_fraction"), function=_hii_fraction, 
+                         units="dimensionless", display_name="HII Fraction", sampling_type="cell")
             
         # find the location of the smart star and set it as the center (if it exists)
         ss_pos, ss_mass, ss_age = ss_properties(ds)
@@ -147,15 +157,17 @@ def process_data_series(es, map, orient, w_pc, c_min, c_max, root_dir, use_north
                 north = vecs[1]
             else:
                 orient_str = "edge_on_continuous_"
-                dir = vecs[2]
+                dir = vecs[1]
                 north = vecs[0]
+            disc = ds.disk(center, dir, (w_pc, "pc"), (0.2, "pc"))
 
         # make projection plot
         if plot_type == "projection":
-            p = yt.ProjectionPlot(ds, dir, map, center=center, data_source=region, 
+            p = yt.ProjectionPlot(ds, dir, map, center=center, data_source=disc, 
                                   weight_field=weight_field, width=(w_pc, 'pc'))
+            #p.set_unit(map, "g/cm**3")
         elif plot_type == "slice":
-            p = yt.SlicePlot(ds, dir, map, center=center, data_source=region, 
+            p = yt.SlicePlot(ds, dir, map, center=center, data_source=disc, 
                              width=(w_pc, 'pc'), north_vector=north)
         p.set_cmap(map, cmap)
         p.set_zlim(map, c_min, c_max) if c_min and c_max else None
@@ -180,15 +192,15 @@ def main(map, orient, w_pc, c_min, c_max, root_dirs, cmap, weight_field, plot_ty
 if __name__ == "__main__":
     ##########################################################
     # Generates a series of projections for a given simulation
-    # Call like: mpirun -np 16 python projection_movie_2.py 
+    # Call like: mpirun -np 12 python projection_movie_2.py 
     ##########################################################
-    map = ("gas", "temperature")
+    map = ('gas', 'number_density')
     weight_field = "density"
-    orient = "face-on" # "edge-on" or "face-on"xw
-    w_pc = 100 # width in pc
-    c_min = 9e2 # min value for colorbar 5e3 for no fb, 
-    c_max = 8e4 # max value for colorbar 8e9 for no fb
-    cmap = "magma" # e.g. "magma", "viridis", "plasma", "inferno"
+    orient = "edge-on" # "edge-on" or "face-on"xw
+    w_pc = 1 # width in pc
+    c_min = 1e2 # min value for colorbar 5e3 for no fb, 60 K temp resim  
+    c_max = 1e8 # max value for colorbar 8e9 for no fb, 1e5 K temp resim
+    cmap = "viridis" # e.g. "magma", "viridis", "plasma", "inferno", "jet", "octarine", "rainbow"
     plot_type = "projection" # "projection" or "slice"
     root_dirs = [
         #"/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/40msun/replicating-beckmann/1S.m04-no-SN/",
@@ -201,8 +213,9 @@ if __name__ == "__main__":
         #"/disk14/sgordon/cirrus-runs-rsync/seed1/270msun/",
         #"/disk14/sgordon/cirrus-runs-rsync/seed2/270msun/",
         #"/Backup01/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/thermal-fb/1B.th.bf128/"
-        #"/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01/"
-        "/disk14/sgordon/pleiades-11-12-23/seed1/seed1/270msun/s1.b270.l16/"
+        "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01/"
+        #"/disk14/sgordon/pleiades-11-12-23/seed1/seed1/270msun/s1.b270.l16/"
+        #"/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb04/"
         ]
-    custom_name = 's1.b270.l16'
+    custom_name = None
     main(map, orient, w_pc, c_min, c_max, root_dirs, cmap, weight_field, plot_type, use_north_vector_ds=True, custom_name=custom_name)
