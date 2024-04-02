@@ -1,9 +1,9 @@
 import os
 import re # complex str searches
-from pathlib import Path
 import numpy as np
 import csv
 from itertools import zip_longest
+import pandas as pd # for sorting chronologically
 
 ##########################################################################################################
 #                                    Make csv file of BH/gas properties
@@ -166,13 +166,34 @@ def get_data_arrays(root_dir):
 
     mass = np.array([float(i) for i in mass])
 
+    ##########################################################################################################
+    #                                            Temperature
+    ##########################################################################################################
+
+    # Assume RegionTemperature is collected here
+    region_temperatures = []
+    # Temp storage for RegionTemperature values, assuming they might appear more frequently
+    temp_region_temps = []
+
+    for line in open(output_combined):
+        region_temp = re.search(r'RegionTemperature = (.{12})', line)
+        age = re.search(r'Age = (.{12})', line)
+        if region_temp:
+            # If a RegionTemperature is found, store it temporarily
+            temp_region_temps.append(region_temp.group(1))
+        elif age:
+            # If an 'age' is found, process the most recent RegionTemperature (or however you decide to handle multiple temps)
+            if temp_region_temps:
+                # For example, taking the last RegionTemperature value before this 'age'
+                region_temperatures.append(temp_region_temps[-1])
+                temp_region_temps = []  # Reset for the next batch
 
     ##########################################################################################################
     #                                           List of Arrays
     ##########################################################################################################
 
     all_data = [ages, accrates, average_density, average_vinfinity, average_cinfinity,
-                total_gas_mass, hl_radius, bondi_radius, jeans_length, mass]
+                total_gas_mass, hl_radius, bondi_radius, jeans_length, mass, region_temperatures]
 
     return all_data
 
@@ -218,7 +239,14 @@ if __name__ == "__main__":
     #root_dir_2 = "/disk14/sgordon/pleiades-11-12-23/seed2-bh-only/40msun/replicating-beckmann-2/2S.m01-no-SN/"
     #root_dir = "/Backup01/sgordon/pleiades/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSb01/estd-early/"
     #root_dir_2 = "/disk14/sgordon/pleiades-11-12-23/seed2-bh-only/40msun/replicating-beckmann-2/2S.RSb01/2S.b01-234+/estds-0.18-1Myr/"
-    root_dir = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/40msun/replicating-beckmann/1S.m01-no-SN/"
+    #root_dir = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/40msun/replicating-beckmann/1S.m01-no-SN/"
+    #root_dir = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01/"
+    root_dir = "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/"
+    #root_dir = "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.01/"
+    #root_dir = "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.001/"
+    #root_dir = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.th.bf128-eps-0.0001/"
+    #root_dir = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.th.bf128/"
+    #root_dir = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.th.bf128-eps-0.01/"
 
     # Extract simulation name
     sim = extract_simulation_name(root_dir)
@@ -231,15 +259,27 @@ if __name__ == "__main__":
 
     # Assign header columns corresponding to data arrays
     headerList = ['age', 'accrate', 'average density', 'average vinfinity', 'average cinfinity',
-                'total gas mass', 'HL radius', 'Bondi radius', 'Jeans length', 'BH mass']
+                'total gas mass', 'HL radius', 'Bondi radius', 'Jeans length', 'BH mass', 'temperature']
     
+
+    missing_temps_count = 0  # Initialize a counter for missing RegionTemperature values
+    temp_index = headerList.index('age') # to identify which column to check for missing values
+
     # Write to csv file (overwrites existing file)
     with open(write_to, "w+") as f:
         dw = csv.DictWriter(f, delimiter=',', fieldnames=headerList)
         dw.writeheader()
         writer = csv.writer(f, delimiter=',')
         for values in zip_longest(*all_data):
-            writer.writerow(values)
+            # Check if the RegionTemperature value is present
+            if values[temp_index] is not None:
+                writer.writerow(values)
+            else:
+                missing_temps_count += 1
+                if missing_temps_count > 100:
+                    print("More than 40 entries missing for temperature. Current count:", missing_temps_count)
+                    break  # Or continue, based on how you want to handle this scenario
+
     print("Saved data to {}".format(write_to))
     
     # Extract end data from other directory (if it exists) and append to existing csv file
@@ -249,7 +289,31 @@ if __name__ == "__main__":
             dw = csv.DictWriter(f, delimiter=',', fieldnames=headerList)
             writer = csv.writer(f, delimiter=',')
             for values in zip_longest(*all_data_2):
-                writer.writerow(values)
+                # Check if the RegionTemperature value is present
+                if values[temp_index] is not None:
+                    writer.writerow(values)
+                else:
+                    missing_temps_count += 1
+                    if missing_temps_count > 100:
+                        print("More than 40 entries missing for temperature. Current count:", missing_temps_count)
+                        break  # Or continue, based on how you want to handle this scenario
         print("Appended end data to {}".format(write_to))
     except:
         print("No end data found for simulation {}, done.".format(sim))
+
+    # Sort the csv file by age
+    print("Sorting the csv file by age...")
+    with open(write_to, 'r') as f:
+        # Load the CSV data into a pandas DataFrame
+        df = pd.read_csv(write_to)
+
+        # Delete rows where 'age' is less than 1000
+        df_filtered = df.loc[df['age'] >= 1000]
+
+        # Sorting the DataFrame by the 'age' column in ascending order
+        df_sorted = df_filtered.sort_values(by='age', ascending=True)
+
+        # Saving the sorted DataFrame back to the same file, effectively replacing it
+        df_sorted.to_csv(write_to, index=False)
+
+        print(f"File '{write_to}' has been sorted and saved successfully.")
