@@ -8,6 +8,10 @@ from yt.data_objects.level_sets.api import *
 import yt.units # for clump finding
 from helper_functions import *
 from helper_functions import _h2_fraction
+import yt.extensions.p2p.clumps
+from yt.extensions.p2p.misc import \
+    iterate_center_of_mass, \
+    reunit
 
 
 def extract_specific_part(filepath):
@@ -92,7 +96,7 @@ def plot_histogram(leaf_masses, sim, dd, ss_age, c_min, nbins=50, xlabel="Mass (
     #plt.yscale('log') if logscale else None  # Optional: Use log scale for y-axis
     plt.xscale('log') if logscale else None 
     plt.grid(True)  # Optional: Adds a grid for better readability
-    plot_name = f"plots/clump_masses_hist_{sim}_{dd}_{c_min.d/mh.d:.2e}_grav_bound.png" if GRAVITATIONALLY_BOUND else f"plots/clump_masses_hist_{sim}_{dd}_{c_min.d/mh.d:.2e}.png"
+    plot_name = f"plots/clump_masses_hist_{sim}_{dd}_{c_min.d/mh.d:.2e}_future_bound.png" if GRAVITATIONALLY_BOUND else f"plots/clump_masses_hist_{sim}_{dd}_{c_min.d/mh.d:.2e}.png"
     plt.savefig(plot_name) 
     print(plot_name)
     return 0
@@ -147,53 +151,63 @@ if __name__ == "__main__":
     mh = 1.6735e-24*yt.units.g # hydrogen mass in grams
 
     # load the dataset
-    #fp = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/DD0449/DD0449"
-    #fp = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.0001/DD0522/DD0522"
-    #fp = "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.001/DD0514/DD0514"
-    #fp = "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.01/DD0519/DD0519"
+    fp = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/DD0446/DD0446"
+    #fp = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.0001/DD0550/DD0550"
+    #fp = "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.001/DD0538/DD0538"
+    #fp = "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.01/DD0543/DD0543"
     #fp = "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/DD0596/DD0596"
     #fp = "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/DD0612/DD0612"
-    fp = "/nobackup/stgordon/seed1-bh-only/270msun/thermal-fb/1B.th.bf128"
-    fp = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.th.bf128-eps-0.0001/DD0141/DD0141"
+    # fp = "/nobackup/stgordon/seed1-bh-only/270msun/thermal-fb/1B.th.bf128"
+    # fp = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.th.bf128-eps-0.0001/DD0161/DD0161"
+    # fp = "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.th.bf128-eps-0.01/DD0161/DD0161"
     ds = yt.load(fp)
-    #sim ="1B.b01" # may need to adjust this
-    sim = extract_specific_part(fp)
+    sim ="1B.b01" # may need to adjust this
+    #sim = extract_specific_part(fp)
     dd = extract_dd_segment(fp)
     print("Simulation: {} and DD: {} at time: {}".format(sim, dd, ds.current_time.to('Myr')))
     ds.add_field(("gas", "h2_fraction"), function=_h2_fraction, units="dimensionless", display_name="H2 Fraction", sampling_type="cell")
+    ds.add_field(("gas", "thermal_energy"), function=total_thermal_energy, units="erg", sampling_type="cell")
 
     # find sink particle attribute
     ss_pos, ss_mass, ss_age = ss_properties(ds, velocity=False)
     print("BH properties:")
     print("position = {}, mass = {:.2f}, age = {:.2f} Myr".format(ss_pos, ss_mass, ss_age[0]/1e6))
 
-    # Make initial master clump (a disk containing the clump) - takes 30 seconds
+    # Make initial master clump (a sphere containing the clumps)
+    field = ("gas", "density")
     clump_pos = ss_pos.to('pc')
     data_source = ds.sphere(clump_pos, (3.5, "pc"))
-    master_clump = Clump(data_source, ("gas", "density"))
+    master_clump = Clump(data_source, field)
 
+    # Set up clump finding parameters
+    step = 2 # This is the multiplicative interval between contours.
+    c_min = 10**np.floor(np.log10(data_source[field]).min()  )
+    c_max = 10**np.floor(np.log10(data_source[field]).max()+1)
+    output_dir = "clumps/"
+    ensure_dir(output_dir)
+
+    # Add validators to the master clump
+    master_clump.add_validator("future_bound",
+        use_thermal_energy=True,
+        truncate=True,
+        include_cooling=True
+        )
+    
     # Add clump info items
     add_clump_info("mass_weighted_jeans_mass", _mass_weighted_jeans_mass)
     add_clump_info("position",  _center_of_mass)
-    #add_clump_info("density",  _density)
     master_clump.add_info_item("position")
     master_clump.add_info_item("mass_weighted_jeans_mass")
-
-    # Add clump validators (refine clump properties)
-    #master_clump.add_validator("min_cells", 20)
-    master_clump.add_validator("gravitationally_bound", use_particles=False) if GRAVITATIONALLY_BOUND else None # PE > KE
-    master_clump.add_validator("minimum_gas_mass", ds.quan(1, "Msun"))
+    master_clump.add_info_item("center_of_mass")
+    master_clump.add_info_item("min_number_density")
+    master_clump.add_info_item("max_number_density")
+    master_clump.add_info_item("jeans_mass")
 
     # Run clump finding
-    #c_min = 1e2*mh/yt.units.cm**3 # 1e6 for 31Myr resim, 1e4 for 1B.th.bf128
-    #c_max = data_source["gas", "density"].max()
-    c_min = 10 ** np.floor(np.log10(data_source["gas", "density"]).min())*yt.units.g/yt.units.cm**3
-    c_max = 10 ** np.floor(np.log10(data_source["gas", "density"]).max() + 1)*yt.units.g/yt.units.cm**3
-    step = 1.5 # This is the multiplicative interval between contours.
     find_clumps(master_clump, c_min, c_max, step)
 
     # Save the clump tree as a reloadable dataset
-    fn = master_clump.save_as_dataset(fields=[("gas", "density"), ("gas", "h2_fraction"), ("gas", "cell_mass"), ("gas", "jeans_mass"), ("gas", "number_density"), ("gas", "temperature")])
+    fn = master_clump.save_as_dataset(filename=output_dir, fields=["density", "particle_mass", ("gas", "h2_fraction"), ("gas", "cell_mass"), ("gas", "jeans_mass"), ("gas", "number_density"), ("gas", "temperature")])
     print("Saved clump tree to {} for simulation {}".format(fn, sim))
 
     # Process the master clump
