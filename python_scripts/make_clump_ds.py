@@ -1,8 +1,6 @@
 import logging
 from concurrent.futures import ProcessPoolExecutor
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-from matplotlib import rc
 import numpy as np
 import seaborn as sns
 import yt
@@ -51,9 +49,7 @@ def extract_dd_segment(filepath):
     
 # Add information to the master clump
 def _mass_weighted_jeans_mass(clump, units="Msun"):
-    # Assuming this calculates a scalar value correctly
     jeans_mass = clump.quantities.weighted_average_quantity("jeans_mass", ("gas", "mass"))
-    # Return as scalar if that's what's expected or adjust to return a tuple/list if needed
     return "Jeans mass: %s.", jeans_mass.to(units)
 
 def _center_of_mass(clump, units="code_length", **kwargs):
@@ -85,7 +81,7 @@ def process_master_clump(master_clump, ds, ss_pos, ss_age, ss_mass, sim, dd, c_m
     total_clump_mass = sum(leaf_masses).value
     no_clumps = len(leaf_masses)
     max_clump_mass = max(leaf_masses).value if leaf_masses else 0
-    future_bound = "True"
+    future_bound = " True"
 
     # Write data to CSV
     with open(csv_file, 'a', newline='') as f:
@@ -102,7 +98,58 @@ def process_master_clump(master_clump, ds, ss_pos, ss_age, ss_mass, sim, dd, c_m
             total_clump_mass,
             ss_mass.value
         ])
-    
+
+    # Generate plots
+    plot_histogram(leaf_masses, sim, dd, ss_age, c_min_hn)
+    plot_projection(ds, ss_pos, ss_age, ss_mass, leaf_clumps, most_massive_clump, sim, dd, c_min_hn)
+
+def plot_histogram(leaf_masses, sim, dd, ss_age, c_min, nbins=50, xlabel="Mass ($M_\\odot$)", ylabel="Number of Clumps", logscale=False):
+    plt.figure(figsize=(8, 6))
+    leaf_masses_values = np.array([mass.value for mass in leaf_masses])
+    ax = sns.histplot(leaf_masses_values, bins=nbins, color='pink', kde=False)
+
+    min_mass = np.min(leaf_masses_values)
+    max_mass = np.max(leaf_masses_values)
+    num_leaves = len(leaf_masses_values)
+
+    counts, bins = np.histogram(leaf_masses, bins=20)
+    for count, bin in zip(counts, bins[:-1]):
+        bin_center = bin + (bins[1] - bins[0]) / 2
+        ax.text(bin_center, count, str(int(count)), ha='center', va='bottom')
+
+    text_str = f"Min Mass: {min_mass:.2e} $M_\\odot$\nMax Mass: {max_mass:.2e} $M_\\odot$\nNumber of Leaves: {num_leaves}\n Min Density: {c_min:.2e} cm$^{-3}$"
+    plt.text(0.95, 0.95, text_str, transform=ax.transAxes, horizontalalignment='right', verticalalignment='top', fontsize=10, bbox=dict(facecolor='white', alpha=0.5))
+
+    plt.title(f'Distribution of Leaf Clump Masses in Simulation {sim} at {ss_age[0]/1e6:.2f} Myr')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.xscale('log') if logscale else None 
+    plt.grid(True)
+    plot_name = f"plots/clump_masses_hist_{sim}_{dd}_future_bound.png"
+    plt.savefig(plot_name)
+    plt.close()
+    print(f"Saved histogram to {plot_name}")
+
+def plot_projection(ds, ss_pos, ss_age, ss_mass, leaf_clumps, most_massive_clump, sim, dd, c_min):
+    for i in range(3):
+        p = yt.ProjectionPlot(ds, i, ("gas", "number_density"), center=ss_pos, width=(6, "pc"))
+        p.set_cmap('number_density', 'octarine')
+        p.set_zlim('number_density', 4e21, 8e25)
+        p.annotate_timestamp(corner='upper_right', redshift=True, draw_inset_box=True)
+        p.annotate_clumps(leaf_clumps, cmap="Pastel1")
+        p.annotate_clumps([most_massive_clump], text_args={"color": "black"})
+        most_massive_clump_mass = most_massive_clump.info["cell_mass"][1]
+        text_string = f"Most Massive Clump: {most_massive_clump_mass:.2f}\n Total Clump Mass: {sum([c.info['cell_mass'][1].value for c in leaf_clumps]):.0f}\n Number of Clumps: {len(leaf_clumps)}\n"
+        p.annotate_text((0.02, 0.85), text_string, coord_system='axis', text_args={'color': 'white'})
+        p.annotate_text([0.05, 0.05], sim, coord_system="axis", text_args={"color": "black"}, 
+                        inset_box_args={"boxstyle": "square,pad=0.3", "facecolor": "white", "linewidth": 3, 
+                                        "edgecolor": "white", "alpha": 0.5})
+        p.annotate_text((0.68, 0.02), f"BH Age = {ss_age[0]/1e6:.2f} Myr", coord_system="axis", text_args={"color": "white"})
+        p.annotate_text((0.68, 0.06), r"BH Mass: {:.2f} $\rm M_\odot$".format(ss_mass.d), coord_system="axis", text_args={"color": "white"})
+        plot_name = f"plots/clump_projection_{sim}_{dd}_{i}_{c_min:.2e}_future_bound.png"
+        p.save(plot_name)
+        print(f"Saved projection plot to {plot_name}")
+
 def process_file(fp, c_min, c_max):
     try:
         logging.info(f"Started processing {fp}")
@@ -143,7 +190,8 @@ def process_file(fp, c_min, c_max):
         master_clump.add_info_item("jeans_mass")
         
         find_clumps(master_clump, c_min, c_max, step)
-        fn = master_clump.save_as_dataset(filename=output_dir, fields=["density", ("gas", "H2_fraction"), ("gas", "cell_mass"), ("gas", "jeans_mass"), ("gas", "number_density"), ("gas", "temperature")])
+        clump_ds_name = f"_{sim}" + output_dir
+        fn = master_clump.save_as_dataset(filename=clump_ds_name, fields=["density", ("gas", "H2_fraction"), ("gas", "cell_mass"), ("gas", "jeans_mass"), ("gas", "number_density"), ("gas", "temperature")])
         logging.info(f"Saved clump tree to {fn} for simulation {sim}")
         
         process_master_clump(master_clump, ds, ss_pos, ss_age, ss_mass, sim, dd, c_min_hn)
@@ -178,14 +226,53 @@ def parallel_clump_finding(filepaths, c_min, c_max, num_workers=5):
 if __name__ == "__main__":
     # Define the variables directly in the script
     filepaths = [
-        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/DD0450/DD0450",
+        # 1B.b01
+        "/Backup01/sgordon/disk14/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/DD0445/DD0445", # 31.70
+        "/Backup01/sgordon/disk14/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/DD0446/DD0446", # 31.80
+        "/Backup01/sgordon/disk14/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/DD0447/DD0447", # 31.90
+        "/Backup01/sgordon/disk14/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/DD0448/DD0448", # 32.00
+        "/Backup01/sgordon/disk14/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/DD0449/DD0449", # 32.10
+        "/Backup01/sgordon/disk14/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/DD0450/DD0450", # 32.21.
+        # 1B.resim.th.b01-3-eta-0.1
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/fb-radius=10dx/DD0445/DD0445", # 31.70
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/fb-radius=10dx/DD0573/DD0573", # 31.77
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/fb-radius=10dx/DD0603/DD0603", # 31.80
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/fb-radius=10dx/DD0623/DD0623", # 31.82
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/fb-radius=20dx/DD0445/DD0445", # 31.70
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/fb-radius=20dx/DD0574/DD0574", # 31.77
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/fb-radius=20dx/DD0604/DD0604", # 31.80
+
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/DD0450/DD0450", # 31.70
         "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/DD0565/DD0565",
         "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/DD0595/DD0595",
         "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/DD0612/DD0612",
         "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/DD0655/DD0655",
-        #"/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/DD0695/DD0695"
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/DD0695/DD0695", # 31.90
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.1/DD1141/DD1141", # 31.95
+        # 1B.resim.th.b01-3-eta-0.01
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.01/DD0445/DD0445", # 31.70
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.01/DD0515/DD0515", # 31.77
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.01/DD0545/DD0545", # 31.80
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.01/DD0565/DD0565", # 31.82
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.01/DD0605/DD0605", # 31.86
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.01/DD0646/DD0646", # 31.90
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eta-0.01/DD0696/DD0696"  # 31.95
+         #1B.resim.th.b01-3-eta-0.001
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.001/DD0445/DD0445", # 31.70
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.001/DD0514/DD0514", # 31.77
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.001/DD0545/DD0545", # 31.80
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.001/DD0561/DD0561", # 31.82
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.001/DD2745/DD2745"  # 31.86
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.001/DD2783/DD2783"  # 31.90
+        # 1B.resim.th.b01-3-eta-0.0001
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.0001/DD0522/DD0522", # 31.77
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.0001/DD0552/DD0552", # 31.80
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.0001/DD0571/DD0571", # 31.82
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.0001/DD0607/DD0607", # 31.86
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.0001/DD0652/DD0652", # 31.90
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.0001/DD0701/DD0701" 
     ]
-    c_min = 1e-18  # g/cm³
+    c_min = 1e-21  # g/cm³
     c_max = 1e-13
     num_workers = len(filepaths) + 1
 
@@ -193,3 +280,4 @@ if __name__ == "__main__":
     results = parallel_clump_finding(filepaths, c_min, c_max, num_workers)
     for result in results:
         print(result)
+    logging.info("All clump finding processes completed")
