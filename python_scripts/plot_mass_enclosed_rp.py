@@ -1,6 +1,6 @@
 ##################################### Enclosed Mass Radial Profile  ######################################
 #
-# to run: python -i plot_mass_enclosed_rp.py radial_profile_mass_enclosed.pdf
+# to run: python -i plot_mass_enclosed_rp.py radial_profile_mass_enclosed_fb.pdf
 ##########################################################################################################
 
 from plot_ic_attributes import *
@@ -21,17 +21,20 @@ if __name__ == "__main__":
     r_lim_kpc = 0.1         # xlim in kpc
     alpha = 0.9             # line opacity
     custom_ticks=[]
-    xlim = [0.0002, 80]     # 0.003 1B.b01, 0.0002 1B.b16
+    xlim = [0.002, 40]     # 0.003 1B.b01, 0.0002 1B.b16
     plot_title = 'Evolution of 1B.b16 disc properties over 1 Myr'
 
     # input data
     #dds = ["DD0128/DD0128", "DD0136/DD0136", "DD0148/DD0148", "DD0159/DD0159", "DD0161/DD0161", "DD0170/DD0170"]  # 1B.b16
     #dds = ["DD0128/DD0128", "DD0129/DD0129", "DD0130/DD0130", "DD0132/DD0132", "DD0134/DD0134", "DD0138/DD0138"] # 1B.b01
     dds = ["DD0198/DD0198","DD0218/DD0218", "DD0220/DD0220", "DD0234/DD0234", "DD0335/DD0335", "DD0534/DD0534"] # 2B.b08
+    dds = ["DD0128/DD0128", "DD0132/DD0132", "DD0142/DD0142", "DD0143/DD0143", "DD0440/DD0440", "DD0682/DD0682"] # 1B.b01, 1B.resim.th.b01
     #root_dir = ["/ceph/cephfs/sgordon/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/"]*len(dds)
-    root_dir = ["/ceph/cephfs/sgordon/disk14/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/"]*3 + \
-                ["/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/"]*3
-    sim = ["2B.RSb08"]*len(dds)
+    # root_dir = ["/ceph/cephfs/sgordon/disk14/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/"]*3 + \
+    #             ["/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/"]*3
+    root_dir = ["/Backup01/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/"]*int(len(dds)/2) + \
+                ["/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/"]*int(len(dds)/2)
+    sim = ["1B.RSb01-2"]*int(len(dds)/2) + ["1B.resim.th.b01"]*int(len(dds)/2)
 
     # Get the RGB values for the Plasma colormap ('coolwarm', 'brg', 'rainbow', 'jet', 'turbo' also good)
     c = cm.get_cmap('plasma', len(dds)).colors
@@ -42,10 +45,8 @@ if __name__ == "__main__":
     ss_creation_time = DS[0].r['SmartStar', 'creation_time'].to('Myr')    
     labels, DS = generate_labels(dds, root_dir, sim, s=False, tform=ss_creation_time)
 
-    # set font format
-    set_font(fontsize, linewidth)
-
     # set up plot
+    configure_font(fontsize, linewidth)
     fig = plt.figure()
     fig, axs = plt.subplots(n_subplots, 1, sharex=True)
 
