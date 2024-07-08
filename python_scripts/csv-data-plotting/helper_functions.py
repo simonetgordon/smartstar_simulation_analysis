@@ -6,6 +6,9 @@ import os
 import re
 from yt.utilities.math_utils import ortho_find
 from matplotlib import rc, pyplot
+from astropy.cosmology import Planck15 as cosmo
+from astropy.cosmology import z_at_value
+import astropy.units as u
 
 
 def configure_font(fontsize=14, linewidth=1):
@@ -582,3 +585,91 @@ def make_frb(ds, L, center, width= 10*yt.units.pc, npixels=1024, height=0.05*yt.
     cutting = ds.cutting(L, center)
     frb = cutting.to_frb(width, npixels, height=height)
     return frb, height
+
+
+## For log mass vs redshift plot with observational data from JWST, ALMA, etc. ##
+def remove_values(arr, values):
+    """
+    Removes the elements that match the specified values from the array.
+    
+    Parameters:
+    arr (numpy.ndarray): The original array.
+    values (list or numpy.ndarray): A list or array of values to remove.
+    
+    Returns:
+    numpy.ndarray: The array with the specified values removed.
+    """
+    # Convert the values to a set for faster membership testing
+    values_set = set(values)
+    
+    # Use a boolean mask to filter out the specified values
+    mask = np.isin(arr, list(values_set), invert=True)
+    
+    return arr[mask]
+
+
+def time_to_redshift(time_gyr):
+    """
+    Convert time in Gyr to redshift using Planck15 cosmology.
+    
+    Parameters:
+    time_gyr (float): Time in Gyr.
+    
+    Returns:
+    float: Redshift corresponding to the given time.
+    """
+    Gyr_to_years = 1e9
+    time_years = time_gyr * Gyr_to_years * u.yr
+    redshift = z_at_value(cosmo.age, time_years)
+    return redshift.value
+
+
+def redshift_to_time(redshift):
+    """
+    Convert redshift to time in Gyr using Planck15 cosmology.
+    
+    Parameters:
+    redshift (float): Redshift.
+    
+    Returns:
+    float: Time corresponding to the given redshift in Gyr.
+    """
+    time = cosmo.age(redshift).to(u.Gyr)
+    return time.value
+
+
+def grow_black_hole(start_mass, start_time_gyr, end_time_gyr, time_steps=1000, fedd=1):
+    """
+    Simulate and plot the growth of a black hole at its Eddington rate.
+    
+    Parameters:
+    start_mass (float): Initial black hole mass in solar masses.
+    start_time_gyr (float): Start time in Gigayears.
+    end_time_gyr (float): End time in Gigayears.
+    time_steps (int): Number of time steps for the simulation.
+    fedd (float): Eddington rate fraction.
+
+    Returns:
+    list of z, list of np.log10(masses)
+    """
+    Gyr_to_years = 1e9
+
+    # Convert start and end times to years
+    start_time = start_time_gyr * Gyr_to_years
+    end_time = end_time_gyr * Gyr_to_years
+    
+    times = np.linspace(start_time, end_time, time_steps)
+    masses = np.zeros(time_steps)
+    masses[0] = start_mass
+    
+    dt = (end_time - start_time) / (time_steps - 1)
+    
+    for i in range(1, time_steps):
+        dM = fedd * eddington_rate(masses[i-1]) * dt
+        masses[i] = masses[i-1] + dM
+    
+    # Convert times to Gyr for plotting
+    times_gyr = times / Gyr_to_years
+    redshifts = [time_to_redshift(t) for t in times_gyr]
+
+    return redshifts, np.log10(masses)
