@@ -16,15 +16,6 @@ from plot_toomre_q_projection import field_from_sliceplot
 from helper_functions import _make_disk_L, ss_properties
 from yt.utilities.math_utils import ortho_find
 
-# Define directories
-home_dir_1 = "/Backup01/sgordon/disk14/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/"
-home_dir_2 = "/Backup01/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb04/"
-clump_dir_1 = "clumps/_1B.RSb01-2clumps"
-clump_dir_2 = "clumps/_1B.RSb04clumps"
-
-# Define the snapshots to be plotted
-snapshots = ["DD0150_clump_0.h5", "DD0153_clump_0.h5", "DD0156_clump_0.h5", "DD0159_clump_0.h5"]
-
 
 def setup_plot_env(fontsize, linewidth):
     """Set up the plotting environment"""
@@ -109,41 +100,55 @@ def plot_snapshot_with_clumps(sim_name, home_dir, clump_dir, snapshot, ax, width
             color='black', fontsize=font_text, bbox=dict(facecolor='white', alpha=0.5, boxstyle='round,pad=0.5'))
     if is_first_col:
         ax.text(0.05, 0.95, sim_name, verticalalignment='top', horizontalalignment='left', transform=ax.transAxes, 
-                color='white', fontsize=font_text+2, bbox=dict(facecolor='black', alpha=0.5, boxstyle='round,pad=0.5'))
+                color='white', fontsize=font_text+4, bbox=dict(facecolor='black', alpha=0.5, boxstyle='round,pad=0.5'))
 
     return im
 
+# Define directories
+# home_dir_1 = "/Backup01/sgordon/disk14/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/"
+# home_dir_2 = "/Backup01/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb04/"
+home_dir_1 = "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b04/"
+home_dir_2 = "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b04-eta-0.1/"
+clump_dir_1 = "clumps/_1B.resim.th.b04clumps"
+clump_dir_2 = "clumps/_1B.resim.th.b04-eta-0.1clumps"
 
-# Main plotting section
-fig, axes = plt.subplots(2, 4, figsize=(20, 9.235))
-setup_plot_env(fontsize=16, linewidth=2)
-sim_name_1 = extract_simulation_name(home_dir_1)
-sim_name_2 = extract_simulation_name(home_dir_2)
-width_pc = 2.0
-cmin = 5
-cmax = 5e7
+# Define the snapshots to be plotted
+#snapshots = ["DD0150_clump_0.h5", "DD0153_clump_0.h5", "DD0156_clump_0.h5", "DD0159_clump_0.h5"]
+snapshots1 = ["DD0153_clump_0.h5", "DD0227_clump_0.h5", "DD0377_clump_0.h5", "DD0503_clump_0.h5"]
+snapshots2 = ["DD0153_clump_0.h5", "DD0252_clump_0.h5", "DD0352_clump_0.h5", "DD0426_clump_0.h5"]
 
-# Loop over the snapshots and and populate the axes
-im = None
-for i, snapshot in enumerate(snapshots):
-    is_first_col = (i == 0)
-    im = plot_snapshot_with_clumps(sim_name_1, home_dir_1, clump_dir_1, snapshot, axes[0, i], width_pc, 
-                                   is_first_col, cmin, cmax, plot_clumps=False)
+if __name__ == "__main__":
 
-for i, snapshot in enumerate(snapshots):
-    is_first_col = (i == 0)
-    im = plot_snapshot_with_clumps(sim_name_2, home_dir_2, clump_dir_2, snapshot, axes[1, i], width_pc, 
-                                   is_first_col, cmin, cmax, plot_clumps=True)
+    # Main plotting section
+    fig, axes = plt.subplots(2, 4, figsize=(20, 9.235))
+    setup_plot_env(fontsize=16, linewidth=2)
+    sim_name_1 = extract_simulation_name(home_dir_1)
+    sim_name_2 = extract_simulation_name(home_dir_2)
+    width_pc = 2.0
+    cmin = 1e5
+    cmax = 5e8
 
-# Create the colorbar for figure from the last im object (created from sliceplot number density field)
-cbar_ax = fig.add_axes([0.90, 0.027, 0.015, 0.943])  # [left, bottom, width, height]
-cb = fig.colorbar(im, cax=cbar_ax) 
-cb.set_label(r'Number Density ($\rm 1/cm^3$)', fontsize=18)
-cb.ax.tick_params(labelsize=18) 
+    # Loop over the snapshots and and populate the axes
+    im = None
+    for i, snapshot in enumerate(snapshots1):
+        is_first_col = (i == 0)
+        im = plot_snapshot_with_clumps(sim_name_1, home_dir_1, clump_dir_1, snapshot, axes[0, i], width_pc, 
+                                    is_first_col, cmin, cmax, plot_clumps=True)
 
-# Save the figure
-plt.tight_layout(rect=[0, 0, 0.9, 1])
-plt.subplots_adjust(wspace=0, hspace=0)
-figname = f"plots/clump_projection_2_rows_{sim_name_1}_{sim_name_2}_{width_pc:.1f}pc.png"
-plt.savefig(figname)
-print("Saved plot to ", figname)
+    for i, snapshot in enumerate(snapshots2):
+        is_first_col = (i == 0)
+        im = plot_snapshot_with_clumps(sim_name_2, home_dir_2, clump_dir_2, snapshot, axes[1, i], width_pc, 
+                                    is_first_col, cmin, cmax, plot_clumps=True)
+
+    # Create the colorbar for figure from the last im object (created from sliceplot number density field)
+    cbar_ax = fig.add_axes([0.90, 0.027, 0.015, 0.943])  # [left, bottom, width, height]
+    cb = fig.colorbar(im, cax=cbar_ax) 
+    cb.set_label(r'Number Density ($\rm 1/cm^3$)', fontsize=20)
+    cb.ax.tick_params(labelsize=20) 
+
+    # Save the figure
+    plt.tight_layout(rect=[0, 0, 0.9, 1])
+    plt.subplots_adjust(wspace=0, hspace=0)
+    figname = f"plots/clump_projection_2_rows_{sim_name_1}_{sim_name_2}_{width_pc:.1f}pc.png"
+    plt.savefig(figname)
+    print("Saved plot to ", figname)
