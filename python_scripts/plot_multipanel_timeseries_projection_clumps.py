@@ -1,3 +1,9 @@
+"""
+Plots a time series of projections for 2 simulations across 2 rows with clumps annotated.
+The first row is for the simulation in home_dir_1 and the second row is for the simulation in home_dir_2.
+The clump data are taken from the clump_dir_1 and clump_dir_2 directories respectively.
+"""
+
 import yt
 import matplotlib.pyplot as plt
 import os
@@ -82,10 +88,10 @@ def plot_snapshot_with_clumps(sim_name, home_dir, clump_dir, snapshot, ax, width
     # Save the plot with clumps to a temporary file
     p.hide_axes()
     p.hide_colorbar()
-    p.save("temp.png")
+    p.save("plots/temp.png")
 
     # Make two images: one for the clumps and one for the field from which the cbar is derived
-    img = plt.imread("temp.png")
+    img = plt.imread("plots/temp.png")
     n = field_from_sliceplot("number_density", ds, disk, center, width_pc, north, dir, npixels=npixels)
     im = ax.imshow(n, norm=LogNorm())
     im_clump = ax.imshow(img) # Overlay the clumps on the image, musy come after the field image
@@ -103,7 +109,7 @@ def plot_snapshot_with_clumps(sim_name, home_dir, clump_dir, snapshot, ax, width
             color='black', fontsize=font_text, bbox=dict(facecolor='white', alpha=0.5, boxstyle='round,pad=0.5'))
     if is_first_col:
         ax.text(0.05, 0.95, sim_name, verticalalignment='top', horizontalalignment='left', transform=ax.transAxes, 
-                color='white', fontsize=font_text, bbox=dict(facecolor='black', alpha=0.5, boxstyle='round,pad=0.5'))
+                color='white', fontsize=font_text+2, bbox=dict(facecolor='black', alpha=0.5, boxstyle='round,pad=0.5'))
 
     return im
 
