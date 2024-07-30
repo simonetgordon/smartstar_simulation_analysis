@@ -1,15 +1,13 @@
 import yt
 import matplotlib.pyplot as plt
 import os
+import matplotlib.font_manager as fm
 from matplotlib import rc
 from helper_functions import extract_simulation_name
 from matplotlib.colors import LogNorm
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
-from matplotlib.transforms import IdentityTransform
-import matplotlib.font_manager as fm
-from matplotlib.ticker import LogLocator, LogFormatter, LogFormatterExponent
 from plot_toomre_q_projection import field_from_sliceplot
-from helper_functions import _make_disk_L, ss_properties   # Import the function from the helper_functions.py file
+from helper_functions import _make_disk_L, ss_properties
 from yt.utilities.math_utils import ortho_find
 
 # Define directories
@@ -97,12 +95,15 @@ def plot_snapshot_with_clumps(sim_name, home_dir, clump_dir, snapshot, ax, width
 
     # Add the scalebar and annotations
     font_text = 18
-    scalebar = AnchoredSizeBar(ax.transData, 800/width_pc/0.5, '0.5 pc', loc='lower left', pad=0.3, color='white', frameon=False, size_vertical=2, fontproperties=fm.FontProperties(size=font_text))
+    scalebar = AnchoredSizeBar(ax.transData, 800/width_pc/0.5, '0.5 pc', loc='lower left', pad=0.3, color='white', 
+                               frameon=False, size_vertical=2, fontproperties=fm.FontProperties(size=font_text))
     ax.add_artist(scalebar)
 
-    ax.text(0.95, 0.05, f"BH Age: {bh_age:.2f}", verticalalignment='bottom', horizontalalignment='right', transform=ax.transAxes, color='black', fontsize=font_text, bbox=dict(facecolor='white', alpha=0.5, boxstyle='round,pad=0.5'))
+    ax.text(0.95, 0.05, f"BH Age: {bh_age:.2f}", verticalalignment='bottom', horizontalalignment='right', transform=ax.transAxes, 
+            color='black', fontsize=font_text, bbox=dict(facecolor='white', alpha=0.5, boxstyle='round,pad=0.5'))
     if is_first_col:
-        ax.text(0.05, 0.95, sim_name, verticalalignment='top', horizontalalignment='left', transform=ax.transAxes, color='white', fontsize=font_text, bbox=dict(facecolor='black', alpha=0.5, boxstyle='round,pad=0.5'))
+        ax.text(0.05, 0.95, sim_name, verticalalignment='top', horizontalalignment='left', transform=ax.transAxes, 
+                color='white', fontsize=font_text, bbox=dict(facecolor='black', alpha=0.5, boxstyle='round,pad=0.5'))
 
     return im
 
@@ -120,11 +121,13 @@ cmax = 5e7
 im = None
 for i, snapshot in enumerate(snapshots):
     is_first_col = (i == 0)
-    im = plot_snapshot_with_clumps(sim_name_1, home_dir_1, clump_dir_1, snapshot, axes[0, i], width_pc, is_first_col, cmin, cmax, plot_clumps=False)
+    im = plot_snapshot_with_clumps(sim_name_1, home_dir_1, clump_dir_1, snapshot, axes[0, i], width_pc, 
+                                   is_first_col, cmin, cmax, plot_clumps=False)
 
 for i, snapshot in enumerate(snapshots):
     is_first_col = (i == 0)
-    im = plot_snapshot_with_clumps(sim_name_2, home_dir_2, clump_dir_2, snapshot, axes[1, i], width_pc, is_first_col, cmin, cmax, plot_clumps=True)
+    im = plot_snapshot_with_clumps(sim_name_2, home_dir_2, clump_dir_2, snapshot, axes[1, i], width_pc, 
+                                   is_first_col, cmin, cmax, plot_clumps=True)
 
 # Create the colorbar for figure from the last im object (created from sliceplot number density field)
 cbar_ax = fig.add_axes([0.90, 0.027, 0.015, 0.943])  # [left, bottom, width, height]
