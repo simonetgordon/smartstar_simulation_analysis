@@ -71,9 +71,9 @@ if __name__ == "__main__":
 
     ################################## Parameters ##################################
     rvir_pc_s1 = 79.34 # at 2167.60571289 comoving. This is at z = 26.338 at l3
-    rvir_pc_s2 = 187.0971 # 3600.0002 comoving. This is at z = 19.115 at l2
-    M200 = 2.7491550e+05 # at z = 26.338 at l3 (same as Mvir)
-    M200_s2 = 1292000.0 # at z = 19.115 at l2
+    #rvir_pc_s2 = 187.0971 # 3600.0002 comoving. This is at z = 19.115 at l2
+    M200 = 1.01e6 # at z = 26.338 at l3 (same as Mvir)
+    #M200_s2 = 1292000.0 # at z = 19.115 at l2
     n_subplots = 5
     y = sys.argv[-1] # naming plot
     fontsize = 10 # for projection annotations
@@ -81,19 +81,25 @@ if __name__ == "__main__":
     r_lim_kpc = 10 # kpc
     alpha = 0.9
 
-    root_dir = ["/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/",
-                "/disk14/sgordon/cirrus-runs-rsync/seed2-bh-only/270msun/replicating-beckmann-2/"]
-    sim = ["1B.RSb16", "2B.RSb16"]
-    dds = ["DD0128/DD0128", "DD0198/DD0198"]
+    root_dir = ["/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/",
+                "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/",
+                "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/",
+                "/disk14/sgordon/pleiades-11-12-23/seed2-bh-only/270msun/replicating-beckmann-2/"
+                ]
+    sim = [#"1B.RSb16", "2B.RSb16"
+            "1B.RSb01-2", "1B.RSb01-2",
+            "1B.RSb01-2", "2B.RSb01"]
+    dds = [#"DD0128/DD0128", "DD0198/DD0198"
+            "DD0446/DD0446", "DD0153/DD0153", "DD0155/DD0155", "DD0227/DD0227"]
 
     # line colours
-    c2 = ['cyan', 'salmon', 'salmon', 
-        'lightgreen', 'khaki', 'plum', 'seagreen', 'steelblue', 'salmon']
-    #c = ['#415BFF', '#FF1F71']
-    c = [(0.1294, 0.5686, 0.5490), (0.7176, 0.2157, 0.4745)] # teal, magenta
+    # Generate a color for each simulation using the colormap
+    color_map = plt.cm.Spectral
+    c = color_map(np.linspace(0.1, 0.8, len(sim)))
+    #simulation_colors = {simulation: color for simulation, color in zip(sim, colors)}
     ################################################################################
 
-    # generate line labels
+    # generate line labelslen(sim)
     labels, DS = generate_labels(dds, root_dir, sim)
 
     # set font format
@@ -175,26 +181,33 @@ if __name__ == "__main__":
     # make lines for legend
     lines = [Line2D([0], [0], color=c[0], linestyle='solid', lw=linewidth),
                 Line2D([0], [0], color=c[1], linestyle='solid', lw=linewidth),
+                Line2D([0], [0], color=c[2], linestyle='solid', lw=linewidth),
+                Line2D([0], [0], color=c[3], linestyle='solid', lw=linewidth),
                 Line2D([0], [0], color='grey', linestyle='dashdot', lw=linewidth),
                 Line2D([0], [0], color='grey', linestyle='dotted', lw=linewidth)]
-    labels = ['Halo1_124.7Myr', 'Halo2_195.5Myr', r'$R_{200}$', r'$M_{200}$']
+    labels = ['Halo1_31.7Myr',
+              'Halo1_2.5Myr',  
+              'Halo1_2.7Myr', 
+              'Halo2_2.9Myr', 
+              r'$R_{200}$', r'$M_{200}$']
     # set axis labels
     axs[-1].set_xlabel(r"$\rm Radius \, (pc)$", fontdict=None)
-    axs[4].set_ylim([-7, 1])
+    axs[0].set_ylim([7e2, 2e7])
+    axs[1].set_ylim([90, 2300])
     axs[4].set_ylabel(r"$\nu_r$ (km/s)", fontdict=None)
-    axs[4].set_yscale('linear')
-    axs[2].set_ylabel(r"$\rm n \, (1/cm^{3})$", fontdict=None)
+    #axs[4].set_yscale('linear')
+    axs[2].set_ylabel(r"$\rm n \, (cm^{-3})$", fontdict=None)
     for i in range(n_subplots):
-        axs[i].axvline(x=rvir_pc_s1, color=c[0], linestyle='dashdot', lw=linewidth-0.5, alpha=0.7, label=r"$R_{200}$")
-        axs[i].axvline(x=rvir_pc_s2, color=c[1], linestyle='dashdot', lw=linewidth-0.5, alpha=0.7, label=r"$R_{200}$")
+        axs[i].axvline(x=rvir_pc_s1, color='grey', linestyle='dashdot', lw=linewidth-0.5, alpha=0.7, label=r"$R_{200}$")
+        #axs[i].axvline(x=rvir_pc_s2, color=c[1], linestyle='dashdot', lw=linewidth-0.5, alpha=0.7, label=r"$R_{200}$")
     axs[3].set_ylabel(r"$t_{\rm ff} \, \rm (Myr)$", fontdict=None)
     axs[1].set_ylabel(r"$\rm T \, (K)$", fontdict=None)
     axs[0].set_ylabel(r"$\rm M_{encl} \, (M_{\odot})$", fontdict=None)
-    axs[0].axhline(y=M200, color=c[0], linestyle='dotted', lw=linewidth-0.5, alpha=0.8, label=r"$M_{200}$")
-    axs[0].axhline(y=M200_s2, color=c[1], linestyle='dotted', lw=linewidth-0.5, alpha=0.8, label=r"$M_{200}$")
-    axs[0].legend(lines, labels, loc="upper left", fontsize=fontsize-1, ncol=1)  # upper/lower
+    axs[0].axhline(y=M200, color='grey', linestyle='dotted', lw=linewidth-0.5, alpha=0.8, label=r"$M_{200}$")
+    #axs[0].axhline(y=M200_s2, color=c[1], linestyle='dotted', lw=linewidth-0.5, alpha=0.8, label=r"$M_{200}$")
+    axs[0].legend(lines, labels, loc="upper left", fontsize=fontsize-2, ncol=2)  # upper/lower
     for i in range(n_subplots):
-        axs[i].set_xlim([2e-3, 1e3])
+        axs[i].set_xlim([6e-3, 1e3])
         axs[i].grid(which='major', linestyle='solid', linewidth=0.5, color='grey', alpha=0.5)
         axs[i].tick_params(axis="x", which='major', length=3, direction="in")
         axs[i].tick_params(axis="x", which='minor', length=2, direction="in")

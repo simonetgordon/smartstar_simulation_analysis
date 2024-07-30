@@ -13,8 +13,8 @@ from yt.utilities.math_utils import ortho_find
 # Define directories
 home_dir_1 = "/Backup01/sgordon/disk14/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/"
 home_dir_2 = "/Backup01/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb04/"
-clump_dir_1 = "_1B.RSb01-2clumps"
-clump_dir_2 = "_1B.RSb04clumps"
+clump_dir_1 = "clumps/_1B.RSb01-2clumps"
+clump_dir_2 = "clumps/_1B.RSb04clumps"
 
 # Define the snapshots to be plotted
 snapshots = ["DD0150_clump_0.h5", "DD0153_clump_0.h5", "DD0156_clump_0.h5", "DD0159_clump_0.h5"]
@@ -95,7 +95,7 @@ def plot_snapshot_with_clumps(sim_name, home_dir, clump_dir, snapshot, ax, width
 
     # Add the scalebar and annotations
     font_text = 18
-    scalebar = AnchoredSizeBar(ax.transData, 800/width_pc/0.5, '0.5 pc', loc='lower left', pad=0.3, color='white', 
+    scalebar = AnchoredSizeBar(ax.transData, npixels/(width_pc/0.5), '0.5 pc', loc='lower left', pad=0.3, color='white', 
                                frameon=False, size_vertical=2, fontproperties=fm.FontProperties(size=font_text))
     ax.add_artist(scalebar)
 
@@ -131,12 +131,13 @@ for i, snapshot in enumerate(snapshots):
 
 # Create the colorbar for figure from the last im object (created from sliceplot number density field)
 cbar_ax = fig.add_axes([0.90, 0.027, 0.015, 0.943])  # [left, bottom, width, height]
-cb = plt.colorbar(im, cax=cbar_ax) 
-cb.set_label(r'Number Density ($\rm 1/cm^3$)', fontsize=16)
+cb = fig.colorbar(im, cax=cbar_ax) 
+cb.set_label(r'Number Density ($\rm 1/cm^3$)', fontsize=18)
+cb.ax.tick_params(labelsize=18) 
 
 # Save the figure
 plt.tight_layout(rect=[0, 0, 0.9, 1])
 plt.subplots_adjust(wspace=0, hspace=0)
-figname = f"plots/clump_projection_{sim_name_1}_{sim_name_2}_{width_pc:.1f}pc.png"
+figname = f"plots/clump_projection_2_rows_{sim_name_1}_{sim_name_2}_{width_pc:.1f}pc.png"
 plt.savefig(figname)
 print("Saved plot to ", figname)

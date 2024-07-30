@@ -6,17 +6,23 @@ import os
 import re
 from yt.utilities.math_utils import ortho_find
 from matplotlib import rc, pyplot
+from yt.utilities.exceptions import YTSphereTooSmall
 
 
-def configure_font(fontsize=14):
+def configure_font(fontsize=14, linewidth=1):
+    """
+    Configure the font for matplotlib plots.
+    Set the font to Times New Roman, and set the font size and weight.
+    """
     pyplot.rcParams['font.size'] = fontsize
     pyplot.rcParams['font.weight'] = 'light'
     rc('font', **{'family': 'serif', 'serif': ['Times'], 'weight': 'light'})
     rc('text', usetex=True)
     plt.rcParams["mathtext.default"] = "regular"
+    plt.rcParams['lines.linewidth'] = linewidth
 
 
-def ss_properties(ds):
+def ss_properties(ds, velocity=False):
     print("ds = ", ds)
     ad = ds.all_data()
     try:
@@ -32,7 +38,10 @@ def ss_properties(ds):
     except:
         ss_pos = None
         ss_mass=0*yt.units.msun
-        ss_age = [0*yt.units.Myr]
+        ss_age = [0]
+    if velocity:
+        ss_vel = ad['SmartStar', 'particle_velocity'].to('km/s')[0]
+        return ss_pos, ss_mass, ss_age, ss_vel
 
     return ss_pos, ss_mass, ss_age
 
@@ -50,7 +59,11 @@ def _make_disk_L(ds, center, width, height):
         width = width*yt.units.pc
     if isinstance(height, float):
         height = height*yt.units.pc
-    sp = ds.sphere(center, width)
+    try:
+        sp = ds.sphere(center, width)
+    except YTSphereTooSmall:
+        dx = ds.index.get_smallest_dx().in_units('pc')
+        sp = ds.sphere(center, dx*5)
     L = sp.quantities.angular_momentum_vector()
     L /= np.sqrt((L ** 2).sum())
     disk = ds.disk(center, L, width, height)
@@ -66,6 +79,7 @@ def tidy_data_labels(labels, custom_name=None):
         label = label.replace("-2", "")
         label = label.replace("RS", "")
         label = label.replace("-4dx", "")
+        label = label.replace("-gap", "")
         label = label.replace("/2B.b08", "") # for plot_disc_attributes.py 2B.b08
         try: 
             parts = labels.split('/')
@@ -180,6 +194,21 @@ def field_from_sliceplot(field, ds, disk, center, width_pc, north, dir, npixels=
         return slc_field
     
 
+def eddington_rate(mparticle_msun: float):
+    # eddington rate constants in cgs units
+    PI = 3.1415927
+    GravConst = 6.6740831e-8
+    mh = 1.67262171e-24
+    clight = 2.99792458e10
+    sigma_thompson = 6.65E-25
+    eta_disk = 0.1 # optically thick and e_radiative = 0.11
+    SolarMass = 1.9891e33
+    yr_s = 3.1556952E7
+    mparticle_g = mparticle_msun*SolarMass
+    mdot_edd = 4.0 * PI * GravConst * mparticle_g * mh / (clight * eta_disk * sigma_thompson)
+    return mdot_edd*yr_s/SolarMass
+    
+
 def ToomreQ(cs, kappa, G, surface_density):
     """
     Calculate the Toomre Q parameter for linear stability
@@ -208,6 +237,24 @@ def orbital_velocity(ds, disk):
     G = 6.67e-8 * (yt.units.cm ** 3)/(yt.units.g*yt.units.s**2) # cgs
     return np.sqrt(G * ds.r['SmartStar', 'particle_mass'].to('g') / disk['index', 'radius'].to('cm'))
     
+
+def _metal_fraction(field, data):
+    """
+    Compute the metal fraction from given field and data.
+    """
+    return (data["enzo", "SN_Colour"] / data["gas", "density"]).to("dimensionless")
+
+def _h2_fraction(field, data):
+    """
+    Compute the H2 fraction from given field and data.
+    """
+    return (data["gas", "H2_density"] / data["gas", "density"]).to("dimensionless")
+
+def _hii_fraction(field, data):
+    """
+    Compute the HII fraction from given field and data.
+    """
+    return (data["enzo", "HII_Density"] / data["gas", "density"]).to("dimensionless")
 
 def critical_density(ds, n_crit=False):
     # Get the cosmological parameters from the dataset parameters
@@ -261,9 +308,101 @@ def extract_dd_segment(file_path: str) -> str:
     else:
         return ""
     
-def extract_simulation_name(fp):
+
+# def extract_simulation_name(filepath, custom_name=None):
+#     """
+#     Extract the simulation name from a file path. The function first checks for a custom name.
+#     If not provided, it tries to find a match using different patterns, including a specific case to handle
+#     formats like '1B.RSb01-2' and transform them into '1B.b01'.
+
+#     Parameters:
+#     filepath (str): The file path from which to extract the simulation name.
+#     custom_name (str, optional): If provided, this custom name will be returned instead of extracting from the file path.
+
+#     Returns:
+#     str: The extracted simulation name, or None if no suitable name is found.
+#     """
+    
+#     # If a custom name is provided, return it
+#     if custom_name:
+#         return custom_name
+
+#     # Remove any trailing file separator
+#     filepath = filepath.rstrip(os.path.sep)
+
+#     # Specific pattern for '1B.RSb01-2' to '1B.b01'
+#     specific_pattern = re.compile(r'(\d+[A-Z][a-z]*)(?:\.RSb)(\d+)-\d+$')
+#     specific_match = specific_pattern.search(os.path.basename(filepath))
+#     if specific_match:
+#         print("specific match")
+#         return '{}.b{}'.format(specific_match.group(1), specific_match.group(2))
+
+#     # Check if the last part of the filepath matches the expected general pattern
+#     last_part = os.path.basename(filepath)
+#     general_pattern = re.compile(r'^[A-Za-z\d]+(\.[A-Za-z\d]+)*$')
+#     if general_pattern.match(last_part):
+#         return last_part
+
+#     # Search in the entire path using a general pattern
+#     match = None
+#     general_search_pattern = re.compile(r'\b(?:\d+[A-Za-z]+\d+|[A-Za-z]+\d+)\b')
+#     path_parts = filepath.split(os.path.sep)
+#     for part in reversed(path_parts):
+#         if general_search_pattern.search(part):
+#             match = general_search_pattern.search(part).group(0)
+#             break
+
+#     # If no general match, try a fallback pattern
+#     if not match:
+#         fallback_matches = re.findall(r'/([^/]+)/DD', filepath)
+#         if fallback_matches:
+#             return fallback_matches[-1]
+
+#     return match
+    
+
+# used in make_csv_from_estd.py
+def extract_simulation_name(filepath, custom_name=None):
     """
-    Extract the simulation name from a file path.
+    Extract the simulation name from a file path. The function first checks for a custom name.
+    If not provided, it tries to find a match using different patterns, including a specific case to handle
+    formats like '1B.RSb01-2' and transform them into '1B.b01'.
+    """
+
+    # If a custom name is provided, return it
+    if custom_name:
+        return custom_name
+    
+    # Get the last part of the path
+    last_part = os.path.basename(filepath)
+
+    # Use regular expression to extract the full simulation name
+    match = re.search(r'\b(?:\d+[A-Za-z]+\d+|[A-Za-z]+\d+)\b', last_part)
+
+    if match:
+        sim_name = match.group(0)
+    else:
+        # If the match is not found, try to extract from the parent directories
+        path_parts = filepath.split(os.path.sep)
+        for i in range(len(path_parts)-1, -1, -1):
+            match = re.search(r'\b(?:\d+[A-Za-z]+\d+|[A-Za-z]+\d+)\b', path_parts[i])
+            if match:
+                sim_name = path_parts[i]
+                break
+        else:
+            return None
+
+    # Remove 'RS' from the simulation name, if present
+    sim_name = sim_name.replace('RS', '')
+    sim_name = sim_name.replace('-2', '') # Just for 1B.RSb01-2 -> 1B.b01, not for all sims - beware!
+
+    return sim_name
+
+
+def extract_simulation_name_from_csv(fp):
+    """
+    Extract the simulation name from a .csv datafile path.
+    e.g. 'data_files/data-1B.resim.th.b01.csv' -> '1B'
 
     Parameters:
     fp (str): The file path.
@@ -271,15 +410,67 @@ def extract_simulation_name(fp):
     Returns:
     str: The extracted simulation name.
     """
-    # Find all substrings that match the pattern
-    matches = re.findall(r'/([^/]+)/DD', fp)
+    # First pattern for '1B.resim.th.b01' format
+    pattern1 = r'data-([^.]+\.resim\.th\.b\d+)'
+    # First pattern for '1B.resim.th.b01' format
+    pattern3 = r'data-([^.]+\.resim\.th\.b\d+)'
+    # Second pattern for '1B.b01' format
+    pattern2 = r'data-([^.]+\.RSb\d+)'
 
-    # Return the last match (closest to the end of the string)
+    # Try the first pattern
+    matches = re.findall(pattern1, fp)
     if matches:
-        return matches[-1]
+        match = matches[0].replace('data', '')
+        return matches[0]
+
+    # If the first pattern doesn't match, try the second
+    matches = re.findall(pattern2, fp)
+    if matches:
+        match = matches[0].replace('RS', '')
+        match = match.replace('-2', '')
+        return match
+
+    # If no matches are found
+    print("No match found")
+    return None
+
+def find_north_vector(dd, root_dir, orient, disc_r_pc = 2.1, disc_h_pc = 2.1):
+    # find north vector a (near-end) ds
+    ds_final = yt.load(os.path.join(root_dir, dd))
+    ss_pos, ss_mass, ss_age = ss_properties(ds_final)
+    center = ss_pos
+    r = 2000*yt.units.pc
+
+    # make disk data container and define angular momentum vector L
+    disk, L = _make_disk_L(ds_final, ss_pos, disc_r_pc, disc_h_pc)
+    
+    # Gives a 3d vector and it will return 3 orthogonal vectors, the first one being the original vector
+    # and the 2nd and 3rd being two vectors in the plane orthogonal to the first and orthogonal to each other.
+    # It's very useful for giving you a vector edge-on to the disk.
+    vecs = ortho_find(L)
+
+    if orient == "face-on":
+        orient_str = "face_on_"
+        dir = vecs[0]
+        north = vecs[1]
     else:
-        print("No match found")
-        return None
+        orient_str = "edge_on_"
+        dir = vecs[2]
+        north = vecs[0]
+    
+    return dir, north, disk, orient_str
+
+
+def extract_field(map_tuple):
+    """
+    Extracts the second element from a tuple and returns it.
+    For use in projection_movie_2.py script.
+    """
+    if not isinstance(map_tuple, tuple) or len(map_tuple) < 2:
+        raise ValueError("Input must be a tuple with at least two elements")
+    
+    return map_tuple[1]
+
 
 def toomre_from_sliceplot(ds, disk, center, width_pc, north, dir, npixels=2048):
     """
@@ -502,7 +693,6 @@ def compute_radial_profile(radius, data, num_bins=128):
     return bin_centers, profile
 
 
-
 def radial_profile(field, disk, n_bins, cell_width_pc):
     bins = np.logspace(np.log10(cell_width_pc), np.log10(disk["index", "radius"].to('pc').max()), n_bins+1)
     counts_r, r_bin_edges = np.histogram(disk["index", "radius"].to('pc'), bins=bins)
@@ -523,3 +713,25 @@ def make_frb(ds, L, center, width= 10*yt.units.pc, npixels=1024, height=0.05*yt.
     cutting = ds.cutting(L, center)
     frb = cutting.to_frb(width, npixels, height=height)
     return frb, height
+
+# For clump finding
+def ensure_dir(path):
+    r"""Parallel safe directory maker."""
+    if os.path.exists(path):
+        return path
+
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise
+    return path
+
+# Define the derived field function
+def total_thermal_energy(field, data):
+    return data[("gas", "specific_thermal_energy")] * data[("gas", "mass")]
+
+def specific_thermal_energy(field, data):
+    return data[("gas", "specific_thermal_energy")]

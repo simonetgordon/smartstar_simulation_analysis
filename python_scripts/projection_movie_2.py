@@ -1,6 +1,7 @@
 import os
 import yt
 import re # complex str searches
+import numpy as np
 yt.enable_parallelism()
 from yt.utilities.math_utils import ortho_find
 from helper_functions import _make_disk_L, ss_properties, find_north_vector, _metal_fraction, extract_field, _h2_fraction, _hii_fraction
@@ -64,16 +65,17 @@ def apply_annotations_and_save(p, ds, center, ss_mass, ss_age, title=None, orien
     txt_color = "white" if map == ("gas", "temperature") else "white"
 
     # BH position cross
-    p.annotate_marker(center, coord_system="data", color=txt_color)
+    #p.annotate_marker(center, coord_system="data", color=txt_color)
 
     # BH Thermal Feedback Sphere
     r_fb = 5*ds.index.get_smallest_dx().in_units("pc")
     p.annotate_sphere(center, radius=r_fb, circle_args={"color": "green", "alpha": 0.5, "linestyle": "--"})
 
     # top left text
-    p.annotate_text((a, b), r"BH Mass: {:.0f} $\rm M_\odot$".format(ss_mass.d), coord_system="axis",
+    particle = "Star" if sim_str[0] == 's' else "BH"
+    p.annotate_text((a, b), r"{} Mass: {:.2f} $\rm M_\odot$".format(particle, ss_mass.d), coord_system="axis",
                         text_args={"color": txt_color}) 
-    p.annotate_text((a, b-0.05), "BH Age = {:.2f} Myr".format(ss_age[0] / 1e6), coord_system="axis",
+    p.annotate_text((a, b-0.05), "{} Age = {:.2f} Myr".format(particle, ss_age[0] / 1e6), coord_system="axis",
                         text_args={"color": txt_color})
     
     # lower right text
@@ -159,7 +161,13 @@ def process_data_series(es, map, orient, w_pc, c_min, c_max, root_dir, use_north
                 orient_str = "edge_on_continuous_"
                 dir = vecs[1]
                 north = vecs[0]
-            disc = ds.disk(center, dir, (w_pc, "pc"), (0.2, "pc"))
+        else:
+            orient_str = 'x' if orient == 'face-on' else 'z'
+            dir = np.array([1, 0, 0]) if orient == 'face-on' else np.array([0, 0, 1])
+            north = None
+        
+        # make disk data container
+        disc = ds.disk(center, dir, (w_pc, "pc"), (50, "pc"))
 
         # make projection plot
         if plot_type == "projection":
@@ -192,14 +200,14 @@ def main(map, orient, w_pc, c_min, c_max, root_dirs, cmap, weight_field, plot_ty
 if __name__ == "__main__":
     ##########################################################
     # Generates a series of projections for a given simulation
-    # Call like: mpirun -np 12 python projection_movie_2.py 
+    # Call like: mpirun -np 16 python projection_movie_2.py 
     ##########################################################
     map = ('gas', 'number_density')
     weight_field = "density"
-    orient = "edge-on" # "edge-on" or "face-on"xw
+    orient = "face-on" # "edge-on" or "face-on"
     w_pc = 1 # width in pc
-    c_min = 1e2 # min value for colorbar 5e3 for no fb, 60 K temp resim  
-    c_max = 1e8 # max value for colorbar 8e9 for no fb, 1e5 K temp resim
+    c_min = 2e4 #1e1 # min value for colorbar 5e3 for no fb, 60 K temp resim  
+    c_max = 2e8 #1e8 # max value for colorbar 8e9 for no fb, 1e5 K temp resim
     cmap = "viridis" # e.g. "magma", "viridis", "plasma", "inferno", "jet", "octarine", "rainbow"
     plot_type = "projection" # "projection" or "slice"
     root_dirs = [
@@ -207,15 +215,37 @@ if __name__ == "__main__":
         #"/ceph/cephfs/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.m16-4dx/",
         #"/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb08/2B.RSb08-2/",
         #"/ceph/cephfs/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb16/"
-        #"/Backup00/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/"
+        #"/Backup01/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/"
         #"/Backup01/sgordon/pleiades/seed2-bh-only/270msun/replicating-beckmann-2/2B.m08-4dx/2B.m16-4dx-2/",
         #"/disk14/sgordon/pleiades-11-12-23/seed1/seed1/270msun/s1.270.bf128-free/",
         #"/disk14/sgordon/cirrus-runs-rsync/seed1/270msun/",
         #"/disk14/sgordon/cirrus-runs-rsync/seed2/270msun/",
         #"/Backup01/sgordon/pleiades/seed1-bh-only/seed1-bh-only/270msun/thermal-fb/1B.th.bf128/"
-        "/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01/"
+        #"/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01/"
         #"/disk14/sgordon/pleiades-11-12-23/seed1/seed1/270msun/s1.b270.l16/"
-        #"/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb04/"
-        ]
-    custom_name = None
-    main(map, orient, w_pc, c_min, c_max, root_dirs, cmap, weight_field, plot_type, use_north_vector_ds=True, custom_name=custom_name)
+        #"/disk14/sgordon/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb04/",
+        #"/disk14/sgordon/pleiades-11-12-23/seed1/seed1/270msun/s1.b270.l16/"
+        #"/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed1/40msun/"
+        #"/Backup01/sgordon/disk14/cirrus-runs-rsync/cirrus-runs-rsync/seed1/270msun/"
+        #"/disk14/sgordon/pleiades-11-12-23/seed2-bh-only/270msun/thermal-fb/2B.th.bf128/"
+        #"/Backup01/sgordon/disk14/pleiades-11-12-23/seed1-bh-only/270msun/replicating-beckmann/1B.RSb01-2/"
+        #"/disk14/sgordon/pleiades-11-12-23/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb01"
+        #"/disk14/sgordon/pleiades-11-12-23/seed1/seed1/270msun/s1.b270.l14/"
+        #"/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-3-eps-0.0001/"
+        #"/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.th.bf128-eps-0.0001/",
+        #"/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.th.bf128/",
+        #"/disk14/sgordon/pleiades-11-12-23/seed1-bh-only/270msun/thermal-fb/1B.th.bf128-eps-0.01/"
+        # "/disk01/sgordon/pleiades-18-03-24/seed1/seed1/270msun/s1.b270.l14/",
+        # "/disk14/sgordon/pleiades-11-12-23/seed1/seed1/270msun/s1.b270.l14/"
+        #"/disk14/sgordon/pleiades-11-12-23/seed2-bh-only/270msun/replicating-beckmann-2/2B.RSb01/"
+        #"/disk01/sgordon/pleiades-18-03-24/seed2-bh-only/270msun/thermal-fb/2B.resim.th.b01-eps-0.001/"
+        #"/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b04/"
+        #"/disk01/sgordon/pleiades-18-03-24/seed2-bh-only/270msun/thermal-fb/2B.resim.th.b01/"
+        #"/disk01/sgordon/pleiades-18-03-24/seed2/seed2/270msun/s2.b270-LR/"
+        #"/disk01/sgordon/pleiades-18-03-24/seed1/seed1/270msun/s1.b270-LR/"
+        #"/Backup01/sgordon/disk14/cirrus-runs-rsync/seed1-bh-only/270msun/replicating-beckmann/1B.RSb08/"
+        #"/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b04/"
+        "/disk01/sgordon/pleiades-18-03-24/seed1-bh-only/270msun/thermal-fb/1B.resim.th.b01-eps-0.001-2/"
+    ]
+    custom_name = '1B.resim.th.b01-eps-0.001-2'
+    main(map, orient, w_pc, c_min, c_max, root_dirs, cmap, weight_field, plot_type, use_north_vector_ds=False, custom_name=custom_name)
