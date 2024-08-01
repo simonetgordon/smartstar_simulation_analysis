@@ -39,9 +39,7 @@ def process_disk_data(filepath, sim_name=None, min_avg_density=1e6, max_disc_r_p
         
         # Calculate the average density and total mass
         avg_density = disk.mean('number_density', weight='cell_volume').in_units('1/cm**3')
-        total_mass = disk.quantities.total_mass().in_units('Msun')
-        
-        logging.info(f"At radius {disc_r_pc} pc, avg_density = {avg_density}, total_mass = {total_mass}")
+        logging.info(f"At radius {disc_r_pc} pc, avg_density = {avg_density}")
         
         # Increment the disk radius for the next iteration if density threshold is not met
         if avg_density < min_avg_density:
@@ -53,6 +51,7 @@ def process_disk_data(filepath, sim_name=None, min_avg_density=1e6, max_disc_r_p
     
     # Get the disk radius (r_max) in pc
     disk_radius = disc_r_pc
+    total_mass = disk.quantities.total_mass().in_units('Msun')
     
     # Return the computed values
     return {
@@ -124,7 +123,7 @@ if __name__ == "__main__":
     df = pd.DataFrame(disk_data)
 
     # Save the DataFrame to a CSV file
-    filename = "disc_data_plotting/data_misc/disc_data.csv"
+    filename = "csv_data_plotting/data_misc/disc_data.csv"
     df.to_csv(filename, index=False)
 
     print(f"Data has been processed and saved to {filename}")
