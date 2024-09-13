@@ -191,6 +191,10 @@ def plot_combined_for_data_files(simulation_prefixes, color_lst, alpha=0.8, time
         # Compute fractions
         mass_fraction, time_fraction = compute_fractions(f_edd, mass_gained, time_intervals)
 
+        # Calculate the final BH mass and format it
+        bh_mass_final = np.sum(mass_gained)
+        bh_mass_text = r"Mass gained: {bh_mass_final:.2e} $M_\odot$"
+
         # Plotting on the corresponding axis
         ax = axes[i] if n_plots > 1 else axes
         labels = [r"$f_{\rm Edd} < 0.01$", r"$0.01 \leq f_{\rm Edd} \leq 1$", r"$f_{\rm Edd} > 1$"]
@@ -204,6 +208,10 @@ def plot_combined_for_data_files(simulation_prefixes, color_lst, alpha=0.8, time
         ax.bar(x, mass_values, width, label='Mass Gained', color=colors[color_lst[i]], alpha=alpha)
         ax.bar(x, time_values, width, label='Time', color=colors['lilac'], hatch='//', alpha=0.3)
 
+        # Add BH mass text to the plot
+        ax.text(0.5, 0.95, bh_mass_text, transform=ax.transAxes, fontsize=12,
+                verticalalignment='top', horizontalalignment='center')
+        
         # Add legend on first and last subplot
         if i == 0:
             ax.legend()
